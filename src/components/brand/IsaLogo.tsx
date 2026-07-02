@@ -1,25 +1,16 @@
-import {
-  ISA_VIEWBOX,
-  BASELINE_PATH,
-  I_PATH,
-  S_PATH,
-  A_PATH,
-  A_RIDGE_PATH,
-} from "@/lib/isaPaths";
+import { ISA_VIEWBOX, ISA_STROKE, I_PATH, S_PATH, A_PATH, A_BAR } from "@/lib/isaPaths";
 import { cn } from "@/lib/cn";
 
 /**
- * The final, static ISA mark — no runner. Pure line art that scales from a
- * favicon to a hero. Inherits `currentColor`, so color it with text utilities.
+ * The final, static ISA mark — no runner. Exact isa-logo.svg geometry, pure
+ * line art that scales from a favicon to a hero. Inherits `currentColor`.
  */
 export function IsaLogo({
   className,
-  withBaseline = true,
   glow = false,
-  strokeWidth = 2.5,
+  strokeWidth = ISA_STROKE,
 }: {
   className?: string;
-  withBaseline?: boolean;
   glow?: boolean;
   strokeWidth?: number;
 }) {
@@ -35,13 +26,10 @@ export function IsaLogo({
       aria-label="ISA"
       className={cn(glow && "isa-glow", className)}
     >
-      {withBaseline && (
-        <path d={BASELINE_PATH} opacity={0.28} />
-      )}
       <path d={I_PATH} />
       <path d={S_PATH} />
       <path d={A_PATH} />
-      <path d={A_RIDGE_PATH} opacity={0.4} />
+      <path d={A_BAR} />
     </svg>
   );
 }
