@@ -1,27 +1,29 @@
 /**
- * Exact ISA mark geometry (from isa-logo.svg — do not redesign).
- * One continuous white line on a 900×240 canvas forms I → S → A.
+ * ISA mark geometry — clean, legible I · S · A on a shared baseline (the life
+ * line). The runner travels the baseline; the letters form as it passes.
+ * viewBox 900×240, stroke 10.
  */
 
 export const ISA_VIEWBOX = "0 0 900 240";
 export const ISA_STROKE = 10;
+export const BASELINE_Y = 190;
+
+/** The life line the runner travels along. */
+export const BASELINE_PATH = "M120 190 H780";
 
 /** I — vertical identity stroke. */
-export const I_PATH = "M90 50 L90 190";
+export const I_PATH = "M170 60 L170 190";
 
-/** The continuous line from the I through the S. */
+/** S — a clean two-bowl S (process). */
 export const S_PATH =
-  "M90 120 C140 120 170 120 210 120 C290 120 290 50 210 50 C130 50 130 190 210 190 C290 190 290 120 360 120";
+  "M402 96 C402 68 318 66 318 104 C318 138 402 130 402 164 C402 196 322 198 306 170";
 
-/** The line rising into the A (mountain). */
-export const A_PATH = "M360 120 C420 120 470 120 510 120 L600 50 L690 190";
+/** A — the mountain peak (aim). */
+export const A_PATH = "M500 190 L620 55 L740 190";
 
-/** The A's crossbar. */
-export const A_BAR = "M635 120 L565 120";
+/** A — crossbar. */
+export const A_BAR = "M558 132 L682 132";
 
-/**
- * The runner's route = the whole continuous line (S into A) as one path, so the
- * runner rides the exact drawing tip from the I, through the S, up the A.
- */
-export const ROUTE =
-  "M90 120 C140 120 170 120 210 120 C290 120 290 50 210 50 C130 50 130 190 210 190 C290 190 290 120 360 120 C420 120 470 120 510 120 L600 50 L690 190";
+/** Runner travel range along the baseline (x). */
+export const RUN_FROM = 120;
+export const RUN_TO = 760;

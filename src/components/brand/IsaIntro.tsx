@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, animate, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ISA_VIEWBOX,
   ISA_STROKE,
+  BASELINE_Y,
+  BASELINE_PATH,
   I_PATH,
   S_PATH,
   A_PATH,
   A_BAR,
-  ROUTE,
+  RUN_FROM,
+  RUN_TO,
 } from "@/lib/isaPaths";
 import { MountainBackdrop } from "@/components/brand/MountainBackdrop";
 import { IsaRunner } from "@/components/brand/IsaRunner";
@@ -17,10 +20,6 @@ import { IsaRunner } from "@/components/brand/IsaRunner";
 // easeInOutCubic — intentional, no bounce, no elastic.
 const EASE = [0.65, 0, 0.35, 1] as const;
 const SESSION_KEY = "isa_intro_seen";
-
-// Master draw window (path + runner share it exactly).
-const DRAW_DELAY = 0.3;
-const DRAW_DUR = 3.7;
 
 /** Plays the intro once per browser session; skipped under reduced motion. */
 export function IsaIntroGate() {
@@ -44,40 +43,10 @@ export function IsaIntroGate() {
 }
 
 function IsaIntro({ onDone }: { onDone: () => void }) {
-  const routeRef = useRef<SVGPathElement>(null);
-  const runnerRef = useRef<SVGGElement>(null);
-
   useEffect(() => {
-    const t = setTimeout(onDone, 5800); // draw done ~4.2s, hold ~1s + buffer
+    const t = setTimeout(onDone, 5800);
     return () => clearTimeout(t);
   }, [onDone]);
-
-  // Runner rides the exact drawing tip of ROUTE, staying upright with a hint of lean.
-  useEffect(() => {
-    const route = routeRef.current;
-    const g = runnerRef.current;
-    if (!route || !g) return;
-    const total = route.getTotalLength();
-    const controls = animate(0, 1, {
-      delay: DRAW_DELAY,
-      duration: DRAW_DUR,
-      ease: EASE,
-      onUpdate: (p) => {
-        const d = p * total;
-        const pt = route.getPointAtLength(d);
-        const ahead = route.getPointAtLength(Math.min(d + 2, total));
-        const lean =
-          (Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180) / Math.PI;
-        g.setAttribute(
-          "transform",
-          `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)}) rotate(${(
-            lean * 0.12
-          ).toFixed(2)})`
-        );
-      },
-    });
-    return () => controls.stop();
-  }, []);
 
   const drawn = { initial: { pathLength: 0 }, animate: { pathLength: 1 } };
 
@@ -89,7 +58,7 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.7, ease: EASE }}
     >
-      {/* Faint mountain atmosphere (brand continuity, ~10%) */}
+      {/* Faint mountain atmosphere (~10%) */}
       <motion.div
         className="absolute inset-x-0 bottom-0 h-[58%]"
         initial={{ opacity: 0 }}
@@ -111,7 +80,6 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
         transition={{ duration: 1.6, delay: 0.3, ease: EASE }}
       />
 
-      {/* The mark */}
       <div className="relative flex flex-col items-center px-6">
         <svg
           viewBox={ISA_VIEWBOX}
@@ -122,43 +90,59 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
           strokeLinejoin="round"
           className="isa-glow w-[min(88vw,720px)]"
         >
-          {/* hidden route the runner samples */}
-          <path ref={routeRef} d={ROUTE} stroke="none" fill="none" />
-
-          {/* 0.3s → the continuous line draws itself (S then A) */}
+          {/* 0.3s → the life line writes itself */}
           <motion.path
-            d={ROUTE}
+            d={BASELINE_PATH}
+            opacity={0.28}
             {...drawn}
-            transition={{ duration: DRAW_DUR, delay: DRAW_DELAY, ease: EASE }}
+            transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
           />
-          {/* 3.6s → the A's crossbar */}
+
+          {/* 2.0s → the S forms as the runner passes */}
+          <motion.path
+            d={S_PATH}
+            {...drawn}
+            transition={{ duration: 0.9, delay: 1.8, ease: EASE }}
+          />
+          {/* 3.2s → the path rises into the mountain A */}
+          <motion.path
+            d={A_PATH}
+            {...drawn}
+            transition={{ duration: 0.9, delay: 3.0, ease: EASE }}
+          />
           <motion.path
             d={A_BAR}
             {...drawn}
-            transition={{ duration: 0.4, delay: 3.6, ease: EASE }}
+            transition={{ duration: 0.4, delay: 3.7, ease: EASE }}
           />
 
-          {/* runner rides the drawing tip, then fades into the I */}
+          {/* runner runs the baseline, then fades into the I */}
           <motion.g
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 1, 0] }}
             transition={{
               duration: 3.6,
               delay: 0.8,
-              times: [0, 0.08, 0.94, 1],
+              times: [0, 0.06, 0.9, 1],
               ease: "linear",
             }}
           >
-            <g ref={runnerRef} transform="translate(90 120)">
-              <motion.g
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 0.3, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <g transform="scale(4.4)">
-                  <IsaRunner />
-                </g>
-              </motion.g>
-            </g>
+            <motion.g
+              initial={{ x: RUN_FROM }}
+              animate={{ x: RUN_TO }}
+              transition={{ duration: 3.2, delay: 0.8, ease: EASE }}
+            >
+              <g transform={`translate(0 ${BASELINE_Y})`}>
+                <motion.g
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 0.3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <g transform="scale(4.4)">
+                    <IsaRunner />
+                  </g>
+                </motion.g>
+              </g>
+            </motion.g>
           </motion.g>
 
           {/* 4.2s → the identity crystallizes as the I */}
@@ -167,11 +151,10 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
             {...drawn}
             transition={{ duration: 0.6, delay: 4.2, ease: EASE }}
           />
-          {/* soft light where the I forms */}
           <motion.line
-            x1={90}
-            y1={50}
-            x2={90}
+            x1={170}
+            y1={60}
+            x2={170}
             y2={190}
             stroke="#ffffff"
             strokeWidth={22}
