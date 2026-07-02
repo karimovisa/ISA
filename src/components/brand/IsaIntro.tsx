@@ -48,7 +48,11 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
 
-  const drawn = { initial: { pathLength: 0 }, animate: { pathLength: 1 } };
+  // opacity flips on with the draw so a round-cap dot never shows at pathLength 0.
+  const drawn = {
+    initial: { pathLength: 0, opacity: 0 },
+    animate: { pathLength: 1, opacity: 1 },
+  };
 
   return (
     <motion.div
@@ -93,8 +97,8 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
           {/* 0.3s → the life line writes itself */}
           <motion.path
             d={BASELINE_PATH}
-            opacity={0.28}
-            {...drawn}
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 0.28 }}
             transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
           />
 

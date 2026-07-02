@@ -11,8 +11,8 @@ export const BASELINE_Y = 190;
 /** The life line the runner travels along. */
 export const BASELINE_PATH = "M120 190 H780";
 
-/** I — vertical identity stroke. */
-export const I_PATH = "M170 60 L170 190";
+/** I — vertical identity stroke (authored bottom→up so it grows from the line). */
+export const I_PATH = "M170 190 L170 60";
 
 /** S — a clean two-bowl S (process). */
 export const S_PATH =
