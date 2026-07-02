@@ -19,6 +19,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useClock } from "@/hooks/useClock";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { PressButton } from "@/components/ui/PressButton";
 import { AscentProgress } from "@/components/ui/AscentProgress";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
@@ -41,6 +42,17 @@ export default function DashboardPage() {
   const journal = useCollection<JournalEntry>("journal_entries");
   const focus = useCollection<FocusSession>("focus_sessions");
   const [welcomed, setWelcomed] = useState(false);
+  const [ideaText, setIdeaText] = useState("");
+  const [ideaSaved, setIdeaSaved] = useState(false);
+
+  const captureIdea = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ideaText.trim()) return;
+    await ideas.add({ content: ideaText.trim(), tag: null });
+    setIdeaText("");
+    setIdeaSaved(true);
+    setTimeout(() => setIdeaSaved(false), 1600);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -205,6 +217,28 @@ export default function DashboardPage() {
             </p>
           </div>
         </GlassCard>
+      </motion.div>
+
+      {/* Quick idea capture */}
+      <motion.div {...rise(0.14)}>
+        <form
+          onSubmit={captureIdea}
+          className="glass mb-8 flex items-center gap-3 rounded-3xl py-2.5 pl-5 pr-2.5"
+        >
+          <Lightbulb size={18} className="shrink-0 text-muted" />
+          <input
+            value={ideaText}
+            onChange={(e) => setIdeaText(e.target.value)}
+            placeholder="Capture an idea before it fades…"
+            className="min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-muted/60"
+          />
+          <PressButton
+            type="submit"
+            className="shrink-0 rounded-2xl bg-white/10 px-4 py-2 text-xs font-medium text-white transition-colors duration-200 hover:bg-white/15"
+          >
+            {ideaSaved ? "Saved ✓" : "Save"}
+          </PressButton>
+        </form>
       </motion.div>
 
       {/* Four cards */}
