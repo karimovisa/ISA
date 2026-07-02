@@ -54,7 +54,10 @@ function NavLink({
           transition={{ type: "spring", stiffness: 400, damping: 32 }}
         />
       )}
-      <Icon size={20} className="relative z-10" />
+      <Icon
+        size={20}
+        className="relative z-10 transition-transform duration-200 group-hover:scale-110"
+      />
       {/* Desktop tooltip */}
       <span className="pointer-events-none absolute left-14 z-20 hidden whitespace-nowrap rounded-lg bg-white/10 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 md:block">
         {label}

@@ -13,6 +13,7 @@ import {
   labelClass,
   primaryBtnClass,
 } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
 import type { Project, ProjectStatus } from "@/lib/types";
 
 const STATUS: { value: ProjectStatus; label: string; color: string }[] = [
@@ -214,9 +215,9 @@ export default function ProjectsPage() {
               />
             </div>
           </div>
-          <button type="submit" className={primaryBtnClass}>
+          <PressButton type="submit" className={primaryBtnClass}>
             {editing ? "Save changes" : "Create project"}
-          </button>
+          </PressButton>
         </form>
       </Modal>
     </div>

@@ -19,7 +19,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useClock } from "@/hooks/useClock";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { AscentProgress } from "@/components/ui/AscentProgress";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
 import { quoteOfTheDay } from "@/lib/quotes";
@@ -90,7 +90,7 @@ export default function DashboardPage() {
       Icon: Target,
       value: goals.data.length,
       sub: `${overall}% overall progress`,
-      tint: "from-accent/15",
+      tint: "from-white/[0.05]",
     },
     {
       href: "/projects",
@@ -98,7 +98,7 @@ export default function DashboardPage() {
       Icon: FolderKanban,
       value: projects.data.length,
       sub: `${activeProjects} active`,
-      tint: "from-emerald-400/15",
+      tint: "from-white/[0.05]",
     },
     {
       href: "/ideas",
@@ -106,7 +106,7 @@ export default function DashboardPage() {
       Icon: Lightbulb,
       value: ideas.data.length,
       sub: "in your vault",
-      tint: "from-amber-400/15",
+      tint: "from-white/[0.05]",
     },
     {
       href: "/progress",
@@ -115,7 +115,7 @@ export default function DashboardPage() {
       value: overall,
       suffix: "%",
       sub: "weekly momentum",
-      tint: "from-fuchsia-400/15",
+      tint: "from-white/[0.05]",
     },
   ];
 
@@ -164,21 +164,21 @@ export default function DashboardPage() {
         <GlassCard className="mb-6 grid grid-cols-1 divide-y divide-white/[0.06] p-0 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <Momentum
             Icon={Flame}
-            color="text-orange-300"
+            color="text-white/85"
             label="Journaling streak"
             main={<AnimatedNumber value={streak} />}
             unit={streak === 1 ? "day" : "days"}
           />
           <Momentum
             Icon={Timer}
-            color="text-emerald-300"
+            color="text-white/85"
             label="Focus this week"
             main={<AnimatedNumber value={weeklyMin} />}
             unit="min"
           />
           <Momentum
             Icon={CalendarClock}
-            color="text-accent"
+            color="text-white/85"
             label="Next deadline"
             main={
               deadline ? (
@@ -240,16 +240,21 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Overall progress */}
+      {/* The ascent — overall progress as altitude */}
       <motion.div {...rise(0.4)}>
         <GlassCard className="mt-6 p-6">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium">Overall goal progress</span>
-            <span className="text-sm text-muted">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <span className="text-sm font-medium">The ascent</span>
+              <p className="text-xs text-muted">
+                Your overall progress toward the summit
+              </p>
+            </div>
+            <span className="text-2xl font-bold tabular-nums">
               <AnimatedNumber value={overall} suffix="%" />
             </span>
           </div>
-          <ProgressBar value={overall} />
+          <AscentProgress value={overall} />
         </GlassCard>
       </motion.div>
     </div>

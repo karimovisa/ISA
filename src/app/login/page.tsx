@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { SetupNotice } from "@/components/layout/SetupNotice";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { fieldClass, primaryBtnClass } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -126,13 +127,13 @@ export default function LoginPage() {
           {error && <p className="text-xs text-red-400">{error}</p>}
           {notice && <p className="text-xs text-emerald-400">{notice}</p>}
 
-          <button type="submit" disabled={busy} className={primaryBtnClass}>
+          <PressButton type="submit" disabled={busy} className={primaryBtnClass}>
             {busy
               ? "Please wait…"
               : mode === "signin"
                 ? "Sign in"
                 : "Create account"}
-          </button>
+          </PressButton>
         </form>
 
         <p className="mt-5 text-center text-xs text-muted">

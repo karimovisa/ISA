@@ -67,4 +67,4 @@ export const labelClass =
   "mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted";
 
 export const primaryBtnClass =
-  "w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50";
+  "w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:brightness-110 hover:shadow-[0_8px_24px_-8px_rgba(79,140,255,0.55)] disabled:opacity-50";

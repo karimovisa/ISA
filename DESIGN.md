@@ -13,7 +13,7 @@ a single blue accent and a green→blue gradient reserved for progress/momentum.
 
 | Role | Token | Value | Notes |
 |---|---|---|---|
-| Background | `--color-bg` | `#0B0B0B` | Canvas; ambient radial glow via `body::before` |
+| Background | `--color-bg` | `#050505` | Matte black canvas (brand spec); faint white ambient glow via `body::before`; faint MountainBackdrop pinned bottom in AppShell |
 | Surface | `--color-surface` | `rgba(255,255,255,0.05)` | Glass cards |
 | Surface strong | `--color-surface-strong` | `rgba(255,255,255,0.08)` | Hover state |
 | Line | `--color-line` | `rgba(255,255,255,0.08)` | Borders / dividers |
@@ -21,10 +21,12 @@ a single blue accent and a green→blue gradient reserved for progress/momentum.
 | Muted | `--color-muted` | `#A0A0A0` | Secondary text (~9:1 on bg, AA-safe) |
 | Accent | `--color-accent` | `#4F8CFF` | Single brand accent; ≤ ~10% of surface |
 | Accent soft | `--color-accent-soft` | `rgba(79,140,255,0.15)` | Active nav / chips |
-| Progress | gradient | `#22C55E → #4F8CFF` | Reserved for progress bars / rings only |
+| Progress | gradient | `rgba(255,255,255,0.5) → #FFF` | Monochrome white + soft white glow (mountain-brand); bars, focus ring, AscentProgress |
 
-Accent stays scarce. Section tints (amber/emerald/fuchsia/rose) appear only as
-very low-alpha card washes, never as solid fills.
+Accent (#4F8CFF) is for interactive elements only: primary buttons, active nav,
+links. Decorative surfaces stay monochrome white-on-black (brand direction:
+moonlit mountain). Ideas keep faint colored washes as functional
+differentiation; project status colors are semantic and stay.
 
 ## Typography
 

@@ -17,8 +17,8 @@ export function ProgressBar({
           className="h-full rounded-full"
           style={{
             background:
-              "linear-gradient(90deg, #22c55e 0%, #4f8cff 100%)",
-            boxShadow: "0 0 16px rgba(79,140,255,0.45)",
+              "linear-gradient(90deg, rgba(255,255,255,0.55) 0%, #ffffff 100%)",
+            boxShadow: "0 0 14px rgba(255,255,255,0.35)",
           }}
           initial={{ width: 0 }}
           animate={{ width: `${clamped}%` }}

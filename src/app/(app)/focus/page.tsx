@@ -9,6 +9,7 @@ import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { fieldClass } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import type { FocusSession } from "@/lib/types";
 
@@ -130,8 +131,8 @@ export default function FocusPage() {
               />
               <defs>
                 <linearGradient id="focusGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#22c55e" />
-                  <stop offset="100%" stopColor="#4f8cff" />
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.45)" />
+                  <stop offset="100%" stopColor="#ffffff" />
                 </linearGradient>
               </defs>
             </svg>
@@ -146,18 +147,18 @@ export default function FocusPage() {
           </div>
 
           <div className="mt-8 flex items-center gap-3">
-            <button
+            <PressButton
               onClick={toggle}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg shadow-accent/30 transition hover:brightness-110 active:scale-95"
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg shadow-accent/30 transition duration-200 hover:brightness-110"
             >
               {running ? <Pause size={22} /> : <Play size={22} className="ml-0.5" />}
-            </button>
-            <button
+            </PressButton>
+            <PressButton
               onClick={reset}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-muted transition hover:text-white"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-muted transition duration-200 hover:text-white"
             >
               <RotateCcw size={18} />
-            </button>
+            </PressButton>
           </div>
 
           <div className="mt-8 flex gap-2">

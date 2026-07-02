@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { labelClass } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
 import { todayISO } from "@/lib/datetime";
 import type { JournalEntry } from "@/lib/types";
 
@@ -114,14 +115,14 @@ export default function JournalPage() {
               </div>
             ))}
           </div>
-          <button
+          <PressButton
             onClick={save}
             disabled={busy}
-            className="mt-7 flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+            className="mt-7 flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition duration-200 hover:brightness-110 hover:shadow-[0_8px_24px_-8px_rgba(79,140,255,0.55)] disabled:opacity-50"
           >
             {saved ? <Check size={16} /> : null}
             {saved ? "Saved" : busy ? "Saving…" : "Save entry"}
-          </button>
+          </PressButton>
         </GlassCard>
       </motion.div>
 

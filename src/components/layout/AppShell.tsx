@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SetupNotice } from "@/components/layout/SetupNotice";
 import { IsaLogo } from "@/components/brand/IsaLogo";
+import { MountainBackdrop } from "@/components/brand/MountainBackdrop";
 
 function Splash() {
   return (
@@ -38,6 +39,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh md:pl-20">
+      {/* Brand atmosphere: faint mountain range pinned to the bottom */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-[38vh] opacity-[0.07]">
+        <MountainBackdrop className="h-full w-full" />
+      </div>
       <main className="mx-auto w-full max-w-6xl px-5 pb-28 pt-8 sm:px-8 md:pb-12 md:pt-12">
         {children}
       </main>

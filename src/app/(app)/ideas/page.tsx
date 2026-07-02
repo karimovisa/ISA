@@ -12,6 +12,7 @@ import {
   labelClass,
   primaryBtnClass,
 } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
 import type { Idea } from "@/lib/types";
 
 const TINTS = [
@@ -126,9 +127,9 @@ export default function IdeasPage() {
               className={fieldClass}
             />
           </div>
-          <button type="submit" className={primaryBtnClass}>
+          <PressButton type="submit" className={primaryBtnClass}>
             Save idea
-          </button>
+          </PressButton>
         </form>
       </Modal>
     </div>

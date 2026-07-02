@@ -41,12 +41,15 @@ export function AddButton({
   label: string;
 }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
-      className="glass glass-hover flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-fg"
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+      className="glass flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-fg transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.08]"
     >
       <span className="text-lg leading-none text-accent">+</span>
       {label}
-    </button>
+    </motion.button>
   );
 }

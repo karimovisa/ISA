@@ -13,6 +13,7 @@ import {
   labelClass,
   primaryBtnClass,
 } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
 import { formatDeadline } from "@/lib/datetime";
 import type { Goal } from "@/lib/types";
 
@@ -176,9 +177,9 @@ export default function GoalsPage() {
               className={fieldClass}
             />
           </div>
-          <button type="submit" className={primaryBtnClass}>
+          <PressButton type="submit" className={primaryBtnClass}>
             {editing ? "Save changes" : "Create goal"}
-          </button>
+          </PressButton>
         </form>
       </Modal>
     </div>
