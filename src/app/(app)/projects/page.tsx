@@ -14,7 +14,8 @@ import {
   primaryBtnClass,
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
-import type { Project, ProjectStatus } from "@/lib/types";
+import { ProjectTasks } from "@/components/sections/ProjectTasks";
+import type { Project, ProjectStatus, ProjectTask } from "@/lib/types";
 
 const STATUS: { value: ProjectStatus; label: string; color: string }[] = [
   { value: "planning", label: "Planning", color: "text-amber-300 bg-amber-300/10" },
@@ -42,6 +43,10 @@ const empty: Draft = {
 export default function ProjectsPage() {
   const { data, loading, add, update, remove } =
     useCollection<Project>("projects");
+  const tasksCol = useCollection<ProjectTask>("project_tasks", {
+    orderBy: "created_at",
+    ascending: true,
+  });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
@@ -79,6 +84,60 @@ export default function ProjectsPage() {
 
   const statusMeta = (s: ProjectStatus) =>
     STATUS.find((x) => x.value === s) ?? STATUS[0];
+
+  const tasksFor = (pid: string) =>
+    tasksCol.data.filter((t) => t.project_id === pid);
+
+  /** Recompute a project's counts/percentage from a projected task list. */
+  const syncProject = (pid: string, list: ProjectTask[]) => {
+    const proj = data.find((p) => p.id === pid);
+    if (!proj) return;
+    const total = list.length;
+    const done = list.filter((t) => t.done).length;
+    if (total === 0) {
+      if (proj.tasks_total !== 0 || proj.tasks_done !== 0)
+        update(pid, { tasks_total: 0, tasks_done: 0 });
+      return;
+    }
+    const pct = Math.round((done / total) * 100);
+    if (
+      proj.tasks_total !== total ||
+      proj.tasks_done !== done ||
+      proj.percentage !== pct
+    )
+      update(pid, { tasks_total: total, tasks_done: done, percentage: pct });
+  };
+
+  const addTask = async (pid: string, title: string) => {
+    await tasksCol.add({ project_id: pid, title, done: false });
+    syncProject(pid, [
+      ...tasksFor(pid),
+      { id: "tmp", done: false } as ProjectTask,
+    ]);
+  };
+  const toggleTask = async (task: ProjectTask) => {
+    await tasksCol.update(task.id, { done: !task.done });
+    syncProject(
+      task.project_id,
+      tasksFor(task.project_id).map((t) =>
+        t.id === task.id ? { ...t, done: !task.done } : t
+      )
+    );
+  };
+  const removeTask = async (id: string, pid: string) => {
+    await tasksCol.remove(id);
+    syncProject(
+      pid,
+      tasksFor(pid).filter((t) => t.id !== id)
+    );
+  };
+
+  const derivedPct = (p: Project) => {
+    const list = tasksFor(p.id);
+    return list.length
+      ? Math.round((list.filter((t) => t.done).length / list.length) * 100)
+      : p.percentage;
+  };
 
   return (
     <div>
@@ -127,15 +186,23 @@ export default function ProjectsPage() {
 
                   <div className="mt-5 flex items-center justify-between text-sm">
                     <span className="text-muted">
-                      {p.tasks_done}/{p.tasks_total} tasks
+                      {tasksFor(p.id).filter((t) => t.done).length}/
+                      {tasksFor(p.id).length || p.tasks_total} steps
                     </span>
                     <span className="font-semibold tabular-nums">
-                      {p.percentage}%
+                      {derivedPct(p)}%
                     </span>
                   </div>
                   <div className="mt-3">
-                    <ProgressBar value={p.percentage} />
+                    <ProgressBar value={derivedPct(p)} />
                   </div>
+
+                  <ProjectTasks
+                    tasks={tasksFor(p.id)}
+                    onAdd={(title) => addTask(p.id, title)}
+                    onToggle={toggleTask}
+                    onRemove={(id) => removeTask(id, p.id)}
+                  />
                 </GlassCard>
               </motion.div>
             );

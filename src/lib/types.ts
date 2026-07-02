@@ -21,6 +21,15 @@ export type Project = {
   created_at: string;
 };
 
+export type ProjectTask = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  title: string;
+  done: boolean;
+  created_at: string;
+};
+
 export type Idea = {
   id: string;
   user_id: string;

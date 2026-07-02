@@ -26,6 +26,16 @@ create table if not exists public.projects (
   created_at  timestamptz not null default now()
 );
 
+-- ---------- PROJECT TASKS ----------
+create table if not exists public.project_tasks (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  project_id  uuid not null references public.projects (id) on delete cascade,
+  title       text not null,
+  done        boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+
 -- ---------- IDEAS ----------
 create table if not exists public.ideas (
   id          uuid primary key default gen_random_uuid(),
@@ -70,7 +80,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'goals','projects','ideas','journal_entries','focus_sessions','runs'
+    'goals','projects','project_tasks','ideas','journal_entries','focus_sessions','runs'
   ]
   loop
     execute format('alter table public.%I enable row level security;', t);
