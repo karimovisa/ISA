@@ -56,6 +56,24 @@ export type FocusSession = {
   created_at: string;
 };
 
+export type SleepLog = {
+  id: string;
+  user_id: string;
+  date: string;
+  sleep_start: string | null;
+  sleep_end: string | null;
+  duration_hours: number;
+  quality: number | null;
+  created_at: string;
+};
+
+export type EnergyScore = {
+  user_id: string;
+  date: string;
+  score: number;
+  created_at: string;
+};
+
 export type StravaActivityRow = {
   id: number;
   user_id: string;

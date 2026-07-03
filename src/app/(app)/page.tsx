@@ -21,6 +21,7 @@ import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
 import { AscentProgress } from "@/components/ui/AscentProgress";
+import { SleepCard } from "@/components/sections/SleepCard";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
 import { quoteOfTheDay } from "@/lib/quotes";
@@ -171,9 +172,12 @@ export default function DashboardPage() {
         </div>
       </motion.section>
 
-      {/* Momentum strip */}
-      <motion.div {...rise(0.06)}>
-        <GlassCard className="mb-6 grid grid-cols-1 divide-y divide-white/[0.06] p-0 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      {/* Momentum + sleep */}
+      <motion.div
+        {...rise(0.06)}
+        className="mb-6 grid gap-5 lg:grid-cols-[1fr_300px]"
+      >
+        <GlassCard className="grid grid-cols-1 divide-y divide-white/[0.06] p-0 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <Momentum
             Icon={Flame}
             color="text-white/85"
@@ -202,6 +206,7 @@ export default function DashboardPage() {
             unit={deadline ? `days · ${deadline.title}` : "set a deadline"}
           />
         </GlassCard>
+        <SleepCard />
       </motion.div>
 
       {/* Quote */}
