@@ -5,14 +5,15 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { IsaRunner } from "@/components/brand/IsaRunner";
 
-// Geometry for the pictorial reveal (viewBox 900×240, baseline y=190).
-// Continuous story: flat run line → S → big mountain A (no crossbar).
-const BASE = "M160 190 H560";
+// viewBox 900×240, baseline y=190. The runner draws the flat line, fades before
+// the S; then the S draws, then the mountain A (same height as S, no crossbar).
+const FLAT = "M160 190 L400 190";
+// S authored bottom-up so it "grows" out of the line the runner just drew.
 const S_PATH =
-  "M496 96 C496 68 412 66 412 104 C412 138 496 130 496 164 C496 196 416 198 400 170";
-const MOUNTAIN = "M560 190 L615 66 L670 190"; // same height as S, no crossbar
+  "M400 170 C416 198 496 196 496 164 C496 130 412 138 412 104 C412 66 496 68 496 96";
+const MOUNTAIN = "M540 190 L600 66 L660 190";
 const RUN_FROM = 175;
-const RUN_TO = 360;
+const RUN_TO = 392;
 const BASELINE_Y = 190;
 
 const EASE = [0.65, 0, 0.35, 1] as const; // easeInOutCubic
@@ -34,12 +35,12 @@ export function IsaIntroGate() {
 
   return (
     <AnimatePresence>
-      {show && (reduce ? <StaticIntro onDone={finish} /> : <IsaIntro onDone={finish} />)}
+      {show &&
+        (reduce ? <StaticIntro onDone={finish} /> : <IsaIntro onDone={finish} />)}
     </AnimatePresence>
   );
 }
 
-/** Reduced-motion: just the static mark with a gentle fade. */
 function StaticIntro({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 1600);
@@ -59,7 +60,6 @@ function StaticIntro({ onDone }: { onDone: () => void }) {
 }
 
 export function IsaIntro({ onDone }: { onDone: () => void }) {
-  // Mobile: compress the whole timeline to ~3.5s.
   const k = useMemo(
     () => (typeof window !== "undefined" && window.innerWidth < 640 ? 0.7 : 1),
     []
@@ -94,33 +94,33 @@ export function IsaIntro({ onDone }: { onDone: () => void }) {
           strokeLinejoin="round"
           className="isa-glow w-full"
         >
-          {/* 0.0–0.4 — start line draws left→right */}
+          {/* 0.5–1.9 — the runner draws the flat line (pathLength synced to it) */}
           <motion.path
-            d={BASE}
+            d={FLAT}
             {...drawn}
-            transition={{ duration: T(0.4), delay: 0, ease: EASE }}
+            transition={{ duration: T(1.4), delay: T(0.5), ease: EASE }}
           />
 
-          {/* 0.4–1.2 run in place · 1.2–2.0 move left→right */}
+          {/* the runner rides the drawing tip, then fades out before the S */}
           <motion.g
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 1] }}
-            transition={{ duration: T(1.6), delay: T(0.4), times: [0, 0.12, 1], ease: "linear" }}
+            animate={{ opacity: [0, 1, 1, 0] }}
+            transition={{
+              duration: T(1.7),
+              delay: T(0.5),
+              times: [0, 0.1, 0.72, 1],
+              ease: "linear",
+            }}
           >
             <motion.g
               initial={{ x: RUN_FROM }}
-              animate={{ x: [RUN_FROM, RUN_FROM, RUN_TO] }}
-              transition={{
-                duration: T(1.6),
-                delay: T(0.4),
-                times: [0, 0.5, 1], // hold in place, then run
-                ease: EASE,
-              }}
+              animate={{ x: RUN_TO }}
+              transition={{ duration: T(1.4), delay: T(0.5), ease: EASE }}
             >
               <g transform={`translate(0 ${BASELINE_Y})`}>
                 <motion.g
                   animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 0.28, repeat: 6, ease: "easeInOut" }}
+                  transition={{ duration: 0.28, repeat: 5, ease: "easeInOut" }}
                 >
                   <g transform="scale(5)">
                     <IsaRunner />
@@ -130,22 +130,22 @@ export function IsaIntro({ onDone }: { onDone: () => void }) {
             </motion.g>
           </motion.g>
 
-          {/* 2.0–2.8 — path curves into S */}
+          {/* 2.0–2.9 — the line curves up into the S */}
           <motion.path
             d={S_PATH}
             {...drawn}
-            transition={{ duration: T(0.8), delay: T(2.0), ease: EASE }}
+            transition={{ duration: T(0.9), delay: T(2.0), ease: EASE }}
           />
 
-          {/* 2.8–4.2 — rises up and forms the mountain A */}
+          {/* 2.9–4.2 — the mountain A rises (same size as S, no crossbar) */}
           <motion.path
             d={MOUNTAIN}
             {...drawn}
-            transition={{ duration: T(1.4), delay: T(2.8), ease: EASE }}
+            transition={{ duration: T(1.3), delay: T(2.9), ease: EASE }}
           />
         </svg>
 
-        {/* 4.2–5.0 — light sweep across the whole mark */}
+        {/* 4.2–5.0 — light sweep across the finished mark */}
         <motion.div
           className="pointer-events-none absolute inset-y-0 w-1/3"
           style={{
@@ -157,7 +157,6 @@ export function IsaIntro({ onDone }: { onDone: () => void }) {
           animate={{ x: ["-60%", "320%"], opacity: [0, 1, 0] }}
           transition={{ duration: T(0.8), delay: T(4.2), ease: EASE }}
         />
-        {/* steady glow settles over the peak */}
         <motion.div
           className="pointer-events-none absolute -inset-10 rounded-full"
           style={{
@@ -170,7 +169,6 @@ export function IsaIntro({ onDone }: { onDone: () => void }) {
         />
       </div>
 
-      {/* Skip */}
       <button
         onClick={onDone}
         className="absolute bottom-6 right-6 text-xs text-white/35 transition hover:text-white"
