@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
  * crossfade for the run cycle. Place inside an SVG and translate the group.
  */
 export function IsaRunner() {
-  const cycle = { duration: 0.3, repeat: Infinity, ease: "linear" as const };
+  const cycle = { duration: 0.3, repeat: 7, ease: "linear" as const };
   const limb = {
     stroke: "white",
     strokeWidth: 2.1,
@@ -32,7 +32,7 @@ export function IsaRunner() {
         strokeWidth={0.7}
         strokeLinecap="round"
         animate={{ opacity: [0.28, 0.08, 0.28] }}
-        transition={{ duration: 0.4, repeat: Infinity }}
+        transition={{ duration: 0.4, repeat: 5 }}
       >
         <line x1={-5} y1={-9} x2={-10} y2={-9} />
         <line x1={-5} y1={-5} x2={-12} y2={-5} />

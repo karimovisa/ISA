@@ -1,54 +1,77 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import {
-  ISA_VIEWBOX,
-  ISA_STROKE,
-  BASELINE_Y,
-  BASELINE_PATH,
-  I_PATH,
-  S_PATH,
-  A_PATH,
-  A_BAR,
-  RUN_FROM,
-  RUN_TO,
-} from "@/lib/isaPaths";
-import { MountainBackdrop } from "@/components/brand/MountainBackdrop";
+import { IsaLogo } from "@/components/brand/IsaLogo";
 import { IsaRunner } from "@/components/brand/IsaRunner";
 
-// easeInOutCubic — intentional, no bounce, no elastic.
-const EASE = [0.65, 0, 0.35, 1] as const;
-const SESSION_KEY = "isa_intro_seen";
+// Geometry for the pictorial reveal (viewBox 900×240, baseline y=190).
+// Continuous story: flat run line → S → big mountain A (no crossbar).
+const BASE = "M160 190 H560";
+const S_PATH =
+  "M496 96 C496 68 412 66 412 104 C412 138 496 130 496 164 C496 196 416 198 400 170";
+const MOUNTAIN = "M560 190 L615 66 L670 190"; // same height as S, no crossbar
+const RUN_FROM = 175;
+const RUN_TO = 360;
+const BASELINE_Y = 190;
 
-/** Plays the intro once per browser session; skipped under reduced motion. */
+const EASE = [0.65, 0, 0.35, 1] as const; // easeInOutCubic
+const KEY = "isa_intro_v2";
+
 export function IsaIntroGate() {
   const [show, setShow] = useState(false);
   const reduce = useReducedMotion();
 
   useEffect(() => {
-    if (reduce) return;
-    if (sessionStorage.getItem(SESSION_KEY)) return;
+    if (localStorage.getItem(KEY)) return;
     setShow(true);
-  }, [reduce]);
+  }, []);
 
   const finish = () => {
-    sessionStorage.setItem(SESSION_KEY, "1");
+    localStorage.setItem(KEY, "1");
     setShow(false);
   };
 
   return (
-    <AnimatePresence>{show && <IsaIntro onDone={finish} />}</AnimatePresence>
+    <AnimatePresence>
+      {show && (reduce ? <StaticIntro onDone={finish} /> : <IsaIntro onDone={finish} />)}
+    </AnimatePresence>
   );
 }
 
-function IsaIntro({ onDone }: { onDone: () => void }) {
+/** Reduced-motion: just the static mark with a gentle fade. */
+function StaticIntro({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 5800);
+    const t = setTimeout(onDone, 1600);
     return () => clearTimeout(t);
   }, [onDone]);
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0a0a]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <IsaLogo className="w-[min(70vw,420px)] text-white" glow />
+    </motion.div>
+  );
+}
 
-  // opacity flips on with the draw so a round-cap dot never shows at pathLength 0.
+export function IsaIntro({ onDone }: { onDone: () => void }) {
+  // Mobile: compress the whole timeline to ~3.5s.
+  const k = useMemo(
+    () => (typeof window !== "undefined" && window.innerWidth < 640 ? 0.7 : 1),
+    []
+  );
+  const T = (s: number) => s * k;
+
+  useEffect(() => {
+    const t = setTimeout(onDone, T(5000) + 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onDone]);
+
   const drawn = {
     initial: { pathLength: 0, opacity: 0 },
     animate: { pathLength: 1, opacity: 1 },
@@ -56,92 +79,50 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
-      style={{ backgroundColor: "#050505" }}
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#0a0a0a]"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.7, ease: EASE }}
+      transition={{ duration: 0.4, ease: EASE }}
     >
-      {/* Faint mountain atmosphere (~10%) */}
-      <motion.div
-        className="absolute inset-x-0 bottom-0 h-[58%]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.1 }}
-        transition={{ duration: 1, delay: 0.2, ease: EASE }}
-      >
-        <MountainBackdrop className="h-full w-full" />
-      </motion.div>
-
-      {/* Subtle white bloom — the only glow */}
-      <motion.div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[40vh] w-[62vw] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(255,255,255,0.08), transparent)",
-        }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.6, delay: 0.3, ease: EASE }}
-      />
-
-      <div className="relative flex flex-col items-center px-6">
+      <div className="relative w-[min(90vw,760px)]">
         <svg
-          viewBox={ISA_VIEWBOX}
+          viewBox="0 0 900 240"
           fill="none"
           stroke="#ffffff"
-          strokeWidth={ISA_STROKE}
+          strokeWidth={11}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="isa-glow w-[min(88vw,720px)]"
+          className="isa-glow w-full"
         >
-          {/* 0.3s → the life line writes itself */}
+          {/* 0.0–0.4 — start line draws left→right */}
           <motion.path
-            d={BASELINE_PATH}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.28 }}
-            transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
+            d={BASE}
+            {...drawn}
+            transition={{ duration: T(0.4), delay: 0, ease: EASE }}
           />
 
-          {/* 2.0s → the S forms as the runner passes */}
-          <motion.path
-            d={S_PATH}
-            {...drawn}
-            transition={{ duration: 0.9, delay: 1.8, ease: EASE }}
-          />
-          {/* 3.2s → the path rises into the mountain A */}
-          <motion.path
-            d={A_PATH}
-            {...drawn}
-            transition={{ duration: 0.9, delay: 3.0, ease: EASE }}
-          />
-          <motion.path
-            d={A_BAR}
-            {...drawn}
-            transition={{ duration: 0.4, delay: 3.7, ease: EASE }}
-          />
-
-          {/* runner runs the baseline, then fades into the I */}
+          {/* 0.4–1.2 run in place · 1.2–2.0 move left→right */}
           <motion.g
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 1, 0] }}
-            transition={{
-              duration: 3.6,
-              delay: 0.8,
-              times: [0, 0.06, 0.9, 1],
-              ease: "linear",
-            }}
+            animate={{ opacity: [0, 1, 1] }}
+            transition={{ duration: T(1.6), delay: T(0.4), times: [0, 0.12, 1], ease: "linear" }}
           >
             <motion.g
               initial={{ x: RUN_FROM }}
-              animate={{ x: RUN_TO }}
-              transition={{ duration: 3.2, delay: 0.8, ease: EASE }}
+              animate={{ x: [RUN_FROM, RUN_FROM, RUN_TO] }}
+              transition={{
+                duration: T(1.6),
+                delay: T(0.4),
+                times: [0, 0.5, 1], // hold in place, then run
+                ease: EASE,
+              }}
             >
               <g transform={`translate(0 ${BASELINE_Y})`}>
                 <motion.g
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 0.3, repeat: Infinity, ease: "easeInOut" }}
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 0.28, repeat: 6, ease: "easeInOut" }}
                 >
-                  <g transform="scale(4.4)">
+                  <g transform="scale(5)">
                     <IsaRunner />
                   </g>
                 </motion.g>
@@ -149,45 +130,50 @@ function IsaIntro({ onDone }: { onDone: () => void }) {
             </motion.g>
           </motion.g>
 
-          {/* 4.2s → the identity crystallizes as the I */}
+          {/* 2.0–2.8 — path curves into S */}
           <motion.path
-            d={I_PATH}
+            d={S_PATH}
             {...drawn}
-            transition={{ duration: 0.6, delay: 4.2, ease: EASE }}
+            transition={{ duration: T(0.8), delay: T(2.0), ease: EASE }}
           />
-          <motion.line
-            x1={170}
-            y1={60}
-            x2={170}
-            y2={190}
-            stroke="#ffffff"
-            strokeWidth={22}
-            strokeLinecap="round"
-            style={{ filter: "blur(8px)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.5, 0] }}
-            transition={{ duration: 0.8, delay: 4.2, ease: EASE }}
+
+          {/* 2.8–4.2 — rises up and forms the mountain A */}
+          <motion.path
+            d={MOUNTAIN}
+            {...drawn}
+            transition={{ duration: T(1.4), delay: T(2.8), ease: EASE }}
           />
         </svg>
 
-        {/* Tagline */}
+        {/* 4.2–5.0 — light sweep across the whole mark */}
         <motion.div
-          className="mt-10 flex items-center gap-3 text-[0.72rem] font-medium uppercase tracking-[0.42em] text-white/70"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 4.6, ease: EASE }}
-        >
-          <span>Focus</span>
-          <span className="text-white/40">·</span>
-          <span>Process</span>
-          <span className="text-white/40">·</span>
-          <span>Peak</span>
-        </motion.div>
+          className="pointer-events-none absolute inset-y-0 w-1/3"
+          style={{
+            background:
+              "linear-gradient(105deg, transparent, rgba(255,255,255,0.55), transparent)",
+            mixBlendMode: "screen",
+          }}
+          initial={{ x: "-60%", opacity: 0 }}
+          animate={{ x: ["-60%", "320%"], opacity: [0, 1, 0] }}
+          transition={{ duration: T(0.8), delay: T(4.2), ease: EASE }}
+        />
+        {/* steady glow settles over the peak */}
+        <motion.div
+          className="pointer-events-none absolute -inset-10 rounded-full"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(255,255,255,0.10), transparent)",
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: T(0.6), delay: T(4.4), ease: EASE }}
+        />
       </div>
 
+      {/* Skip */}
       <button
         onClick={onDone}
-        className="absolute bottom-8 right-8 text-xs text-white/40 transition hover:text-white"
+        className="absolute bottom-6 right-6 text-xs text-white/35 transition hover:text-white"
       >
         Skip
       </button>
