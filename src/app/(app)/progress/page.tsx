@@ -16,7 +16,7 @@ import {
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { RunTracker } from "@/components/sections/RunTracker";
+import { RunningSection } from "@/components/sections/RunningSection";
 import type { FocusSession, Project } from "@/lib/types";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -86,7 +86,7 @@ export default function ProgressPage() {
 
       {/* Running */}
       <div className="mb-6">
-        <RunTracker />
+        <RunningSection />
       </div>
 
       {/* Summary tiles */}

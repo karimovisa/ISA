@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ResponsiveContainer,
@@ -11,19 +11,23 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { Footprints, Plus, Trash2 } from "lucide-react";
+import { Footprints, Plus, RefreshCw, Trash2, Link2 } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
 import { fieldClass } from "@/components/ui/Modal";
-import { todayISO } from "@/lib/datetime";
+import { connectStrava, syncStrava } from "@/lib/stravaClient";
 import {
-  manualRunInsights,
-  manualLast7DaysKm,
+  insightsOf,
+  last7Of,
   paceFromDuration,
+  type NormRun,
 } from "@/lib/runStats";
-import type { RunLog } from "@/lib/types";
+import { todayISO } from "@/lib/datetime";
+import type { RunLog, StravaActivityRow } from "@/lib/types";
 
+const ORANGE = "#FC4C02";
 const tooltipStyle = {
   background: "rgba(20,20,22,0.95)",
   border: "1px solid rgba(255,255,255,0.1)",
@@ -31,25 +35,97 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-export function RunTracker() {
-  const runs = useCollection<RunLog>("runs", {
+export function RunningSection() {
+  // Manual runs (always available).
+  const manual = useCollection<RunLog>("runs", {
     orderBy: "log_date",
     ascending: false,
   });
+
+  // Strava state.
+  const [connected, setConnected] = useState<boolean | null>(null);
+  const [strava, setStrava] = useState<StravaActivityRow[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  // Manual form.
   const [date, setDate] = useState(todayISO());
   const [km, setKm] = useState("");
   const [min, setMin] = useState("");
   const [sec, setSec] = useState("");
 
-  const submit = async (e: React.FormEvent) => {
+  const loadStrava = useCallback(async () => {
+    const { data: conn } = await supabase
+      .from("strava_connections")
+      .select("user_id")
+      .maybeSingle();
+    setConnected(!!conn);
+    const { data: acts } = await supabase
+      .from("strava_activities")
+      .select("*")
+      .order("start_date", { ascending: false });
+    if (acts) setStrava(acts as StravaActivityRow[]);
+  }, []);
+
+  const sync = useCallback(async () => {
+    setSyncing(true);
+    setNote(null);
+    const res = await syncStrava();
+    setSyncing(false);
+    if (res.error) setNote(`Strava sync: ${res.error}`);
+    else {
+      setNote(`Imported ${res.imported ?? 0} run${res.imported === 1 ? "" : "s"} from Strava.`);
+      await loadStrava();
+    }
+  }, [loadStrava]);
+
+  useEffect(() => {
+    loadStrava();
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("strava");
+    if (status) {
+      window.history.replaceState({}, "", window.location.pathname);
+      if (status === "connected") {
+        setNote("Connected to Strava. Importing your runs…");
+        sync();
+      } else setNote(`Strava connection ${status}.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Merge both sources into one normalized, de-duplicated timeline.
+  const runs = useMemo<NormRun[]>(() => {
+    const s: NormRun[] = strava.map((a) => ({
+      id: `s-${a.id}`,
+      source: "strava",
+      date: a.start_date,
+      distance_km: a.distance_m / 1000,
+      duration_s: a.moving_time_s,
+      name: a.name,
+    }));
+    const m: NormRun[] = manual.data.map((r) => ({
+      id: `m-${r.id}`,
+      source: "manual",
+      date: r.log_date,
+      distance_km: r.distance_km,
+      duration_s: r.duration_s ?? 0,
+    }));
+    return [...s, ...m].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [strava, manual.data]);
+
+  const ins = insightsOf(runs);
+  const chart = last7Of(runs);
+
+  const logManual = async (e: React.FormEvent) => {
     e.preventDefault();
     const distance = Number(km);
-    const duration = Number(min || 0) * 60 + Number(sec || 0);
     if (!distance || distance <= 0) return;
-    await runs.add({
+    await manual.add({
       log_date: date,
       distance_km: distance,
-      duration_s: duration,
+      duration_s: Number(min || 0) * 60 + Number(sec || 0),
     });
     setKm("");
     setMin("");
@@ -57,8 +133,7 @@ export function RunTracker() {
     setDate(todayISO());
   };
 
-  const ins = manualRunInsights(runs.data);
-  const chart = manualLast7DaysKm(runs.data);
+  const removeManual = (id: string) => manual.remove(id.replace(/^m-/, ""));
 
   return (
     <motion.div
@@ -67,9 +142,31 @@ export function RunTracker() {
       transition={{ duration: 0.5 }}
     >
       <GlassCard className="p-6">
-        <div className="mb-5 flex items-center gap-2">
-          <Footprints size={18} className="text-white/80" />
-          <h3 className="text-sm font-medium">Running</h3>
+        {/* Header + Strava controls */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Footprints size={18} className="text-white/80" />
+            <h3 className="text-sm font-medium">Running</h3>
+          </div>
+          {connected ? (
+            <PressButton
+              onClick={sync}
+              disabled={syncing}
+              className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white transition-colors hover:bg-white/15 disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={syncing ? "animate-spin" : undefined} />
+              {syncing ? "Syncing…" : "Sync Strava"}
+            </PressButton>
+          ) : (
+            <PressButton
+              onClick={connectStrava}
+              className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-white"
+              style={{ backgroundColor: ORANGE }}
+            >
+              <Link2 size={13} />
+              Connect Strava
+            </PressButton>
+          )}
         </div>
 
         {/* Insights */}
@@ -99,33 +196,23 @@ export function RunTracker() {
           <ResponsiveContainer width="100%" height={170}>
             <AreaChart data={chart}>
               <defs>
-                <linearGradient id="runManualGrad" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="runGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#fff" stopOpacity={0.35} />
                   <stop offset="100%" stopColor="#fff" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.05)"
-                vertical={false}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
               <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Area
-                type="monotone"
-                dataKey="km"
-                stroke="#fff"
-                strokeWidth={2}
-                fill="url(#runManualGrad)"
-              />
+              <Area type="monotone" dataKey="km" stroke="#fff" strokeWidth={2} fill="url(#runGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Log form */}
+        {/* Manual log */}
         <form
-          onSubmit={submit}
+          onSubmit={logManual}
           className="mt-5 flex flex-wrap items-end gap-3 border-t border-line pt-5"
         >
           <Field label="Date">
@@ -147,7 +234,7 @@ export function RunTracker() {
               className={`${fieldClass} h-10 w-24 py-1`}
             />
           </Field>
-          <Field label="Time">
+          <Field label="Time (min : sec)">
             <div className="flex items-center gap-1">
               <input
                 type="number"
@@ -179,38 +266,50 @@ export function RunTracker() {
         </form>
 
         {/* Recent */}
-        {runs.data.length > 0 && (
+        {runs.length > 0 && (
           <ul className="mt-5 space-y-2">
-            {runs.data.slice(0, 5).map((r) => (
+            {runs.slice(0, 6).map((r) => (
               <li
                 key={r.id}
                 className="group flex items-center justify-between border-t border-line pt-2 text-sm first:border-0 first:pt-0"
               >
-                <span className="text-white/90">
-                  {new Date(r.log_date).toLocaleDateString([], {
+                <span className="flex items-center gap-2 text-white/90">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{
+                      backgroundColor:
+                        r.source === "strava" ? ORANGE : "rgba(255,255,255,0.4)",
+                    }}
+                    title={r.source === "strava" ? "Strava" : "Manual"}
+                  />
+                  {new Date(r.date).toLocaleDateString([], {
                     month: "short",
                     day: "numeric",
                   })}
                 </span>
                 <span className="flex items-center gap-3 text-muted">
                   <span className="tabular-nums text-white/90">
-                    {r.distance_km} km
+                    {r.distance_km.toFixed(1)} km
                   </span>
                   <span className="tabular-nums">
                     {paceFromDuration(r.distance_km, r.duration_s)} /km
                   </span>
-                  <button
-                    onClick={() => runs.remove(r.id)}
-                    className="rounded p-1 text-muted opacity-0 transition hover:text-red-400 group-hover:opacity-100"
-                    aria-label="Delete run"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  {r.source === "manual" && (
+                    <button
+                      onClick={() => removeManual(r.id)}
+                      className="rounded p-1 text-muted opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                      aria-label="Delete run"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </span>
               </li>
             ))}
           </ul>
         )}
+
+        {note && <p className="mt-4 text-xs text-muted">{note}</p>}
       </GlassCard>
     </motion.div>
   );
@@ -244,9 +343,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs uppercase tracking-wider text-muted">
-        {label}
-      </span>
+      <span className="text-xs uppercase tracking-wider text-muted">{label}</span>
       {children}
     </label>
   );
