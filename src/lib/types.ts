@@ -56,6 +56,19 @@ export type FocusSession = {
   created_at: string;
 };
 
+export type StravaActivityRow = {
+  id: number;
+  user_id: string;
+  name: string;
+  distance_m: number;
+  moving_time_s: number;
+  elapsed_time_s: number;
+  total_elevation: number;
+  average_speed: number;
+  start_date: string;
+  created_at: string;
+};
+
 export type RunLog = {
   id: string;
   user_id: string;

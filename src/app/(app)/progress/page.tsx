@@ -19,6 +19,7 @@ import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { fieldClass } from "@/components/ui/Modal";
+import { StravaRunning } from "@/components/sections/StravaRunning";
 import { todayISO } from "@/lib/datetime";
 import type { FocusSession, Project, RunLog } from "@/lib/types";
 
@@ -106,6 +107,11 @@ export default function ProgressPage() {
         title="Progress"
         subtitle="The numbers behind the momentum. Last 7 days."
       />
+
+      {/* Strava running */}
+      <div className="mb-6">
+        <StravaRunning />
+      </div>
 
       {/* Summary tiles */}
       <div className="mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
