@@ -74,5 +74,6 @@ export type RunLog = {
   user_id: string;
   log_date: string;
   distance_km: number;
+  duration_s: number;
   created_at: string;
 };

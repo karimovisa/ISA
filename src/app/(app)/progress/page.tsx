@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ResponsiveContainer,
@@ -12,16 +12,12 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Cell,
 } from "recharts";
-import { Plus } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { fieldClass } from "@/components/ui/Modal";
-import { StravaRunning } from "@/components/sections/StravaRunning";
-import { todayISO } from "@/lib/datetime";
-import type { FocusSession, Project, RunLog } from "@/lib/types";
+import { RunTracker } from "@/components/sections/RunTracker";
+import type { FocusSession, Project } from "@/lib/types";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -44,9 +40,7 @@ const tooltipStyle = {
 
 export default function ProgressPage() {
   const focus = useCollection<FocusSession>("focus_sessions");
-  const runs = useCollection<RunLog>("runs");
   const projects = useCollection<Project>("projects");
-  const [distance, setDistance] = useState("");
 
   const days = useMemo(() => last7Days(), []);
 
@@ -64,22 +58,13 @@ export default function ProgressPage() {
       const sessions = focus.data.filter(
         (s) => new Date(s.created_at).toDateString() === d.key
       ).length;
-      const minutes = focus.data
-        .filter((s) => new Date(s.created_at).toDateString() === d.key)
-        .reduce((sum, s) => sum + s.duration_seconds, 0) / 60;
-      // simple score: weighted by minutes, capped at 100
+      const minutes =
+        focus.data
+          .filter((s) => new Date(s.created_at).toDateString() === d.key)
+          .reduce((sum, s) => sum + s.duration_seconds, 0) / 60;
       return { day: d.label, score: Math.min(100, Math.round(minutes + sessions * 5)) };
     });
   }, [days, focus.data]);
-
-  const runData = useMemo(() => {
-    return days.map((d) => {
-      const km = runs.data
-        .filter((r) => new Date(r.log_date).toDateString() === d.key)
-        .reduce((sum, r) => sum + Number(r.distance_km), 0);
-      return { day: d.label, km: +km.toFixed(1) };
-    });
-  }, [days, runs.data]);
 
   const projectData = useMemo(
     () =>
@@ -90,16 +75,7 @@ export default function ProgressPage() {
     [projects.data]
   );
 
-  const logRun = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const km = Number(distance);
-    if (!km || km <= 0) return;
-    await runs.add({ log_date: todayISO(), distance_km: km });
-    setDistance("");
-  };
-
   const totalStudy = studyData.reduce((s, d) => s + d.hours, 0);
-  const totalRun = runData.reduce((s, d) => s + d.km, 0);
 
   return (
     <div>
@@ -108,16 +84,15 @@ export default function ProgressPage() {
         subtitle="The numbers behind the momentum. Last 7 days."
       />
 
-      {/* Strava running */}
+      {/* Running */}
       <div className="mb-6">
-        <StravaRunning />
+        <RunTracker />
       </div>
 
       {/* Summary tiles */}
-      <div className="mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-3 gap-5">
         <Stat label="Study (7d)" value={`${totalStudy.toFixed(1)}h`} />
-        <Stat label="Running (7d)" value={`${totalRun.toFixed(1)}km`} />
-        <Stat label="Sessions" value={`${focus.data.length}`} />
+        <Stat label="Focus sessions" value={`${focus.data.length}`} />
         <Stat label="Projects" value={`${projects.data.length}`} />
       </div>
 
@@ -134,7 +109,7 @@ export default function ProgressPage() {
               <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-              <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="#4f8cff" />
+              <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="#ffffff" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -145,62 +120,21 @@ export default function ProgressPage() {
             <AreaChart data={productivityData}>
               <defs>
                 <linearGradient id="prodGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
               <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="score" stroke="#22c55e" strokeWidth={2} fill="url(#prodGrad)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Running distance */}
-        <ChartCard
-          title="Running distance"
-          delay={0.1}
-          action={
-            <form onSubmit={logRun} className="flex items-center gap-2">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                value={distance}
-                onChange={(e) => setDistance(e.target.value)}
-                placeholder="km"
-                className={`${fieldClass} h-9 w-20 px-3 py-1 text-sm`}
-              />
-              <button
-                type="submit"
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white transition hover:brightness-110"
-              >
-                <Plus size={16} />
-              </button>
-            </form>
-          }
-        >
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={runData}>
-              <defs>
-                <linearGradient id="runGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4f8cff" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="#4f8cff" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="km" stroke="#4f8cff" strokeWidth={2} fill="url(#runGrad)" />
+              <Area type="monotone" dataKey="score" stroke="#ffffff" strokeWidth={2} fill="url(#prodGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
 
         {/* Project progress */}
-        <ChartCard title="Project progress" delay={0.15}>
+        <ChartCard title="Project progress" delay={0.1} className="lg:col-span-2">
           {projectData.length === 0 ? (
             <div className="flex h-[220px] items-center justify-center text-sm text-muted">
               No projects yet.
@@ -212,11 +146,7 @@ export default function ProgressPage() {
                 <XAxis type="number" domain={[0, 100]} stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" stroke="#a0a0a0" fontSize={11} tickLine={false} axisLine={false} width={84} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                <Bar dataKey="percentage" radius={[0, 6, 6, 0]}>
-                  {projectData.map((_, i) => (
-                    <Cell key={i} fill={i % 2 === 0 ? "#4f8cff" : "#22c55e"} />
-                  ))}
-                </Bar>
+                <Bar dataKey="percentage" radius={[0, 6, 6, 0]} fill="#ffffff" />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -239,24 +169,22 @@ function ChartCard({
   title,
   children,
   delay,
-  action,
+  className,
 }: {
   title: string;
   children: React.ReactNode;
   delay: number;
-  action?: React.ReactNode;
+  className?: string;
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
+      className={className}
     >
       <GlassCard className="p-6">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-medium">{title}</h3>
-          {action}
-        </div>
+        <h3 className="mb-5 text-sm font-medium">{title}</h3>
         {children}
       </GlassCard>
     </motion.div>
