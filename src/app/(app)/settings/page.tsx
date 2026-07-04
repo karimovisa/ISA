@@ -7,8 +7,15 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
 import { enablePush, sendTestPush, pushSupported } from "@/lib/push";
+import { useTheme, type Theme } from "@/components/ThemeProvider";
+
+const THEMES: { id: Theme; label: string; bg: string; accent: string; text: string }[] = [
+  { id: "boys", label: "Boys", bg: "#101820", accent: "#D97B3F", text: "#F5F0E8" },
+  { id: "girls", label: "Girls", bg: "#4A0619", accent: "#FFBDC5", text: "#FFBDC5" },
+];
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -57,6 +64,35 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader title="Settings" subtitle="Your space, your rules." />
+
+      <GlassCard className="mb-6 max-w-xl p-6">
+        <h3 className="mb-1 font-medium">Theme</h3>
+        <p className="mb-4 text-sm text-muted">Pick the palette for your space.</p>
+        <div className="grid grid-cols-2 gap-4">
+          {THEMES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={`overflow-hidden rounded-2xl border text-left transition ${
+                theme === t.id
+                  ? "border-accent ring-1 ring-accent"
+                  : "border-line hover:border-white/20"
+              }`}
+            >
+              <div className="flex h-20 items-center gap-2 px-4" style={{ background: t.bg }}>
+                <span className="h-6 w-6 rounded-full" style={{ background: t.accent }} />
+                <span className="text-sm font-medium" style={{ color: t.text }}>
+                  {t.label}
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2 text-xs">
+                <span className="text-muted">{t.label} theme</span>
+                {theme === t.id && <span className="text-accent">Active</span>}
+              </div>
+            </button>
+          ))}
+        </div>
+      </GlassCard>
 
       <GlassCard className="max-w-xl p-6">
         <div className="flex items-start gap-4">

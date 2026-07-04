@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { IsaIntroGate } from "@/components/brand/IsaIntro";
 import { PwaRegister } from "@/components/PwaRegister";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -24,12 +25,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" data-theme="boys" className={inter.variable}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('isa_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <AuthProvider>
-          <PwaRegister />
-          <IsaIntroGate />
-          {children}
+          <ThemeProvider>
+            <PwaRegister />
+            <IsaIntroGate />
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

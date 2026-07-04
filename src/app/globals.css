@@ -1,20 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #050505;
+  /* default = boys theme */
+  --color-bg: #101820;
   --color-surface: rgba(255, 255, 255, 0.05);
   --color-surface-strong: rgba(255, 255, 255, 0.08);
   --color-line: rgba(255, 255, 255, 0.08);
-  --color-fg: #ffffff;
-  --color-muted: #a0a0a0;
-  --color-accent: #4f8cff;
-  --color-accent-soft: rgba(79, 140, 255, 0.15);
+  --color-fg: #f5f0e8;
+  --color-muted: #8b8578;
+  --color-accent: #d97b3f;
+  --color-accent-soft: rgba(217, 123, 63, 0.15);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "SF Pro Display", "Segoe UI", sans-serif;
 
   --radius-xl: 1.25rem;
   --radius-2xl: 1.75rem;
+}
+
+:root[data-theme="boys"] {
+  --color-bg: #101820;
+  --color-fg: #f5f0e8;
+  --color-muted: #8b8578;
+  --color-accent: #d97b3f;
+  --color-accent-soft: rgba(217, 123, 63, 0.15);
+}
+:root[data-theme="girls"] {
+  --color-bg: #4a0619;
+  --color-fg: #ffbdc5;
+  --color-muted: #c79aa0;
+  --color-accent: #ffbdc5;
+  --color-accent-soft: rgba(255, 189, 197, 0.15);
+}
+
+/* Smooth theme switch (reduced-motion block below neutralizes this) */
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 * {
