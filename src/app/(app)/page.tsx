@@ -22,6 +22,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
 import { AscentProgress } from "@/components/ui/AscentProgress";
 import { SleepCard } from "@/components/sections/SleepCard";
+import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
 import { quoteOfTheDay } from "@/lib/quotes";
@@ -134,6 +135,8 @@ export default function DashboardPage() {
 
   return (
     <div>
+      <WeeklyReviewModal />
+
       {/* First-run welcome */}
       <AnimatePresence>
         {welcomed && (

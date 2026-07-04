@@ -87,6 +87,37 @@ export type StravaActivityRow = {
   created_at: string;
 };
 
+export type WeeklyReview = {
+  id: string;
+  user_id: string;
+  week_start_date: string;
+  goals_completed: number;
+  journal_entries_count: number;
+  focus_sessions_count: number;
+  focus_total_minutes: number;
+  avg_energy_score: number | null;
+  most_active_day: string | null;
+  seen_at: string | null;
+  created_at: string;
+};
+
+export type Habit = {
+  id: string;
+  user_id: string;
+  name: string;
+  icon: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type HabitLog = {
+  id: string;
+  habit_id: string;
+  user_id: string;
+  date: string;
+  completed: boolean;
+};
+
 export type RunLog = {
   id: string;
   user_id: string;

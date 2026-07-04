@@ -10,6 +10,7 @@ import {
   BarChart3,
   BookOpen,
   Timer,
+  Repeat,
   LogOut,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/progress", label: "Progress", icon: BarChart3 },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/focus", label: "Focus", icon: Timer },
+  { href: "/habits", label: "Habits", icon: Repeat },
 ];
 
 function NavLink({

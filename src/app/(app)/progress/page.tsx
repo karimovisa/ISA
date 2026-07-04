@@ -17,6 +17,7 @@ import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RunningSection } from "@/components/sections/RunningSection";
+import { WeeklyReviewHistory } from "@/components/sections/WeeklyReviewHistory";
 import type { FocusSession, Project } from "@/lib/types";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -151,6 +152,10 @@ export default function ProgressPage() {
             </ResponsiveContainer>
           )}
         </ChartCard>
+      </div>
+
+      <div className="mt-6">
+        <WeeklyReviewHistory />
       </div>
     </div>
   );
