@@ -12,6 +12,7 @@ import {
   Timer,
   Repeat,
   CalendarDays,
+  Settings,
   LogOut,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -98,13 +99,25 @@ export function Sidebar() {
             />
           ))}
         </nav>
-        <button
-          onClick={signOut}
-          title="Sign out"
-          className="flex h-11 w-11 items-center justify-center rounded-2xl text-muted transition-colors hover:text-white"
-        >
-          <LogOut size={20} />
-        </button>
+        <div className="flex flex-col items-center gap-1">
+          <Link
+            href="/settings"
+            title="Settings"
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
+              isActive("/settings") ? "text-white" : "text-muted hover:text-white"
+            )}
+          >
+            <Settings size={20} />
+          </Link>
+          <button
+            onClick={signOut}
+            title="Sign out"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl text-muted transition-colors hover:text-white"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </aside>
 
       {/* Mobile bottom bar */}

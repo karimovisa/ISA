@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { IsaIntroGate } from "@/components/brand/IsaIntro";
+import { PwaRegister } from "@/components/PwaRegister";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -12,8 +13,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "ISA — Run. Process. Aim.",
-  description:
-    "ISA — a personal operating system. Focus. Process. Peak.",
+  description: "ISA — a personal operating system. Focus. Process. Peak.",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, title: "ISA", statusBarStyle: "black" },
 };
 
 export default function RootLayout({
@@ -25,6 +27,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body>
         <AuthProvider>
+          <PwaRegister />
           <IsaIntroGate />
           {children}
         </AuthProvider>
