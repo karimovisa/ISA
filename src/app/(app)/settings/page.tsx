@@ -98,7 +98,7 @@ export default function SettingsPage() {
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.06]">
             {enabled ? (
-              <Bell size={20} className="text-white" />
+              <Bell size={20} className="text-fg" />
             ) : (
               <BellOff size={20} className="text-muted" />
             )}
@@ -127,7 +127,7 @@ export default function SettingsPage() {
                   <PressButton
                     onClick={test}
                     disabled={busy}
-                    className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/15 disabled:opacity-50"
+                    className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
                   >
                     Send test
                   </PressButton>

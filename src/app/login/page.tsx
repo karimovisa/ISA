@@ -70,13 +70,13 @@ export default function LoginPage() {
         className="w-full max-w-sm"
       >
         <div className="mb-8 flex flex-col items-center text-center">
-          <IsaLogo className="w-32 text-white" glow />
+          <IsaLogo className="w-32 text-fg" glow />
           <div className="mt-4 flex items-center gap-2 text-[0.6rem] font-medium uppercase tracking-[0.35em] text-muted">
-            <span className="text-white/70">Focus</span>
+            <span className="text-fg/70">Focus</span>
             <span className="text-accent">·</span>
-            <span className="text-white/70">Process</span>
+            <span className="text-fg/70">Process</span>
             <span className="text-accent">·</span>
-            <span className="text-white/70">Peak</span>
+            <span className="text-fg/70">Peak</span>
           </div>
           <p className="mt-4 text-sm text-muted">
             {mode === "signin"

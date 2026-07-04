@@ -134,7 +134,7 @@ export function SleepCard() {
             </div>
             <button
               onClick={() => setOpen(true)}
-              className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white transition hover:bg-white/15"
+              className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs text-fg transition hover:bg-white/15"
             >
               Log
             </button>
@@ -152,8 +152,8 @@ export function SleepCard() {
                 onClick={() => setMode(m)}
                 className={`flex-1 rounded-xl px-3 py-2 text-sm transition ${
                   mode === m
-                    ? "bg-white/10 text-white ring-1 ring-inset ring-white/20"
-                    : "text-muted hover:text-white"
+                    ? "bg-white/10 text-fg ring-1 ring-inset ring-white/20"
+                    : "text-muted hover:text-fg"
                 }`}
               >
                 {m === "times" ? "Bed & wake" : "Just hours"}
@@ -209,8 +209,8 @@ export function SleepCard() {
                   onClick={() => setQuality(q === quality ? 0 : q)}
                   className={`h-9 flex-1 rounded-lg text-sm transition ${
                     quality >= q && quality > 0
-                      ? "bg-white/15 text-white"
-                      : "bg-white/[0.04] text-muted hover:text-white"
+                      ? "bg-white/15 text-fg"
+                      : "bg-white/[0.04] text-muted hover:text-fg"
                   }`}
                 >
                   {q}

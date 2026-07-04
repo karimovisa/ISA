@@ -145,14 +145,14 @@ export function RunningSection() {
         {/* Header + Strava controls */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Footprints size={18} className="text-white/80" />
+            <Footprints size={18} className="text-fg/80" />
             <h3 className="text-sm font-medium">Running</h3>
           </div>
           {connected ? (
             <PressButton
               onClick={sync}
               disabled={syncing}
-              className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white transition-colors hover:bg-white/15 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-fg transition-colors hover:bg-white/15 disabled:opacity-50"
             >
               <RefreshCw size={13} className={syncing ? "animate-spin" : undefined} />
               {syncing ? "Syncing…" : "Sync Strava"}
@@ -160,7 +160,7 @@ export function RunningSection() {
           ) : (
             <PressButton
               onClick={connectStrava}
-              className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-white"
+              className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-fg"
               style={{ backgroundColor: ORANGE }}
             >
               <Link2 size={13} />
@@ -273,7 +273,7 @@ export function RunningSection() {
                 key={r.id}
                 className="group flex items-center justify-between border-t border-line pt-2 text-sm first:border-0 first:pt-0"
               >
-                <span className="flex items-center gap-2 text-white/90">
+                <span className="flex items-center gap-2 text-fg/90">
                   <span
                     className="h-1.5 w-1.5 rounded-full"
                     style={{
@@ -288,7 +288,7 @@ export function RunningSection() {
                   })}
                 </span>
                 <span className="flex items-center gap-3 text-muted">
-                  <span className="tabular-nums text-white/90">
+                  <span className="tabular-nums text-fg/90">
                     {r.distance_km.toFixed(1)} km
                   </span>
                   <span className="tabular-nums">

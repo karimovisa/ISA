@@ -186,7 +186,7 @@ export default function HabitsPage() {
                   <div className="flex shrink-0 gap-1 opacity-0 transition group-hover:opacity-100">
                     <button
                       onClick={() => openEdit(h)}
-                      className="rounded-lg p-2 text-muted transition hover:text-white"
+                      className="rounded-lg p-2 text-muted transition hover:text-fg"
                     >
                       <Pencil size={15} />
                     </button>

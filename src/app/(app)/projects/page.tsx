@@ -304,7 +304,7 @@ function IconBtn({
     <button
       onClick={onClick}
       className={`rounded-lg p-2 text-muted transition hover:bg-white/5 ${
-        danger ? "hover:text-red-400" : "hover:text-white"
+        danger ? "hover:text-red-400" : "hover:text-fg"
       }`}
     >
       {children}

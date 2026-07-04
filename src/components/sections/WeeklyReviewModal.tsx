@@ -93,11 +93,11 @@ export function WeeklyReviewModal() {
       {review.avg_mood_score !== null && (
         <p className="mt-4 text-center text-sm text-muted">
           Avg mood this week:{" "}
-          <span className="text-white/90">{review.avg_mood_score}/5</span>
+          <span className="text-fg/90">{review.avg_mood_score}/5</span>
         </p>
       )}
 
-      <p className="mt-6 text-balance text-center text-sm italic text-white/80">
+      <p className="mt-6 text-balance text-center text-sm italic text-fg/80">
         {motivation(review)}
       </p>
     </Modal>

@@ -146,13 +146,13 @@ export default function DashboardPage() {
             exit={{ opacity: 0, y: -8 }}
             className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-accent/20 bg-accent-soft px-4 py-3"
           >
-            <p className="text-sm text-white/90">
+            <p className="text-sm text-fg/90">
               Welcome to your space, {displayName}. We seeded a few starters —
               edit or delete anything.
             </p>
             <button
               onClick={() => setWelcomed(false)}
-              className="rounded-lg p-1 text-muted transition hover:text-white"
+              className="rounded-lg p-1 text-muted transition hover:text-fg"
               aria-label="Dismiss"
             >
               <X size={16} />
@@ -170,7 +170,7 @@ export default function DashboardPage() {
         <p className="mt-3 text-base text-muted sm:text-lg">
           You are getting closer to your goals.
         </p>
-        <div className="mt-4 font-mono text-3xl font-semibold tabular-nums tracking-tight text-white/90">
+        <div className="mt-4 font-mono text-3xl font-semibold tabular-nums tracking-tight text-fg/90">
           {now ? formatTime(now) : " "}
         </div>
       </motion.section>
@@ -183,21 +183,21 @@ export default function DashboardPage() {
         <GlassCard className="grid grid-cols-1 divide-y divide-white/[0.06] p-0 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <Momentum
             Icon={Flame}
-            color="text-white/85"
+            color="text-fg/85"
             label="Journaling streak"
             main={<AnimatedNumber value={streak} />}
             unit={streak === 1 ? "day" : "days"}
           />
           <Momentum
             Icon={Timer}
-            color="text-white/85"
+            color="text-fg/85"
             label="Focus this week"
             main={<AnimatedNumber value={weeklyMin} />}
             unit="min"
           />
           <Momentum
             Icon={CalendarClock}
-            color="text-white/85"
+            color="text-fg/85"
             label="Next deadline"
             main={
               deadline ? (
@@ -217,7 +217,7 @@ export default function DashboardPage() {
         <GlassCard className="mb-8 flex items-start gap-4 p-6">
           <Quote className="mt-0.5 shrink-0 text-accent" size={22} />
           <div>
-            <p className="text-balance text-base text-white/90 sm:text-lg">
+            <p className="text-balance text-base text-fg/90 sm:text-lg">
               {quote.text}
             </p>
             <p className="mt-2 text-xs uppercase tracking-wider text-muted">
@@ -242,7 +242,7 @@ export default function DashboardPage() {
           />
           <PressButton
             type="submit"
-            className="shrink-0 rounded-2xl bg-white/10 px-4 py-2 text-xs font-medium text-white transition-colors duration-200 hover:bg-white/15"
+            className="shrink-0 rounded-2xl bg-white/10 px-4 py-2 text-xs font-medium text-fg transition-colors duration-200 hover:bg-white/15"
           >
             {ideaSaved ? "Saved ✓" : "Save"}
           </PressButton>
@@ -260,18 +260,18 @@ export default function DashboardPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                    <c.Icon size={20} className="text-white" />
+                    <c.Icon size={20} className="text-fg" />
                   </div>
                   <ArrowUpRight
                     size={20}
-                    className="text-muted transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white"
+                    className="text-muted transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
                   />
                 </div>
                 <div className="mt-8">
                   <div className="text-4xl font-bold tracking-tight">
                     <AnimatedNumber value={c.value} suffix={c.suffix ?? ""} />
                   </div>
-                  <div className="mt-1 text-sm font-medium text-white">
+                  <div className="mt-1 text-sm font-medium text-fg">
                     {c.label}
                   </div>
                   <div className="text-xs text-muted">{c.sub}</div>

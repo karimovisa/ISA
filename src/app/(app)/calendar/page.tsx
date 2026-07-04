@@ -83,13 +83,13 @@ export default function CalendarPage() {
           <div className="flex gap-1">
             <button
               onClick={() => setCursor(new Date(year, month - 1, 1))}
-              className="rounded-lg p-2 text-muted transition hover:text-white"
+              className="rounded-lg p-2 text-muted transition hover:text-fg"
             >
               <ChevronLeft size={18} />
             </button>
             <button
               onClick={() => setCursor(new Date(year, month + 1, 1))}
-              className="rounded-lg p-2 text-muted transition hover:text-white"
+              className="rounded-lg p-2 text-muted transition hover:text-fg"
             >
               <ChevronRight size={18} />
             </button>
@@ -114,17 +114,17 @@ export default function CalendarPage() {
                 onClick={() => openDay(date)}
                 className="relative flex aspect-square items-center justify-center rounded-xl text-sm transition-colors duration-300"
                 style={{
-                  backgroundColor: color ?? "rgba(255,255,255,0.04)",
-                  color: color ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.55)",
+                  backgroundColor: color ?? "var(--color-surface)",
+                  color: color ? "#ffffff" : "var(--color-muted)",
                   opacity: loading ? 0.4 : 1,
                 }}
               >
                 {day}
                 {m?.has_journal && (
-                  <span className="absolute bottom-1 h-1 w-1 rounded-full bg-white/70" />
+                  <span className="absolute bottom-1 h-1 w-1 rounded-full bg-fg/60" />
                 )}
                 {date === todayStr && (
-                  <span className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/40" />
+                  <span className="absolute inset-0 rounded-xl ring-1 ring-inset ring-fg/30" />
                 )}
               </button>
             );
@@ -161,19 +161,19 @@ export default function CalendarPage() {
             {entry.did_today && (
               <div>
                 <dt className="text-xs text-muted">What I did</dt>
-                <dd className="text-white/90">{entry.did_today}</dd>
+                <dd className="text-fg/90">{entry.did_today}</dd>
               </div>
             )}
             {entry.learned && (
               <div>
                 <dt className="text-xs text-muted">What I learned</dt>
-                <dd className="text-white/90">{entry.learned}</dd>
+                <dd className="text-fg/90">{entry.learned}</dd>
               </div>
             )}
             {entry.tomorrow && (
               <div>
                 <dt className="text-xs text-muted">Tomorrow</dt>
-                <dd className="text-white/90">{entry.tomorrow}</dd>
+                <dd className="text-fg/90">{entry.tomorrow}</dd>
               </div>
             )}
           </dl>

@@ -47,19 +47,19 @@ export function ProjectTasks({
               <div className="text-[0.65rem] uppercase tracking-wider text-muted">
                 Next step
               </div>
-              <div className="truncate text-sm text-white/90">{next.title}</div>
+              <div className="truncate text-sm text-fg/90">{next.title}</div>
             </div>
           </>
         ) : (
           <div className="flex items-center gap-2 text-sm text-muted">
-            <Check size={15} className="text-white/70" />
+            <Check size={15} className="text-fg/70" />
             {tasks.length ? "All steps complete" : "No steps yet"}
           </div>
         )}
 
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted transition hover:text-white"
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted transition hover:text-fg"
         >
           {tasks.length > 0 && (
             <span className="tabular-nums">
@@ -88,7 +88,7 @@ export function ProjectTasks({
                   <CheckCircle done={t.done} onClick={() => onToggle(t)} />
                   <span
                     className={`flex-1 text-sm transition-colors ${
-                      t.done ? "text-muted line-through" : "text-white/90"
+                      t.done ? "text-muted line-through" : "text-fg/90"
                     }`}
                   >
                     {t.title}
@@ -112,7 +112,7 @@ export function ProjectTasks({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Add a step…"
-                className="flex-1 bg-transparent py-1 text-sm text-white/90 placeholder:text-muted/60"
+                className="flex-1 bg-transparent py-1 text-sm text-fg/90 placeholder:text-muted/60"
               />
             </form>
           </motion.div>

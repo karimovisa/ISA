@@ -47,13 +47,13 @@ export function WeeklyReviewHistory() {
       <GlassCard className="p-6">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CalendarRange size={18} className="text-white/80" />
+            <CalendarRange size={18} className="text-fg/80" />
             <h3 className="text-sm font-medium">Weekly reviews</h3>
           </div>
           <PressButton
             onClick={generate}
             disabled={busy}
-            className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white transition hover:bg-white/15 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-fg transition hover:bg-white/15 disabled:opacity-50"
           >
             <Sparkles size={13} />
             {busy ? "Generating…" : "Generate this week"}
@@ -71,7 +71,7 @@ export function WeeklyReviewHistory() {
                 key={r.id}
                 className="flex items-center justify-between border-t border-line pt-3 text-sm first:border-0 first:pt-0"
               >
-                <span className="text-white/90">
+                <span className="text-fg/90">
                   {new Date(r.week_start_date).toLocaleDateString([], {
                     month: "short",
                     day: "numeric",
@@ -81,7 +81,7 @@ export function WeeklyReviewHistory() {
                   <span>{r.focus_total_minutes}m focus</span>
                   <span>{r.journal_entries_count} entries</span>
                   {r.avg_energy_score !== null && (
-                    <span className="text-white/85">
+                    <span className="text-fg/85">
                       ⚡ {r.avg_energy_score}
                     </span>
                   )}

@@ -49,7 +49,7 @@ function NavLink({
       title={label}
       className={cn(
         "group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
-        active ? "text-white" : "text-muted hover:text-white"
+        active ? "text-fg" : "text-muted hover:text-fg"
       )}
     >
       {active && (
@@ -64,7 +64,7 @@ function NavLink({
         className="relative z-10 transition-transform duration-200 group-hover:scale-110"
       />
       {/* Desktop tooltip */}
-      <span className="pointer-events-none absolute left-14 z-20 hidden whitespace-nowrap rounded-lg bg-white/10 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 md:block">
+      <span className="pointer-events-none absolute left-14 z-20 hidden whitespace-nowrap rounded-lg bg-white/10 px-2.5 py-1 text-xs text-fg opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 md:block">
         {label}
       </span>
     </Link>
@@ -84,7 +84,7 @@ export function Sidebar() {
         <Link
           href="/"
           aria-label="ISA — home"
-          className="text-white transition-opacity hover:opacity-80"
+          className="text-fg transition-opacity hover:opacity-80"
         >
           <IsaLogo className="w-12" />
         </Link>
@@ -105,7 +105,7 @@ export function Sidebar() {
             title="Settings"
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
-              isActive("/settings") ? "text-white" : "text-muted hover:text-white"
+              isActive("/settings") ? "text-fg" : "text-muted hover:text-fg"
             )}
           >
             <Settings size={20} />
@@ -113,7 +113,7 @@ export function Sidebar() {
           <button
             onClick={signOut}
             title="Sign out"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl text-muted transition-colors hover:text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl text-muted transition-colors hover:text-fg"
           >
             <LogOut size={20} />
           </button>
@@ -134,7 +134,7 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "relative flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
-                active ? "text-white" : "text-muted"
+                active ? "text-fg" : "text-muted"
               )}
             >
               {active && (

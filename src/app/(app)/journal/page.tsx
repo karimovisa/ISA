@@ -111,7 +111,7 @@ export default function JournalPage() {
                     setDraft({ ...draft, [p.key]: e.target.value })
                   }
                   placeholder="Write freely…"
-                  className="w-full resize-none border-b border-line bg-transparent pb-2 text-[15px] leading-relaxed text-white/90 placeholder:text-muted/50 focus:border-accent/50"
+                  className="w-full resize-none border-b border-line bg-transparent pb-2 text-[15px] leading-relaxed text-fg/90 placeholder:text-muted/50 focus:border-accent/50"
                 />
               </div>
             ))}
@@ -165,7 +165,7 @@ export default function JournalPage() {
                       e[p.key] ? (
                         <div key={p.key}>
                           <dt className="text-xs text-muted">{p.label}</dt>
-                          <dd className="text-white/85">{e[p.key]}</dd>
+                          <dd className="text-fg/85">{e[p.key]}</dd>
                         </div>
                       ) : null
                     )}

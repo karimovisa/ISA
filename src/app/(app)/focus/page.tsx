@@ -155,7 +155,7 @@ export default function FocusPage() {
             </PressButton>
             <PressButton
               onClick={reset}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-muted transition duration-200 hover:text-white"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-muted transition duration-200 hover:text-fg"
             >
               <RotateCcw size={18} />
             </PressButton>
@@ -168,8 +168,8 @@ export default function FocusPage() {
                 onClick={() => choosePreset(m)}
                 className={`rounded-full px-4 py-1.5 text-sm transition ${
                   duration === m * 60
-                    ? "bg-accent-soft text-white ring-1 ring-inset ring-accent/30"
-                    : "text-muted hover:text-white"
+                    ? "bg-accent-soft text-fg ring-1 ring-inset ring-accent/30"
+                    : "text-muted hover:text-fg"
                 }`}
               >
                 {m}m
@@ -205,7 +205,7 @@ export default function FocusPage() {
                     key={s.id}
                     className="flex items-center justify-between text-sm"
                   >
-                    <span className="truncate text-white/90">{s.label}</span>
+                    <span className="truncate text-fg/90">{s.label}</span>
                     <span className="shrink-0 text-muted">
                       {Math.round(s.duration_seconds / 60)}m
                     </span>

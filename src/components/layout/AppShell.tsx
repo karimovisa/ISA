@@ -14,7 +14,7 @@ function Splash() {
   return (
     <div className="flex min-h-dvh items-center justify-center">
       <motion.div
-        className="text-white"
+        className="text-fg"
         animate={{ opacity: [0.45, 1, 0.45] }}
         transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
       >

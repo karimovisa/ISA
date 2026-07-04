@@ -95,7 +95,7 @@ export default function IdeasPage() {
                     <Trash2 size={14} />
                   </button>
                 </div>
-                <p className="mt-3 text-[15px] leading-relaxed text-white/90">
+                <p className="mt-3 text-[15px] leading-relaxed text-fg/90">
                   {idea.content}
                 </p>
               </GlassCard>
