@@ -133,7 +133,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
+                "relative flex h-11 flex-1 items-center justify-center rounded-2xl transition-colors",
                 active ? "text-fg" : "text-muted"
               )}
             >

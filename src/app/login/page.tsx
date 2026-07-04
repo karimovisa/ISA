@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SetupNotice } from "@/components/layout/SetupNotice";
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export default function LoginPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return; // guard against duplicate submissions
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -104,25 +107,47 @@ export default function LoginPage() {
               />
             )}
           </AnimatePresence>
-          <input
-            type="email"
-            required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={fieldClass}
-            autoComplete="email"
-          />
-          <input
-            type="password"
-            required
-            minLength={6}
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={fieldClass}
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-          />
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={fieldClass}
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPw ? "text" : "password"}
+                required
+                minLength={6}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${fieldClass} pr-11`}
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? "Hide password" : "Show password"}
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted transition hover:text-fg"
+              >
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
 
           {error && <p className="text-xs text-red-400">{error}</p>}
           {notice && <p className="text-xs text-emerald-400">{notice}</p>}

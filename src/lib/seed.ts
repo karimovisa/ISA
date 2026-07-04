@@ -6,11 +6,9 @@ import { supabase } from "@/lib/supabase/client";
  * every dashboard mount.
  */
 export async function seedDefaults(userId: string): Promise<boolean> {
-  const { count } = await supabase
-    .from("goals")
-    .select("id", { count: "exact", head: true });
-
-  if (count && count > 0) return false;
+  // Plain select (HEAD/count-only requests were returning 503 on this project).
+  const { data: existing } = await supabase.from("goals").select("id").limit(1);
+  if (existing && existing.length > 0) return false;
 
   const goals = [
     {

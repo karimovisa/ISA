@@ -18,11 +18,19 @@ import type { SleepLog } from "@/lib/types";
 function MoonIcon({ low }: { low: boolean }) {
   return (
     <svg width="46" height="46" viewBox="0 0 48 48" aria-hidden>
-      <circle cx="24" cy="24" r="16" fill="currentColor" opacity="0.06" />
-      <path
-        d="M 30 10 A 14 14 0 1 0 30 38 A 11 11 0 1 1 30 10 Z"
+      <defs>
+        <mask id="isa-moon">
+          <rect x="0" y="0" width="48" height="48" fill="#fff" />
+          <circle cx="30" cy="21" r="14" fill="#000" />
+        </mask>
+      </defs>
+      <circle cx="24" cy="24" r="16" fill="currentColor" opacity="0.08" />
+      <circle
+        cx="22"
+        cy="24"
+        r="15"
         fill={low ? "#F5B7A6" : "#F5F0E8"}
-        opacity="0.95"
+        mask="url(#isa-moon)"
       />
     </svg>
   );
@@ -42,6 +50,7 @@ export function SleepCard() {
   const [open, setOpen] = useState(false);
   const [hours, setHours] = useState("");
   const [quality, setQuality] = useState(0);
+  const [note, setNote] = useState<string | null>(null);
 
   const loadScore = useCallback(async () => {
     const { data } = await supabase
@@ -78,22 +87,27 @@ export function SleepCard() {
 
   const startSleep = async () => {
     setBusy(true);
+    setNote(null);
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("sleep_logs").upsert(
-        {
-          user_id: user.id,
-          date: todayISO(),
-          sleep_start: new Date().toISOString(),
-          sleep_end: null,
-          duration_hours: 0,
-        },
-        { onConflict: "user_id,date" }
-      );
-      await loadOngoing();
+    if (!user) {
+      setNote("Not signed in.");
+      setBusy(false);
+      return;
     }
+    const { error } = await supabase.from("sleep_logs").upsert(
+      {
+        user_id: user.id,
+        date: todayISO(),
+        sleep_start: new Date().toISOString(),
+        sleep_end: null,
+        duration_hours: 0,
+      },
+      { onConflict: "user_id,date" }
+    );
+    if (error) setNote(`Couldn't start: ${error.message}`);
+    else await loadOngoing();
     setBusy(false);
   };
 
@@ -224,6 +238,7 @@ export function SleepCard() {
             </PressButton>
           </div>
         )}
+        {note && <p className="mt-3 text-xs text-red-300">{note}</p>}
       </GlassCard>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Log sleep">
