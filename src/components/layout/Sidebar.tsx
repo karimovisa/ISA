@@ -11,6 +11,7 @@ import {
   BookOpen,
   Timer,
   Repeat,
+  CalendarDays,
   LogOut,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/focus", label: "Focus", icon: Timer },
   { href: "/habits", label: "Habits", icon: Repeat },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
 ];
 
 function NavLink({

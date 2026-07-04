@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { labelClass } from "@/components/ui/Modal";
+import { MoodPicker } from "@/components/sections/MoodPicker";
 import { PressButton } from "@/components/ui/PressButton";
 import { todayISO } from "@/lib/datetime";
 import type { JournalEntry } from "@/lib/types";
@@ -114,6 +115,9 @@ export default function JournalPage() {
                 />
               </div>
             ))}
+          </div>
+          <div className="mt-6 border-t border-line pt-5">
+            <MoodPicker />
           </div>
           <PressButton
             onClick={save}

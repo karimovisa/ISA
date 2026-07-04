@@ -97,6 +97,7 @@ export type WeeklyReview = {
   focus_total_minutes: number;
   avg_energy_score: number | null;
   most_active_day: string | null;
+  avg_mood_score: number | null;
   seen_at: string | null;
   created_at: string;
 };
@@ -116,6 +117,15 @@ export type HabitLog = {
   user_id: string;
   date: string;
   completed: boolean;
+};
+
+export type MoodLog = {
+  id: string;
+  user_id: string;
+  date: string;
+  mood_score: number;
+  note: string | null;
+  created_at: string;
 };
 
 export type RunLog = {
