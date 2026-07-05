@@ -128,6 +128,15 @@ export type MoodLog = {
   created_at: string;
 };
 
+export type Todo = {
+  id: string;
+  user_id: string;
+  title: string;
+  done: boolean;
+  date: string;
+  created_at: string;
+};
+
 export type RunLog = {
   id: string;
   user_id: string;

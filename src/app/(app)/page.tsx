@@ -23,6 +23,7 @@ import { PressButton } from "@/components/ui/PressButton";
 import { AscentProgress } from "@/components/ui/AscentProgress";
 import { SleepCard } from "@/components/sections/SleepCard";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
+import { TodoList } from "@/components/sections/TodoList";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
 import { quoteOfTheDay } from "@/lib/quotes";
@@ -234,6 +235,11 @@ export default function DashboardPage() {
             {ideaSaved ? "Saved ✓" : "Save"}
           </PressButton>
         </form>
+      </motion.div>
+
+      {/* Today's to-do */}
+      <motion.div {...rise(0.15)} className="mb-8">
+        <TodoList />
       </motion.div>
 
       {/* Four cards */}
