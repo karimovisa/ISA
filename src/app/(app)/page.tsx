@@ -26,7 +26,6 @@ import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
 import { quoteOfTheDay } from "@/lib/quotes";
-import { seedDefaults } from "@/lib/seed";
 import {
   journalStreak,
   focusMinutesThisWeek,
@@ -56,18 +55,6 @@ export default function DashboardPage() {
     setTimeout(() => setIdeaSaved(false), 1600);
   };
 
-  useEffect(() => {
-    if (!user) return;
-    seedDefaults(user.id).then((seeded) => {
-      if (seeded) {
-        goals.refresh();
-        projects.refresh();
-        ideas.refresh();
-        setWelcomed(true);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const quote = quoteOfTheDay();
   const overall =
