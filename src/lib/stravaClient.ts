@@ -4,7 +4,9 @@ import { supabase } from "@/lib/supabase/client";
 
 /** Kick off the Strava OAuth flow: store a nonce, then redirect to Strava. */
 export async function connectStrava() {
-  const clientId = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID;
+  // Client ID is public (it appears in the OAuth URL) — hardcode as a fallback
+  // so the flow never breaks on a missing/empty env var.
+  const clientId = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID || "262625";
   if (!clientId) {
     alert("Strava is not configured (missing NEXT_PUBLIC_STRAVA_CLIENT_ID).");
     return;
