@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SetupNotice } from "@/components/layout/SetupNotice";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MountainBackdrop } from "@/components/brand/MountainBackdrop";
@@ -47,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <Sidebar />
+      <CommandPalette />
     </div>
   );
 }
