@@ -27,7 +27,7 @@ export async function exchangeCode(code: string): Promise<TokenResponse> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client_id: process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID || "262625",
+      client_id: "262625",
       client_secret: process.env.STRAVA_CLIENT_SECRET,
       code,
       grant_type: "authorization_code",
@@ -56,7 +56,7 @@ export async function validAccessToken(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client_id: process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID || "262625",
+      client_id: "262625",
       client_secret: process.env.STRAVA_CLIENT_SECRET,
       grant_type: "refresh_token",
       refresh_token: conn.refresh_token,
