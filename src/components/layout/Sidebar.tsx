@@ -36,7 +36,7 @@ const NAV = [
 ];
 
 // Mobile: 5 primary items in the bar, the rest live behind "More".
-const PRIMARY = ["/", "/goals", "/journal", "/focus", "/habits"];
+const PRIMARY = ["/", "/goals", "/habits", "/journal", "/focus", "/progress"];
 const MOBILE_MAIN = NAV.filter((n) => PRIMARY.includes(n.href));
 const MOBILE_REST = [
   ...NAV.filter((n) => !PRIMARY.includes(n.href)),
