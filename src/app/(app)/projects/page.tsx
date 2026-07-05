@@ -178,7 +178,13 @@ export default function ProjectsPage() {
                       <IconBtn onClick={() => openEdit(p)}>
                         <Pencil size={15} />
                       </IconBtn>
-                      <IconBtn onClick={() => remove(p.id)} danger>
+                      <IconBtn
+                        onClick={() => {
+                          if (confirm(`Delete project "${p.title}"?`))
+                            remove(p.id);
+                        }}
+                        danger
+                      >
                         <Trash2 size={15} />
                       </IconBtn>
                     </div>

@@ -16,9 +16,8 @@ export function ProgressBar({
         <motion.div
           className="h-full rounded-full"
           style={{
-            background:
-              "linear-gradient(90deg, rgba(255,255,255,0.55) 0%, #ffffff 100%)",
-            boxShadow: "0 0 14px rgba(255,255,255,0.35)",
+            background: "var(--color-fg)",
+            boxShadow: "0 0 14px color-mix(in srgb, var(--color-fg) 30%, transparent)",
           }}
           initial={{ width: 0 }}
           animate={{ width: `${clamped}%` }}

@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useClock } from "@/hooks/useClock";
+import { LiveClock } from "@/components/ui/LiveClock";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
@@ -36,7 +36,8 @@ import type { Goal, Idea, Project, JournalEntry, FocusSession } from "@/lib/type
 
 export default function DashboardPage() {
   const { user, displayName } = useAuth();
-  const now = useClock();
+  const [dateNow, setDateNow] = useState<Date | null>(null);
+  useEffect(() => setDateNow(new Date()), []);
   const reduce = useReducedMotion();
   const goals = useCollection<Goal>("goals");
   const projects = useCollection<Project>("projects");
@@ -151,15 +152,15 @@ export default function DashboardPage() {
 
       {/* Greeting */}
       <motion.section {...rise(0)} className="mb-8">
-        <p className="text-sm text-muted">{now ? formatDate(now) : " "}</p>
+        <p className="text-sm text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
         <h1 className="mt-2 text-balance text-4xl font-bold tracking-tight sm:text-5xl">
-          {now ? greetingFor(now) : "Welcome"}, {displayName}.
+          {dateNow ? greetingFor(dateNow) : "Welcome"}, {displayName}.
         </h1>
         <p className="mt-3 text-base text-muted sm:text-lg">
           You are getting closer to your goals.
         </p>
         <div className="mt-4 font-mono text-3xl font-semibold tabular-nums tracking-tight text-fg/90">
-          {now ? formatTime(now) : " "}
+          <LiveClock />
         </div>
       </motion.section>
 

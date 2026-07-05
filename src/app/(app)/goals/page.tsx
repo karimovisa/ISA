@@ -124,7 +124,12 @@ export default function GoalsPage() {
                       <IconBtn onClick={() => openEdit(g)}>
                         <Pencil size={15} />
                       </IconBtn>
-                      <IconBtn onClick={() => remove(g.id)} danger>
+                      <IconBtn
+                        onClick={() => {
+                          if (confirm(`Delete goal "${g.title}"?`)) remove(g.id);
+                        }}
+                        danger
+                      >
                         <Trash2 size={15} />
                       </IconBtn>
                     </div>

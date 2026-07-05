@@ -110,7 +110,7 @@ export default function ProgressPage() {
               <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-              <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="#ffffff" />
+              <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="var(--color-fg)" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -121,15 +121,15 @@ export default function ProgressPage() {
             <AreaChart data={productivityData}>
               <defs>
                 <linearGradient id="prodGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ffffff" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--color-fg)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
               <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="score" stroke="#ffffff" strokeWidth={2} fill="url(#prodGrad)" />
+              <Area type="monotone" dataKey="score" stroke="var(--color-fg)" strokeWidth={2} fill="url(#prodGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -147,7 +147,7 @@ export default function ProgressPage() {
                 <XAxis type="number" domain={[0, 100]} stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" stroke="#a0a0a0" fontSize={11} tickLine={false} axisLine={false} width={84} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                <Bar dataKey="percentage" radius={[0, 6, 6, 0]} fill="#ffffff" />
+                <Bar dataKey="percentage" radius={[0, 6, 6, 0]} fill="var(--color-fg)" />
               </BarChart>
             </ResponsiveContainer>
           )}

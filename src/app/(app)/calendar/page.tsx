@@ -13,7 +13,9 @@ const WD = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 type DayMood = { mood_score: number | null; has_journal: boolean };
 
 function iso(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
 }
 
 export default function CalendarPage() {

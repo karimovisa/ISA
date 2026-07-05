@@ -197,15 +197,15 @@ export function RunningSection() {
             <AreaChart data={chart}>
               <defs>
                 <linearGradient id="runGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fff" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#fff" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--color-fg)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
               <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="km" stroke="#fff" strokeWidth={2} fill="url(#runGrad)" />
+              <Area type="monotone" dataKey="km" stroke="var(--color-fg)" strokeWidth={2} fill="url(#runGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

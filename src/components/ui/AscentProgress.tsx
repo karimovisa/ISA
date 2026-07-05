@@ -32,12 +32,12 @@ export function AscentProgress({ value }: { value: number }) {
         fill="none"
       />
       {/* summit marker */}
-      <circle cx={PEAK.x} cy={PEAK.y} r={2} fill={summited ? "#ffffff" : "rgba(255,255,255,0.35)"} />
+      <circle cx={PEAK.x} cy={PEAK.y} r={2} fill={summited ? "var(--color-fg)" : "rgba(255,255,255,0.35)"} />
 
       {/* climbed portion */}
       <motion.path
         d={ASCENT}
-        stroke="#ffffff"
+        stroke="var(--color-fg)"
         strokeWidth={2.4}
         strokeLinecap="round"
         fill="none"
@@ -59,7 +59,7 @@ export function AscentProgress({ value }: { value: number }) {
           animate={reduce ? undefined : { scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
         />
-        <circle r={3} fill="#ffffff" />
+        <circle r={3} fill="var(--color-fg)" />
       </motion.g>
     </svg>
   );
