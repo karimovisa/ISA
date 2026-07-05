@@ -14,6 +14,7 @@ import {
   primaryBtnClass,
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
+import { TodoList } from "@/components/sections/TodoList";
 import type { Habit, HabitLog } from "@/lib/types";
 
 function last7(): string[] {
@@ -122,6 +123,10 @@ export default function HabitsPage() {
         subtitle="Small daily actions. The compounding kind."
         action={<AddButton onClick={openNew} label="New habit" />}
       />
+
+      <div className="mb-6">
+        <TodoList />
+      </div>
 
       {habits.loading ? (
         <div className="space-y-4">

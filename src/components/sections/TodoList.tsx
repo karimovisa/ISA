@@ -18,6 +18,9 @@ export function TodoList() {
   const today = todayISO();
   const items = todos.data.filter((t) => t.date === today);
   const doneCount = items.filter((t) => t.done).length;
+  const pct = items.length ? Math.round((doneCount / items.length) * 100) : 0;
+  // undone rise to the top, done sink to the bottom (stable)
+  const sorted = [...items].sort((a, b) => Number(a.done) - Number(b.done));
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +44,23 @@ export function TodoList() {
         )}
       </div>
 
+      {items.length > 0 && (
+        <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+          <motion.div
+            className="h-full rounded-full bg-fg"
+            initial={false}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </div>
+      )}
+
       <ul className="space-y-1">
         <AnimatePresence initial={false}>
-          {items.map((t) => (
+          {sorted.map((t) => (
             <motion.li
               key={t.id}
+              layout
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
