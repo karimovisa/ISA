@@ -5,7 +5,6 @@ import {
   I_PATH,
   S_PATH,
   A_PATH,
-  A_BAR,
 } from "@/lib/isaPaths";
 import { cn } from "@/lib/cn";
 
@@ -40,7 +39,6 @@ export function IsaLogo({
       <path d={I_PATH} />
       <path d={S_PATH} />
       <path d={A_PATH} />
-      <path d={A_BAR} />
     </svg>
   );
 }
