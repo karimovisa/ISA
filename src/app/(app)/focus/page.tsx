@@ -11,9 +11,19 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { fieldClass } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { toast } from "@/lib/toast";
 import type { FocusSession } from "@/lib/types";
 
 const PRESETS = [25, 50, 90];
+
+// Running/paused timer survives navigation and browser close.
+const STORAGE = "isa_focus_v1";
+type SavedTimer = {
+  label: string;
+  duration: number;
+  endAt?: number; // running: absolute finish time
+  left?: number; // paused: seconds remaining
+};
 
 function fmt(total: number) {
   const m = Math.floor(total / 60)
@@ -31,16 +41,80 @@ export default function FocusPage() {
   const [left, setLeft] = useState(25 * 60);
   const [running, setRunning] = useState(false);
   const tick = useRef<ReturnType<typeof setInterval> | null>(null);
+  const leftRef = useRef(left);
+  leftRef.current = left;
+  const restored = useRef(false);
 
-  const logSession = async (seconds: number) => {
+  const logSession = async (seconds: number, sessionLabel?: string) => {
     if (!user || seconds < 30) return;
-    await supabase.from("focus_sessions").insert({
+    const { error } = await supabase.from("focus_sessions").insert({
       user_id: user.id,
-      label: label.trim() || "Focus",
+      label: (sessionLabel ?? label).trim() || "Focus",
       duration_seconds: seconds,
     });
-    sessions.refresh();
+    if (error) toast("Couldn't save your focus session.", "error");
+    else {
+      toast(`Focus session saved — ${Math.round(seconds / 60)} min ✓`, "success");
+      sessions.refresh();
+    }
   };
+
+  // Restore a running/paused timer once the user is known (needed for logging
+  // a session that finished while the app was closed).
+  useEffect(() => {
+    if (!user || restored.current) return;
+    restored.current = true;
+    try {
+      const raw = localStorage.getItem(STORAGE);
+      if (!raw) return;
+      const s = JSON.parse(raw) as SavedTimer;
+      if (!s.duration) return;
+      setLabel(s.label || "Focus");
+      setDuration(s.duration);
+      if (s.endAt) {
+        const remaining = Math.round((s.endAt - Date.now()) / 1000);
+        if (remaining > 0) {
+          setLeft(remaining);
+          setRunning(true);
+        } else {
+          // Finished while away — count the full session.
+          localStorage.removeItem(STORAGE);
+          setLeft(0);
+          logSession(s.duration, s.label);
+        }
+      } else if (typeof s.left === "number") {
+        setLeft(s.left);
+      }
+    } catch {
+      localStorage.removeItem(STORAGE);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Persist on start/pause so the timer survives navigation and close.
+  useEffect(() => {
+    if (!restored.current && !running) return;
+    if (running) {
+      localStorage.setItem(
+        STORAGE,
+        JSON.stringify({
+          label,
+          duration,
+          endAt: Date.now() + leftRef.current * 1000,
+        } satisfies SavedTimer)
+      );
+    } else if (leftRef.current > 0 && leftRef.current < duration) {
+      localStorage.setItem(
+        STORAGE,
+        JSON.stringify({
+          label,
+          duration,
+          left: leftRef.current,
+        } satisfies SavedTimer)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running]);
 
   useEffect(() => {
     if (!running) return;
@@ -49,6 +123,7 @@ export default function FocusPage() {
         if (prev <= 1) {
           clearInterval(tick.current!);
           setRunning(false);
+          localStorage.removeItem(STORAGE);
           logSession(duration);
           return 0;
         }
@@ -63,6 +138,7 @@ export default function FocusPage() {
 
   const choosePreset = (min: number) => {
     setRunning(false);
+    localStorage.removeItem(STORAGE);
     setDuration(min * 60);
     setLeft(min * 60);
   };
@@ -74,6 +150,7 @@ export default function FocusPage() {
     const elapsed = duration - left;
     if (elapsed >= 30 && !running) logSession(elapsed);
     setRunning(false);
+    localStorage.removeItem(STORAGE);
     setLeft(duration);
   };
 
