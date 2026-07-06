@@ -30,7 +30,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('isa_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('isa_theme')||'boys';if(t==='girls'){var m=localStorage.getItem('isa_girls_mode')||'auto';var h=(new Date()).getHours();var d=m==='auto'?(h>=6&&h<19):m==='day';t=d?'girls-day':'girls-night'}document.documentElement.setAttribute('data-theme',t)}catch(e){}`,
           }}
         />
       </head>

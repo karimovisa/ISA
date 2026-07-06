@@ -25,16 +25,28 @@
   --color-accent: #d97b3f;
   --color-accent-soft: rgba(217, 123, 63, 0.15);
 }
-:root[data-theme="girls"] {
+/* Girls = real-time pair: day 06:00–18:59, night 19:00–05:59 (or manual). */
+:root[data-theme="girls-day"] {
   color-scheme: light;
-  --color-bg: #ffbdc5;
-  --color-fg: #4a0619;
-  --color-muted: #7a3644;
-  --color-accent: #4a0619;
-  --color-accent-soft: rgba(74, 6, 25, 0.12);
-  --color-surface: rgba(74, 6, 25, 0.06);
-  --color-surface-strong: rgba(74, 6, 25, 0.1);
-  --color-line: rgba(74, 6, 25, 0.16);
+  --color-bg: #fff8fb;
+  --color-fg: #2b1b24;
+  --color-muted: #8b6b78;
+  --color-accent: #ff5c8a;
+  --color-accent-soft: rgba(255, 92, 138, 0.13);
+  --color-surface: rgba(255, 255, 255, 0.82);
+  --color-surface-strong: #ffffff;
+  --color-line: rgba(43, 27, 36, 0.09);
+}
+:root[data-theme="girls-night"] {
+  color-scheme: dark;
+  --color-bg: #161218;
+  --color-fg: #f6eff5;
+  --color-muted: #b8a7b3;
+  --color-accent: #ff5c8a;
+  --color-accent-soft: rgba(255, 92, 138, 0.16);
+  --color-surface: #221a24;
+  --color-surface-strong: #2a2130;
+  --color-line: rgba(255, 255, 255, 0.08);
 }
 
 /* Smooth theme switch (reduced-motion block below neutralizes this) */

@@ -3,7 +3,9 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { Sun, Moon, SunMoon } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useTheme, type GirlsMode } from "@/components/ThemeProvider";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -22,6 +24,35 @@ function Splash() {
         <IsaLogo className="w-28" glow />
       </motion.div>
     </div>
+  );
+}
+
+// Girls-theme day/night control: auto → day → night → auto.
+const NEXT_MODE: Record<GirlsMode, GirlsMode> = {
+  auto: "day",
+  day: "night",
+  night: "auto",
+};
+const MODE_META = {
+  auto: { Icon: SunMoon, label: "Auto (by time of day)" },
+  day: { Icon: Sun, label: "Day" },
+  night: { Icon: Moon, label: "Night" },
+} as const;
+
+function DayNightToggle() {
+  const { theme, girlsMode, setGirlsMode } = useTheme();
+  if (theme !== "girls") return null;
+  const { Icon, label } = MODE_META[girlsMode];
+  return (
+    <button
+      onClick={() => setGirlsMode(NEXT_MODE[girlsMode])}
+      title={`Theme: ${label} — tap to change`}
+      aria-label={`Theme mode: ${label}`}
+      className="glass fixed right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full text-fg transition hover:bg-white/10"
+      style={{ top: "calc(0.9rem + env(safe-area-inset-top))" }}
+    >
+      <Icon size={17} />
+    </button>
   );
 }
 
@@ -49,6 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <Sidebar />
       <CommandPalette />
+      <DayNightToggle />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { DataExport } from "@/components/sections/DataExport";
 
 const THEMES: { id: Theme; label: string; bg: string; accent: string; text: string }[] = [
   { id: "boys", label: "Boys", bg: "#101820", accent: "#D97B3F", text: "#F5F0E8" },
-  { id: "girls", label: "Girls", bg: "#4A0619", accent: "#FFBDC5", text: "#FFBDC5" },
+  { id: "girls", label: "Girls", bg: "#FFF8FB", accent: "#FF5C8A", text: "#2B1B24" },
 ];
 
 export default function SettingsPage() {
