@@ -113,6 +113,38 @@ async function weeklyPayload(
  */
 async function handleCustom(admin: SupabaseClient) {
   const now = localNow();
+  let sentAlarms = 0;
+
+  // Focus alarms: timer finished while the app was closed → one push, then
+  // the row is deleted (the app logs the session when reopened).
+  const { data: alarms } = await admin
+    .from("focus_alarms")
+    .select("*")
+    .lte("end_at", new Date().toISOString());
+  for (const a of alarms ?? []) {
+    const uid = a.user_id as string;
+    await admin.from("focus_alarms").delete().eq("user_id", uid);
+    const { data: ns } = await admin
+      .from("notification_settings")
+      .select("push_enabled")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (!ns?.push_enabled) continue;
+    const name = await firstName(admin, uid);
+    const min = Math.round(((a.duration_s as number) ?? 0) / 60);
+    const { data: subs } = await admin
+      .from("push_subscriptions")
+      .select("*")
+      .eq("user_id", uid);
+    for (const s of subs ?? []) {
+      const ok = await sendToSub(admin, s, {
+        title: "Focus complete ✓",
+        body: `${name}, ${min} min of “${(a.label as string) || "Focus"}” done. Open ISA to log it.`,
+        url: "/focus",
+      });
+      if (ok) sentAlarms++;
+    }
+  }
 
   const { data: reminders } = await admin
     .from("reminders")
@@ -196,7 +228,7 @@ async function handleCustom(admin: SupabaseClient) {
     }
     await markSent();
   }
-  return Response.json({ type: "custom", sent });
+  return Response.json({ type: "custom", sent, alarms: sentAlarms });
 }
 
 /**

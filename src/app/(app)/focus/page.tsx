@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
@@ -91,6 +91,25 @@ export default function FocusPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Server-side alarm: pg_cron pushes "Focus complete" if the timer ends
+  // while the app is closed. One row per user; deleted on pause/reset.
+  const syncAlarm = (on: boolean) => {
+    if (!user) return;
+    if (on) {
+      supabase
+        .from("focus_alarms")
+        .upsert({
+          user_id: user.id,
+          label: label.trim() || "Focus",
+          duration_s: duration,
+          end_at: new Date(Date.now() + leftRef.current * 1000).toISOString(),
+        })
+        .then(() => {});
+    } else {
+      supabase.from("focus_alarms").delete().eq("user_id", user.id).then(() => {});
+    }
+  };
+
   // Persist on start/pause so the timer survives navigation and close.
   useEffect(() => {
     if (!restored.current && !running) return;
@@ -103,15 +122,19 @@ export default function FocusPage() {
           endAt: Date.now() + leftRef.current * 1000,
         } satisfies SavedTimer)
       );
-    } else if (leftRef.current > 0 && leftRef.current < duration) {
-      localStorage.setItem(
-        STORAGE,
-        JSON.stringify({
-          label,
-          duration,
-          left: leftRef.current,
-        } satisfies SavedTimer)
-      );
+      syncAlarm(true);
+    } else {
+      if (leftRef.current > 0 && leftRef.current < duration) {
+        localStorage.setItem(
+          STORAGE,
+          JSON.stringify({
+            label,
+            duration,
+            left: leftRef.current,
+          } satisfies SavedTimer)
+        );
+      }
+      syncAlarm(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
@@ -145,12 +168,20 @@ export default function FocusPage() {
 
   const toggle = () => setRunning((r) => !r);
 
+  // Discard without saving.
   const reset = () => {
-    // Log whatever was completed before resetting.
-    const elapsed = duration - left;
-    if (elapsed >= 30 && !running) logSession(elapsed);
     setRunning(false);
     localStorage.removeItem(STORAGE);
+    syncAlarm(false);
+    setLeft(duration);
+  };
+
+  // Save the elapsed part of a paused session, then reset.
+  const saveNow = () => {
+    const elapsed = duration - left;
+    if (elapsed >= 30) logSession(elapsed);
+    localStorage.removeItem(STORAGE);
+    syncAlarm(false);
     setLeft(duration);
   };
 
@@ -235,10 +266,20 @@ export default function FocusPage() {
             </PressButton>
             <PressButton
               onClick={reset}
+              title="Reset without saving"
               className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-muted transition duration-200 hover:text-fg"
             >
               <RotateCcw size={18} />
             </PressButton>
+            {!running && left > 0 && duration - left >= 30 && (
+              <PressButton
+                onClick={saveNow}
+                className="flex h-12 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-white/90"
+              >
+                <Check size={16} />
+                Save {Math.round((duration - left) / 60)}m
+              </PressButton>
+            )}
           </div>
 
           <div className="mt-8 flex gap-2">
