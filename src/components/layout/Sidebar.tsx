@@ -13,6 +13,7 @@ import {
   Timer,
   Repeat,
   CalendarDays,
+  MoonStar,
   Settings,
   LogOut,
   MoreHorizontal,
@@ -33,6 +34,7 @@ const NAV = [
   { href: "/focus", label: "Focus", icon: Timer },
   { href: "/habits", label: "Habits", icon: Repeat },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/pray", label: "Pray", icon: MoonStar },
 ];
 
 // Mobile: 5 primary items in the bar, the rest live behind "More".

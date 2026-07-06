@@ -26,6 +26,8 @@ const TABLES = [
   "runs",
   "strava_activities",
   "reminders",
+  "prayer_preferences",
+  "prayer_logs",
 ];
 
 export function DataExport() {

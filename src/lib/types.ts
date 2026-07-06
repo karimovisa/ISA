@@ -151,6 +151,40 @@ export type Reminder = {
   created_at: string;
 };
 
+export type PrayerName = "bomdod" | "peshin" | "asr" | "shom" | "xufton";
+
+export type PrayerPreferences = {
+  user_id: string;
+  wants_to_pray: boolean | null;
+  notifications_enabled: boolean;
+  activated: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PrayerTimes = {
+  id: string;
+  city: string;
+  date: string;
+  bomdod: string;
+  quyosh: string;
+  peshin: string;
+  asr: string;
+  shom: string;
+  xufton: string;
+};
+
+export type PrayerStatus = "vaqtida" | "kechikkan" | "qazo";
+
+export type PrayerLog = {
+  id: string;
+  user_id: string;
+  date: string;
+  prayer_name: PrayerName;
+  ticked_at: string | null;
+  status: PrayerStatus;
+};
+
 export type RunLog = {
   id: string;
   user_id: string;

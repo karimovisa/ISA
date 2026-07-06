@@ -9,6 +9,7 @@ import { useTheme, type GirlsMode } from "@/components/ThemeProvider";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import { OnboardingPrayerModal } from "@/components/sections/OnboardingPrayerModal";
 import { SetupNotice } from "@/components/layout/SetupNotice";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MountainBackdrop } from "@/components/brand/MountainBackdrop";
@@ -81,6 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <CommandPalette />
       <DayNightToggle />
+      <OnboardingPrayerModal />
     </div>
   );
 }

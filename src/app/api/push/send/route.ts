@@ -111,9 +111,68 @@ async function weeklyPayload(
  * Supabase pg_cron. A reminder fires when its local time has passed within
  * the last 15 min, today matches its `days`, and it hasn't fired today.
  */
+const PRAYER_LABELS_UZ: Record<string, string> = {
+  bomdod: "Bomdod",
+  peshin: "Peshin",
+  asr: "Asr",
+  shom: "Shom",
+  xufton: "Xufton",
+};
+
+/** Push when a prayer's start time matches the current minute. */
+async function sendPrayerNotifications(
+  admin: SupabaseClient,
+  now: ReturnType<typeof localNow>
+): Promise<number> {
+  const { data: times } = await admin
+    .from("prayer_times")
+    .select("*")
+    .eq("city", "sirdaryo")
+    .eq("date", now.date)
+    .maybeSingle();
+  if (!times) return 0;
+
+  const due = (["bomdod", "peshin", "asr", "shom", "xufton"] as const).filter(
+    (n) => {
+      const [h, m] = String(times[n]).split(":").map(Number);
+      return h * 60 + m === now.minutes;
+    }
+  );
+  if (due.length === 0) return 0;
+
+  const { data: users } = await admin
+    .from("prayer_preferences")
+    .select("user_id")
+    .eq("notifications_enabled", true)
+    .eq("activated", true);
+
+  let sent = 0;
+  for (const u of users ?? []) {
+    const uid = u.user_id as string;
+    const name = await firstName(admin, uid);
+    const { data: subs } = await admin
+      .from("push_subscriptions")
+      .select("*")
+      .eq("user_id", uid);
+    for (const prayer of due) {
+      const body = `${name} ${PRAYER_LABELS_UZ[prayer]} kirdi. O'qib qo'ying qazo bo'lib qolmasin-a!`;
+      for (const s of subs ?? []) {
+        const ok = await sendToSub(admin, s, {
+          title: "Namoz vaqti",
+          body,
+          url: "/pray",
+        });
+        if (ok) sent++;
+      }
+    }
+  }
+  return sent;
+}
+
 async function handleCustom(admin: SupabaseClient) {
   const now = localNow();
   let sentAlarms = 0;
+  const prayerSent = await sendPrayerNotifications(admin, now);
 
   // Focus alarms: timer finished while the app was closed → one push, then
   // the row is deleted (the app logs the session when reopened).
@@ -228,7 +287,7 @@ async function handleCustom(admin: SupabaseClient) {
     }
     await markSent();
   }
-  return Response.json({ type: "custom", sent, alarms: sentAlarms });
+  return Response.json({ type: "custom", sent, alarms: sentAlarms, prayers: prayerSent });
 }
 
 /**
