@@ -82,3 +82,22 @@ export const STATUS_LABEL: Record<PrayerStatus, string> = {
   kechikkan: "late",
   qazo: "missed",
 };
+
+/** The next prayer to start, and minutes until it, given "now" in active-day
+ *  minutes. After Isha, points to tomorrow's Fajr. */
+export function nextPrayer(
+  t: PrayerTimes,
+  nowMin: number
+): { name: PrayerName; inMin: number } {
+  for (const name of PRAYERS) {
+    const start = windowOf(name, t).start;
+    if (start > nowMin) return { name, inMin: start - nowMin };
+  }
+  return { name: "bomdod", inMin: toMin(t.bomdod) + 1440 - nowMin };
+}
+
+export function fmtCountdown(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}

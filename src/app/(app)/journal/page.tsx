@@ -11,6 +11,7 @@ import { labelClass } from "@/components/ui/Modal";
 import { MoodPicker } from "@/components/sections/MoodPicker";
 import { PressButton } from "@/components/ui/PressButton";
 import { todayISO } from "@/lib/datetime";
+import { toast } from "@/lib/toast";
 import type { JournalEntry } from "@/lib/types";
 
 // did_today is the main free-write; the other two are optional reflection.
@@ -65,7 +66,7 @@ export default function JournalPage() {
   const save = async () => {
     if (!user) return;
     setBusy(true);
-    await supabase.from("journal_entries").upsert(
+    const { error } = await supabase.from("journal_entries").upsert(
       {
         user_id: user.id,
         entry_date: today,
@@ -74,8 +75,13 @@ export default function JournalPage() {
       { onConflict: "user_id,entry_date" }
     );
     setBusy(false);
+    if (error) {
+      toast("Couldn't save your entry — please try again.", "error");
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
+    toast("Journal entry saved ✓", "success");
     load();
   };
 
@@ -83,8 +89,6 @@ export default function JournalPage() {
     await supabase.from("journal_entries").delete().eq("id", id);
     load();
   };
-
-  const past = entries.filter((e) => e.entry_date !== today);
 
   return (
     <div>
@@ -153,14 +157,14 @@ export default function JournalPage() {
         </GlassCard>
       </motion.div>
 
-      {/* Past entries */}
-      {past.length > 0 && (
+      {/* Saved entries (today included, so a save is visibly recorded) */}
+      {entries.length > 0 && (
         <div className="mt-10">
           <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-muted">
-            Past entries
+            Saved entries
           </h2>
           <div className="space-y-4">
-            {past.map((e, i) => (
+            {entries.map((e, i) => (
               <motion.div
                 key={e.id}
                 initial={{ opacity: 0, y: 12 }}
@@ -170,11 +174,13 @@ export default function JournalPage() {
                 <GlassCard className="group p-5">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-medium text-accent">
-                      {new Date(e.entry_date).toLocaleDateString([], {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {e.entry_date === today
+                        ? "Today"
+                        : new Date(e.entry_date).toLocaleDateString([], {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
                     </span>
                     <button
                       onClick={() => removeEntry(e.id)}

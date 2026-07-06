@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Settings,
   LogOut,
+  Command,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
@@ -154,6 +155,17 @@ export function Sidebar() {
             </Link>
           );
         })}
+        {/* Opens the ⌘K palette — the home for every other page + quick-add. */}
+        <button
+          onClick={() =>
+            window.dispatchEvent(new CustomEvent("isa:open-palette"))
+          }
+          aria-label="Menu and search"
+          className="relative flex h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl text-muted transition-colors hover:text-fg"
+        >
+          <Command size={19} className="relative z-10" />
+          <span className="text-[9px] font-medium leading-none">Menu</span>
+        </button>
       </nav>
     </>
   );

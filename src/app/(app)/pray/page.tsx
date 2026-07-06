@@ -17,8 +17,11 @@ import {
   STATUS_TONE,
   STATUS_LABEL,
   prayerState,
+  nextPrayer,
+  fmtCountdown,
   type PrayerState,
 } from "@/lib/prayer";
+import { todayISO } from "@/lib/datetime";
 import type { PrayerName } from "@/lib/types";
 
 export default function PrayPage() {
@@ -145,6 +148,15 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
   }
 
   const active = p.active;
+  const dayLabel =
+    p.activeDate === todayISO()
+      ? "today"
+      : new Date(p.activeDate).toLocaleDateString([], {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+  const next = nextPrayer(active, p.effNow);
   const rows = p.prayers.map((name: PrayerName) => {
     const log = p.logFor(name);
     const ticked = Boolean(log?.ticked_at);
@@ -161,10 +173,20 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MosqueIcon size={18} className="text-accent" />
-            <h3 className="text-sm font-medium">Sirdaryo · today</h3>
+            <h3 className="text-sm font-medium">Sirdaryo · {dayLabel}</h3>
           </div>
           <span className="text-xs tabular-nums text-muted">
             {done}/5 done{missed > 0 ? ` · ${missed} missed` : ""}
+          </span>
+        </div>
+
+        {/* Next prayer countdown */}
+        <div className="mb-4 flex items-baseline justify-between rounded-2xl bg-accent-soft px-4 py-3">
+          <span className="text-xs uppercase tracking-wider text-muted">
+            Next · {PRAYER_LABELS[next.name]}
+          </span>
+          <span className="text-lg font-bold tabular-nums text-fg">
+            {fmtCountdown(next.inMin)}
           </span>
         </div>
 

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Command,
   Search,
   ArrowRight,
   CornerDownLeft,
@@ -156,8 +155,13 @@ export function CommandPalette() {
         setOpen((v) => !v);
       }
     };
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("isa:open-palette", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("isa:open-palette", onOpen);
+    };
   }, []);
 
   // Focus input when opened
@@ -242,17 +246,8 @@ export function CommandPalette() {
 
   return (
     <>
-      {/* Mobile trigger — floating above the bottom bar */}
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Command palette"
-        className="glass fixed right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full text-fg shadow-lg md:hidden"
-        style={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom))" }}
-      >
-        <Command size={20} />
-      </button>
-
-      {/* Desktop hint pill — bottom-left */}
+      {/* Desktop hint pill — bottom-left. On mobile the palette opens from the
+          "Menu" item in the bottom nav bar (see Sidebar). */}
       <button
         onClick={() => setOpen(true)}
         className="glass fixed bottom-5 left-24 z-30 hidden items-center gap-2 rounded-full px-3.5 py-2 text-xs text-muted transition-colors hover:text-fg md:flex"
