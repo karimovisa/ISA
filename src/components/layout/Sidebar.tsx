@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,16 +12,14 @@ import {
   Timer,
   Repeat,
   CalendarDays,
-  MoonStar,
   Settings,
   LogOut,
-  MoreHorizontal,
-  X,
 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { IsaLogo } from "@/components/brand/IsaLogo";
+import { MosqueIcon } from "@/components/ui/MosqueIcon";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -34,16 +31,12 @@ const NAV = [
   { href: "/focus", label: "Focus", icon: Timer },
   { href: "/habits", label: "Habits", icon: Repeat },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/pray", label: "Pray", icon: MoonStar },
+  { href: "/pray", label: "Pray", icon: MosqueIcon },
 ];
 
-// Mobile: 5 primary items in the bar, the rest live behind "More".
+// Mobile: 6 primary items in the bar. Everything else lives in the ⌘K palette.
 const PRIMARY = ["/", "/goals", "/habits", "/journal", "/focus", "/progress"];
 const MOBILE_MAIN = NAV.filter((n) => PRIMARY.includes(n.href));
-const MOBILE_REST = [
-  ...NAV.filter((n) => !PRIMARY.includes(n.href)),
-  { href: "/settings", label: "Settings", icon: Settings },
-];
 
 function NavLink({
   href,
@@ -53,7 +46,7 @@ function NavLink({
 }: {
   href: string;
   label: string;
-  Icon: typeof Target;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
   active: boolean;
 }) {
   return (
@@ -87,7 +80,6 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
-  const [moreOpen, setMoreOpen] = useState(false);
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -134,63 +126,7 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile "More" sheet */}
-      <AnimatePresence>
-        {moreOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 md:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div
-              className="absolute inset-0 bg-black/50"
-              onClick={() => setMoreOpen(false)}
-            />
-            <motion.div
-              className="glass reflect absolute inset-x-3 rounded-3xl p-4"
-              style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-            >
-              <div className="grid grid-cols-3 gap-2">
-                {MOBILE_REST.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMoreOpen(false)}
-                      className={cn(
-                        "flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-xs transition-colors",
-                        isActive(item.href)
-                          ? "bg-accent-soft text-fg"
-                          : "text-muted hover:text-fg"
-                      )}
-                    >
-                      <Icon size={20} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-                <button
-                  onClick={() => {
-                    setMoreOpen(false);
-                    signOut();
-                  }}
-                  className="flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-xs text-muted transition-colors hover:text-fg"
-                >
-                  <LogOut size={20} />
-                  Sign out
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile bottom bar */}
+      {/* Mobile bottom bar (everything else lives in ⌘K) */}
       <nav
         className="glass fixed inset-x-3 z-40 flex items-center justify-around rounded-3xl px-1 py-1.5 md:hidden"
         style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
@@ -202,7 +138,6 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => setMoreOpen(false)}
               className={cn(
                 "relative flex h-11 flex-1 items-center justify-center rounded-2xl transition-colors",
                 active ? "text-fg" : "text-muted"
@@ -219,16 +154,6 @@ export function Sidebar() {
             </Link>
           );
         })}
-        <button
-          onClick={() => setMoreOpen((v) => !v)}
-          aria-label="More"
-          className={cn(
-            "relative flex h-11 flex-1 items-center justify-center rounded-2xl transition-colors",
-            moreOpen ? "text-fg" : "text-muted"
-          )}
-        >
-          {moreOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
-        </button>
       </nav>
     </>
   );

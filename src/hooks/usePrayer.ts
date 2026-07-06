@@ -106,7 +106,7 @@ export function usePrayer() {
         .select()
         .single();
       if (error) {
-        toast("Sozlamani saqlab bo'lmadi.", "error");
+        toast("Couldn't save.", "error");
         return;
       }
       setPrefs(data as PrayerPreferences);
@@ -133,11 +133,11 @@ export function usePrayer() {
         { onConflict: "user_id,date,prayer_name" }
       );
       if (error) {
-        toast("Belgilab bo'lmadi.", "error");
+        toast("Couldn't mark that.", "error");
         return;
       }
       toast(
-        status === "vaqtida" ? "Vaqtida o'qildi ✓" : "Kechikkan — baribir o'qildi",
+        status === "vaqtida" ? "On time ✓" : "Late — logged anyway",
         status === "vaqtida" ? "success" : "info"
       );
       loadLogs(activeDate);

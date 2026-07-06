@@ -76,14 +76,14 @@ export function PrayerStats() {
 
   return (
     <GlassCard className="p-6">
-      <h3 className="mb-4 text-sm font-medium">Statistika</h3>
+      <h3 className="mb-4 text-sm font-medium">Statistics</h3>
       <div className="space-y-5">
-        <StatBlock title="Oxirgi 7 kun" b={week} />
+        <StatBlock title="Last 7 days" b={week} />
         <div className="border-t border-line" />
-        <StatBlock title="Oxirgi 30 kun" b={month} />
+        <StatBlock title="Last 30 days" b={month} />
       </div>
       <p className="mt-4 text-xs text-muted">
-        Bugungi namozlar tugagach hisobga qo'shiladi.
+        Today&apos;s prayers are counted once the day is over.
       </p>
     </GlassCard>
   );
@@ -97,7 +97,7 @@ function StatBlock({ title, b }: { title: string; b: Block }) {
           {title}
         </span>
         <span className="text-xs text-muted">
-          {b.prayed}/{b.expected} o'qilgan
+          {b.prayed}/{b.expected} prayed
         </span>
       </div>
       {b.expected > 0 && (
@@ -117,9 +117,9 @@ function StatBlock({ title, b }: { title: string; b: Block }) {
         </div>
       )}
       <div className="grid grid-cols-3 gap-2 text-center">
-        <Metric label="Vaqtida" value={b.vaqtida} tone="text-emerald-400" />
-        <Metric label="Kechikkan" value={b.kechikkan} tone="text-amber-400" />
-        <Metric label="Qazo" value={b.qazo} tone="text-red-400" />
+        <Metric label="On time" value={b.vaqtida} tone="text-emerald-400" />
+        <Metric label="Late" value={b.kechikkan} tone="text-amber-400" />
+        <Metric label="Missed" value={b.qazo} tone="text-red-400" />
       </div>
     </div>
   );

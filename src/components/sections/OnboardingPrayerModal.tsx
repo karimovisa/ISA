@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { MoonStar } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
+import { MosqueIcon } from "@/components/ui/MosqueIcon";
 import { usePrayer } from "@/hooks/usePrayer";
 import { enablePush } from "@/lib/push";
 import { toast } from "@/lib/toast";
@@ -42,8 +42,8 @@ export function OnboardingPrayerModal() {
     const res = await enablePush();
     await savePrefs({ notifications_enabled: res.ok });
     setBusy(false);
-    if (res.ok) toast("Namoz eslatmalari yoqildi.", "success");
-    else toast("Bildirishnoma yoqilmadi — Sozlamalardan qayta urinib ko'ring.", "info");
+    if (res.ok) toast("Prayer reminders enabled.", "success");
+    else toast("Couldn't enable — try again from Settings.", "info");
     setClosed(true);
   };
 
@@ -58,44 +58,44 @@ export function OnboardingPrayerModal() {
     <Modal
       open={show}
       onClose={() => {}}
-      title={step === "ask" ? "Namoz o'qiysizmi?" : "Eslatib turilsinmi?"}
+      title={step === "ask" ? "Do you pray?" : "Prayer reminders?"}
     >
       <div className="space-y-5">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft">
-          <MoonStar size={22} className="text-accent" />
+          <MosqueIcon size={22} className="text-accent" />
         </div>
 
         {step === "ask" ? (
           <>
             <p className="text-sm text-muted">
-              ISA sizga 5 mahal namozni kuzatishda yordam beradi — vaqtlar,
-              belgilash va statistika bilan.
+              ISA helps you keep the five daily prayers — times, check-offs and
+              stats, all in one place.
             </p>
             {why && (
               <p className="rounded-xl bg-white/[0.04] p-3 text-sm text-fg/90">
-                Namoz o'qisangiz sizga qulayliklar bor. “Ha” tugmasini bosing.
+                Praying unlocks helpful tools here. Tap “Yes”.
               </p>
             )}
             <div className="flex gap-2">
               <PressButton onClick={yesPray} disabled={busy} className={btnPrimary}>
-                Ha
+                Yes
               </PressButton>
               <PressButton onClick={noPray} disabled={busy} className={btnGhost}>
-                Yo'q
+                No
               </PressButton>
               <PressButton
                 onClick={() => setWhy(true)}
                 disabled={busy}
                 className={btnGhost}
               >
-                Nega?
+                Why?
               </PressButton>
             </div>
           </>
         ) : (
           <>
             <p className="text-sm text-muted">
-              Har namoz kirganda telefoningizga eslatma yuboraylikmi?
+              Want a notification when each prayer begins?
             </p>
             <div className="flex gap-2">
               <PressButton
@@ -103,14 +103,14 @@ export function OnboardingPrayerModal() {
                 disabled={busy}
                 className={btnPrimary}
               >
-                Ha, eslatib turing
+                Yes, remind me
               </PressButton>
               <PressButton
                 onClick={skipNotify}
                 disabled={busy}
                 className={btnGhost}
               >
-                Yo'q
+                No
               </PressButton>
             </div>
           </>

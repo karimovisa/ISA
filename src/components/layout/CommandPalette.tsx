@@ -19,8 +19,11 @@ import {
   CalendarDays,
   Settings,
   Plus,
+  LogOut,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { MosqueIcon } from "@/components/ui/MosqueIcon";
 import { todayISO } from "@/lib/datetime";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
@@ -30,7 +33,7 @@ type NavItem = {
   id: string;
   label: string;
   href: string;
-  icon: typeof Target;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   keywords?: string;
 };
 
@@ -41,7 +44,7 @@ type AddItem = {
   entity: "goal" | "todo" | "habit" | "idea";
   table: string;
   placeholder: string;
-  icon: typeof Target;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   keywords?: string;
   build: (value: string) => Record<string, unknown>;
 };
@@ -58,7 +61,9 @@ const NAV: NavItem[] = [
   { kind: "nav", id: "nav-focus", label: "Focus", href: "/focus", icon: Timer, keywords: "timer pomodoro" },
   { kind: "nav", id: "nav-habits", label: "Habits", href: "/habits", icon: Repeat, keywords: "streak" },
   { kind: "nav", id: "nav-calendar", label: "Calendar", href: "/calendar", icon: CalendarDays, keywords: "mood month" },
-  { kind: "nav", id: "nav-settings", label: "Settings", href: "/settings", icon: Settings, keywords: "theme push export" },
+  { kind: "nav", id: "nav-pray", label: "Prayer", href: "/pray", icon: MosqueIcon, keywords: "namoz prayer times salah" },
+  { kind: "nav", id: "nav-settings", label: "Settings", href: "/settings", icon: Settings, keywords: "theme push export reminders" },
+  { kind: "nav", id: "nav-signout", label: "Sign out", href: "__signout", icon: LogOut, keywords: "logout log out exit" },
 ];
 
 const ADD: AddItem[] = [
@@ -123,6 +128,7 @@ function scoreMatch(item: Item, q: string): boolean {
 
 export function CommandPalette() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -172,14 +178,15 @@ export function CommandPalette() {
     async (item: Item) => {
       if (item.kind === "nav") {
         close();
-        router.push(item.href);
+        if (item.href === "__signout") signOut();
+        else router.push(item.href);
         return;
       }
       // add: enter compose mode
       setCompose(item);
       setQuery("");
     },
-    [close, router]
+    [close, router, signOut]
   );
 
   const save = useCallback(async () => {

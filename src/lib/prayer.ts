@@ -75,3 +75,10 @@ export const STATUS_TONE: Record<PrayerStatus, string> = {
   kechikkan: "text-amber-400",
   qazo: "text-red-400",
 };
+
+// DB stores Uzbek enum values; the UI shows these English labels.
+export const STATUS_LABEL: Record<PrayerStatus, string> = {
+  vaqtida: "on time",
+  kechikkan: "late",
+  qazo: "missed",
+};

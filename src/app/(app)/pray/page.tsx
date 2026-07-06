@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MoonStar, Check, Lock, X } from "lucide-react";
+import { Check, Lock, X } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { MosqueIcon } from "@/components/ui/MosqueIcon";
 import { PrayerStats } from "@/components/sections/PrayerStats";
 import { usePrayer } from "@/hooks/usePrayer";
 import { enablePush } from "@/lib/push";
@@ -14,6 +15,7 @@ import { toast } from "@/lib/toast";
 import {
   PRAYER_LABELS,
   STATUS_TONE,
+  STATUS_LABEL,
   prayerState,
   type PrayerState,
 } from "@/lib/prayer";
@@ -25,7 +27,7 @@ export default function PrayPage() {
   if (p.prefsLoading) {
     return (
       <div>
-        <PageHeader title="Namoz" subtitle="Besh mahal — kuzatib boring." />
+        <PageHeader title="Prayer" subtitle="Five daily prayers — keep track." />
         <div className="glass h-64 animate-pulse rounded-3xl" />
       </div>
     );
@@ -33,7 +35,7 @@ export default function PrayPage() {
 
   return (
     <div>
-      <PageHeader title="Namoz" subtitle="Besh mahal — kuzatib boring." />
+      <PageHeader title="Prayer" subtitle="Five daily prayers — keep track." />
       {!p.prefs?.activated ? (
         <PrayLocked onActivate={p.savePrefs} />
       ) : (
@@ -67,7 +69,7 @@ function PrayLocked({
     if (yes) {
       const res = await enablePush();
       await onActivate({ notifications_enabled: res.ok });
-      toast(res.ok ? "Eslatmalar yoqildi." : "Sozlamalardan qayta urinib ko'ring.", res.ok ? "success" : "info");
+      toast(res.ok ? "Reminders enabled." : "Enable it later from Settings.", res.ok ? "success" : "info");
     } else {
       await onActivate({ notifications_enabled: false });
     }
@@ -77,9 +79,9 @@ function PrayLocked({
   if (justOn) {
     return (
       <GlassCard className="max-w-md p-6">
-        <h3 className="font-medium">Namoz vaqtlari eslatib turilsinmi?</h3>
+        <h3 className="font-medium">Get prayer reminders?</h3>
         <p className="mt-1 text-sm text-muted">
-          Har namoz kirganda telefoningizga xabar boradi.
+          You&apos;ll get a notification when each prayer begins.
         </p>
         <div className="mt-4 flex gap-2">
           <PressButton
@@ -87,14 +89,14 @@ function PrayLocked({
             disabled={busy}
             className="flex-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
           >
-            Ha, eslatib turing
+            Yes, remind me
           </PressButton>
           <PressButton
             onClick={() => notify(false)}
             disabled={busy}
             className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15"
           >
-            Yo'q
+            No
           </PressButton>
         </div>
       </GlassCard>
@@ -106,16 +108,16 @@ function PrayLocked({
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
         <Lock size={24} className="text-muted" />
       </div>
-      <h3 className="text-base font-medium">Namoz bo'limi yopiq</h3>
+      <h3 className="text-base font-medium">Prayer is locked</h3>
       <p className="mt-1.5 max-w-xs text-sm text-muted">
-        Agar namoz o'qisangiz, bu bo'limni faollashtiring.
+        If you pray, activate this section to start tracking.
       </p>
       <PressButton
         onClick={activate}
         disabled={busy}
         className="mt-5 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
       >
-        Faollashtirish
+        Activate
       </PressButton>
     </GlassCard>
   );
@@ -135,9 +137,9 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
   if (!p.active) {
     return (
       <EmptyState
-        icon={MoonStar}
-        title="Vaqtlar hali yuklanmagan"
-        description="Namoz vaqtlari har kuni avtomatik yangilanadi. Biroz kuting yoki keyinroq qaytib keling."
+        icon={MosqueIcon}
+        title="Times not loaded yet"
+        description="Prayer times refresh automatically every day. Check back in a moment."
       />
     );
   }
@@ -158,11 +160,11 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
       <GlassCard className="p-6">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MoonStar size={18} className="text-accent" />
-            <h3 className="text-sm font-medium">Sirdaryo · bugun</h3>
+            <MosqueIcon size={18} className="text-accent" />
+            <h3 className="text-sm font-medium">Sirdaryo · today</h3>
           </div>
           <span className="text-xs tabular-nums text-muted">
-            {done}/5 o'qildi{missed > 0 ? ` · ${missed} qazo` : ""}
+            {done}/5 done{missed > 0 ? ` · ${missed} missed` : ""}
           </span>
         </div>
 
@@ -204,12 +206,12 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
 
                 {state === "past-done" && log ? (
                   <span className={`text-xs font-medium ${STATUS_TONE[log.status]}`}>
-                    {log.status}
+                    {STATUS_LABEL[log.status]}
                   </span>
                 ) : state === "past-missed" ? (
-                  <span className="text-xs font-medium text-red-400">qazo</span>
+                  <span className="text-xs font-medium text-red-400">missed</span>
                 ) : state === "current" ? (
-                  <span className="text-xs font-medium text-accent">hozir</span>
+                  <span className="text-xs font-medium text-accent">now</span>
                 ) : null}
 
                 <span className="w-12 text-right text-sm tabular-nums text-muted">

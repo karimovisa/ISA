@@ -10,6 +10,8 @@
   --color-muted: #8b8578;
   --color-accent: #d97b3f;
   --color-accent-soft: rgba(217, 123, 63, 0.15);
+  /* Opaque card fill used on mobile (no blur, for speed). */
+  --color-card: #171e26;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "SF Pro Display", "Segoe UI", sans-serif;
@@ -24,6 +26,7 @@
   --color-muted: #8b8578;
   --color-accent: #d97b3f;
   --color-accent-soft: rgba(217, 123, 63, 0.15);
+  --color-card: #171e26;
 }
 /* Girls = real-time pair: day 06:00–18:59, night 19:00–05:59 (or manual). */
 :root[data-theme="girls-day"] {
@@ -36,6 +39,7 @@
   --color-surface: rgba(255, 255, 255, 0.82);
   --color-surface-strong: #ffffff;
   --color-line: rgba(43, 27, 36, 0.09);
+  --color-card: #ffffff;
 }
 :root[data-theme="girls-night"] {
   color-scheme: dark;
@@ -47,12 +51,18 @@
   --color-surface: #221a24;
   --color-surface-strong: #2a2130;
   --color-line: rgba(255, 255, 255, 0.08);
+  --color-card: #221a24;
 }
 
-/* Smooth theme switch (reduced-motion block below neutralizes this) */
-*,
-*::before,
-*::after {
+/* Smooth theme switch — scoped to the surfaces that actually change color
+   (a universal `*` transition is a major scroll/interaction cost on mobile). */
+body,
+.glass,
+button,
+a,
+input,
+textarea,
+select {
   transition: background-color 0.3s ease, color 0.3s ease,
     border-color 0.3s ease;
 }
@@ -87,12 +97,19 @@ body::before {
   pointer-events: none;
 }
 
-/* Premium glass card */
+/* Premium glass card.
+   backdrop-blur is the single biggest scroll cost on mobile Safari, so it's
+   desktop-only; phones get an opaque card fill that looks the same but is fast. */
 .glass {
-  background: var(--color-surface);
+  background: var(--color-card);
   border: 1px solid var(--color-line);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+@media (min-width: 768px) {
+  .glass {
+    background: var(--color-surface);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
 }
 
 .glass-hover {

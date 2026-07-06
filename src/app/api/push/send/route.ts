@@ -155,10 +155,10 @@ async function sendPrayerNotifications(
       .select("*")
       .eq("user_id", uid);
     for (const prayer of due) {
-      const body = `${name} ${PRAYER_LABELS_UZ[prayer]} kirdi. O'qib qo'ying qazo bo'lib qolmasin-a!`;
+      const body = `${name}, ${PRAYER_LABELS_UZ[prayer]} has begun — pray before it passes.`;
       for (const s of subs ?? []) {
         const ok = await sendToSub(admin, s, {
-          title: "Namoz vaqti",
+          title: "Prayer time",
           body,
           url: "/pray",
         });
