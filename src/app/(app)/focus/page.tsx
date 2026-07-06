@@ -108,7 +108,10 @@ export default function FocusPage() {
           />
 
           <div className="relative flex items-center justify-center">
-            <svg width="300" height="300" className="-rotate-90">
+            <svg
+              viewBox="0 0 300 300"
+              className="h-auto w-[300px] max-w-full -rotate-90"
+            >
               <circle
                 cx="150"
                 cy="150"

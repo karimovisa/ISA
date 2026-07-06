@@ -91,7 +91,7 @@ export default function ProgressPage() {
       </div>
 
       {/* Summary tiles */}
-      <div className="mb-6 grid grid-cols-3 gap-5">
+      <div className="mb-6 grid grid-cols-3 gap-3 sm:gap-5">
         <Stat label="Study (7d)" value={`${totalStudy.toFixed(1)}h`} />
         <Stat label="Focus sessions" value={`${focus.data.length}`} />
         <Stat label="Projects" value={`${projects.data.length}`} />
