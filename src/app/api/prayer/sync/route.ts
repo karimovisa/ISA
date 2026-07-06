@@ -73,12 +73,17 @@ async function scrapeToday(): Promise<Row | null> {
   try {
     const res = await fetch(`https://namozvaqti.uz/shahar/${CITY}`, {
       cache: "no-store",
-      headers: { "User-Agent": "Mozilla/5.0 ISA/1.0" },
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+        "Accept-Language": "uz,ru;q=0.8,en;q=0.6",
+        Accept: "text/html,application/xhtml+xml",
+      },
     });
     if (!res.ok) return null;
     const html = await res.text();
     const grab = (label: string) => {
-      const re = new RegExp(`${label}[\\s\\S]{0,160}?(\\d{1,2}:\\d{2})`, "i");
+      const re = new RegExp(`${label}[\\s\\S]{0,400}?(\\d{1,2}:\\d{2})`, "i");
       return clean(html.match(re)?.[1] ?? "");
     };
     const bomdod = grab("Bomdod");
@@ -96,10 +101,40 @@ async function scrapeToday(): Promise<Row | null> {
   }
 }
 
+/** Diagnostic: what the scrape sees, without touching the DB. */
+async function scrapeDebug() {
+  try {
+    const res = await fetch(`https://namozvaqti.uz/shahar/${CITY}`, {
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+        "Accept-Language": "uz,ru;q=0.8,en;q=0.6",
+      },
+    });
+    const html = await res.text();
+    const times = (html.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/g) ?? []).slice(0, 15);
+    return {
+      status: res.status,
+      htmlLength: html.length,
+      firstTimes: times,
+      hasBomdod: /bomdod/i.test(html),
+      scraped: await scrapeToday(),
+    };
+  } catch (e) {
+    return { error: String(e) };
+  }
+}
+
 export async function GET(request: Request) {
+  const url = new URL(request.url);
   const auth = request.headers.get("authorization");
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (url.searchParams.get("debug") === "1") {
+    return Response.json(await scrapeDebug());
   }
 
   const admin = adminClient();
