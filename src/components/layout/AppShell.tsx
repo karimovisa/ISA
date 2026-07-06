@@ -49,8 +49,8 @@ function DayNightToggle() {
       onClick={() => setGirlsMode(NEXT_MODE[girlsMode])}
       title={`Theme: ${label} — tap to change`}
       aria-label={`Theme mode: ${label}`}
-      className="glass fixed right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full text-fg transition hover:bg-white/10"
-      style={{ top: "calc(0.9rem + env(safe-area-inset-top))" }}
+      className="glass fixed left-4 right-auto z-30 flex h-10 w-10 items-center justify-center rounded-full text-fg transition hover:bg-white/10 md:left-auto md:right-4"
+      style={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom))" }}
     >
       <Icon size={17} />
     </button>

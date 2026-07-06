@@ -36,7 +36,7 @@ function fmt(total: number) {
 export default function FocusPage() {
   const { user } = useAuth();
   const sessions = useCollection<FocusSession>("focus_sessions");
-  const [label, setLabel] = useState("IELTS Speaking");
+  const [label, setLabel] = useState("Deep work");
   const [duration, setDuration] = useState(25 * 60);
   const [left, setLeft] = useState(25 * 60);
   const [running, setRunning] = useState(false);
