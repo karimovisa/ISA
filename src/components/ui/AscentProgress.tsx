@@ -21,18 +21,18 @@ export function AscentProgress({ value }: { value: number }) {
   return (
     <svg viewBox="0 0 204 64" className="w-full" aria-label={`${value}% progress`}>
       {/* ground line */}
-      <path d="M4 54 H200" stroke="rgba(255,255,255,0.08)" strokeWidth={1.5} strokeLinecap="round" />
+      <path d="M4 54 H200" stroke="var(--color-line)" strokeWidth={1.5} strokeLinecap="round" />
       {/* full mountain outline, faint */}
       <path
         d={MOUNTAIN}
-        stroke="rgba(255,255,255,0.16)"
+        stroke="var(--color-line)"
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       {/* summit marker */}
-      <circle cx={PEAK.x} cy={PEAK.y} r={2} fill={summited ? "var(--color-fg)" : "rgba(255,255,255,0.35)"} />
+      <circle cx={PEAK.x} cy={PEAK.y} r={2} fill={summited ? "var(--color-fg)" : "var(--color-muted)"} />
 
       {/* climbed portion */}
       <motion.path

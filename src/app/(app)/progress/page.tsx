@@ -104,11 +104,11 @@ export default function ProgressPage() {
             <BarChart data={studyData}>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.05)"
+                stroke="var(--color-line)"
                 vertical={false}
               />
-              <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
+              <XAxis dataKey="day" stroke="var(--color-muted)" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--color-muted)" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
               <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="var(--color-fg)" />
             </BarChart>
@@ -125,9 +125,9 @@ export default function ProgressPage() {
                   <stop offset="100%" stopColor="var(--color-fg)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="day" stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} width={28} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
+              <XAxis dataKey="day" stroke="var(--color-muted)" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--color-muted)" fontSize={12} tickLine={false} axisLine={false} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
               <Area type="monotone" dataKey="score" stroke="var(--color-fg)" strokeWidth={2} fill="url(#prodGrad)" />
             </AreaChart>
@@ -143,9 +143,9 @@ export default function ProgressPage() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={projectData} layout="vertical" margin={{ left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} stroke="#a0a0a0" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" stroke="#a0a0a0" fontSize={11} tickLine={false} axisLine={false} width={84} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} stroke="var(--color-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" stroke="var(--color-muted)" fontSize={11} tickLine={false} axisLine={false} width={84} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
                 <Bar dataKey="percentage" radius={[0, 6, 6, 0]} fill="var(--color-fg)" />
               </BarChart>

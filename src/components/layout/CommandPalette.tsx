@@ -271,6 +271,12 @@ export function CommandPalette() {
             />
             <motion.div
               className="glass reflect relative z-10 w-full max-w-lg overflow-hidden rounded-2xl"
+              style={{
+                // Near-solid panel: the translucent glass is unreadable over
+                // busy pages, especially in the light (girls) theme.
+                background:
+                  "color-mix(in srgb, var(--color-bg) 94%, transparent)",
+              }}
               initial={{ opacity: 0, scale: 0.97, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 6 }}

@@ -225,7 +225,7 @@ export default function FocusPage() {
                 cy="150"
                 r={R}
                 fill="none"
-                stroke="rgba(255,255,255,0.07)"
+                stroke="var(--color-line)"
                 strokeWidth="10"
               />
               <motion.circle
@@ -242,8 +242,8 @@ export default function FocusPage() {
               />
               <defs>
                 <linearGradient id="focusGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.45)" />
-                  <stop offset="100%" stopColor="#ffffff" />
+                  <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="var(--color-fg)" />
                 </linearGradient>
               </defs>
             </svg>

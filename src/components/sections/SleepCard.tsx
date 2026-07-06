@@ -30,7 +30,7 @@ function MoonIcon({ low }: { low: boolean }) {
         cx="22"
         cy="24"
         r="15"
-        fill={low ? "#F5B7A6" : "#F5F0E8"}
+        fill={low ? "#E0653A" : "var(--color-fg)"}
         mask="url(#isa-moon)"
       />
     </svg>
@@ -227,7 +227,7 @@ export function SleepCard() {
               <div className="text-xs uppercase tracking-wider text-muted">
                 Sleeping
               </div>
-              <div className="text-2xl font-bold tabular-nums text-[#F5F0E8]">
+              <div className="text-2xl font-bold tabular-nums text-fg">
                 {eh}
                 <span className="text-sm font-medium text-muted">h </span>
                 {em}
@@ -253,7 +253,7 @@ export function SleepCard() {
                 Sleep
               </div>
               {avg !== null ? (
-                <div className="text-2xl font-bold tabular-nums text-[#F5F0E8]">
+                <div className="text-2xl font-bold tabular-nums text-fg">
                   {avg.toFixed(1)}
                   <span className="text-sm font-medium text-muted">h avg</span>
                 </div>
