@@ -16,7 +16,13 @@ import {
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
 import { TodoList } from "@/components/sections/TodoList";
-import type { Habit, HabitLog } from "@/lib/types";
+import {
+  ReminderFields,
+  ReminderToggle,
+  ALL_DAYS,
+} from "@/components/ui/ReminderFields";
+import { toast } from "@/lib/toast";
+import type { Habit, HabitLog, Reminder } from "@/lib/types";
 
 function last7(): string[] {
   const out: string[] = [];
@@ -42,6 +48,12 @@ export default function HabitsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
   const [name, setName] = useState("");
+  // Per-habit reminder, edited inside the same modal.
+  const [remindOn, setRemindOn] = useState(false);
+  const [remindTime, setRemindTime] = useState("20:00");
+  const [remindDays, setRemindDays] = useState<number[]>(ALL_DAYS);
+  const [reminderId, setReminderId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const days = last7();
 
@@ -102,21 +114,98 @@ export default function HabitsPage() {
     loadStreaks();
   };
 
+  const resetReminderForm = () => {
+    setRemindOn(false);
+    setRemindTime("20:00");
+    setRemindDays(ALL_DAYS);
+    setReminderId(null);
+  };
+
   const openNew = () => {
     setEditing(null);
     setName("");
+    resetReminderForm();
     setOpen(true);
   };
-  const openEdit = (h: Habit) => {
+  const openEdit = async (h: Habit) => {
     setEditing(h);
     setName(h.name);
+    resetReminderForm();
     setOpen(true);
+    // Prefill this habit's reminder, if one exists.
+    const { data } = await supabase
+      .from("reminders")
+      .select("*")
+      .eq("kind", "habit")
+      .eq("habit_id", h.id)
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      const r = data as Reminder;
+      setReminderId(r.id);
+      setRemindOn(r.enabled);
+      setRemindTime(String(r.remind_time).slice(0, 5));
+      setRemindDays(r.days?.length ? r.days : ALL_DAYS);
+    }
   };
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    if (editing) await habits.update(editing.id, { name: name.trim() });
-    else await habits.add({ name: name.trim(), is_active: true });
+    if (!name.trim() || saving) return;
+    if (remindOn && remindDays.length === 0) return;
+    setSaving(true);
+
+    let habitId = editing?.id ?? null;
+    let userId = editing?.user_id ?? null;
+
+    if (editing) {
+      await habits.update(editing.id, { name: name.trim() });
+    } else {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setSaving(false);
+        return;
+      }
+      userId = user.id;
+      // Insert directly so we get the new id back for the reminder row.
+      const { data: row, error } = await supabase
+        .from("habits")
+        .insert({ name: name.trim(), is_active: true, user_id: user.id })
+        .select("id")
+        .single();
+      if (error || !row) {
+        toast("Couldn't save habit — please try again.", "error");
+        setSaving(false);
+        return;
+      }
+      habitId = row.id as string;
+      await habits.refresh();
+    }
+
+    // Sync the reminder with the toggle state.
+    if (habitId && userId) {
+      if (remindOn) {
+        const payload = {
+          user_id: userId,
+          kind: "habit",
+          habit_id: habitId,
+          title: name.trim(),
+          remind_time: remindTime,
+          days: [...remindDays].sort(),
+          enabled: true,
+        };
+        const { error } = reminderId
+          ? await supabase.from("reminders").update(payload).eq("id", reminderId)
+          : await supabase.from("reminders").insert(payload);
+        if (error) toast("Habit saved, but the reminder failed.", "error");
+      } else if (reminderId) {
+        await supabase.from("reminders").delete().eq("id", reminderId);
+      }
+    }
+
+    setSaving(false);
     setOpen(false);
   };
   const archive = (h: Habit) => habits.update(h.id, { is_active: false });
@@ -229,8 +318,30 @@ export default function HabitsPage() {
               className={fieldClass}
             />
           </div>
-          <PressButton type="submit" className={primaryBtnClass}>
-            {editing ? "Save" : "Create habit"}
+
+          <div className="rounded-2xl border border-line bg-white/[0.02] p-4">
+            <ReminderToggle
+              on={remindOn}
+              onToggle={() => setRemindOn((v) => !v)}
+              label="Remind me with a notification"
+            />
+            {remindOn && (
+              <div className="mt-4 space-y-4">
+                <ReminderFields
+                  time={remindTime}
+                  setTime={setRemindTime}
+                  days={remindDays}
+                  setDays={setRemindDays}
+                />
+                <p className="text-xs text-muted">
+                  Stays quiet on days you&apos;ve already checked it off.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <PressButton type="submit" disabled={saving} className={primaryBtnClass}>
+            {saving ? "Saving…" : editing ? "Save" : "Create habit"}
           </PressButton>
         </form>
       </Modal>

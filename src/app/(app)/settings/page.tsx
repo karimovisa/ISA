@@ -9,7 +9,6 @@ import { PressButton } from "@/components/ui/PressButton";
 import { enablePush, sendTestPush, pushSupported } from "@/lib/push";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
 import { DataExport } from "@/components/sections/DataExport";
-import { ReminderSettings } from "@/components/sections/ReminderSettings";
 
 const THEMES: { id: Theme; label: string; bg: string; accent: string; text: string }[] = [
   { id: "boys", label: "Boys", bg: "#101820", accent: "#D97B3F", text: "#F5F0E8" },
@@ -213,8 +212,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </GlassCard>
-
-      <ReminderSettings />
 
       <DataExport />
     </div>
