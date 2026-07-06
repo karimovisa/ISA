@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader, AddButton } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Modal,
   fieldClass,
@@ -139,16 +140,13 @@ export default function HabitsPage() {
           ))}
         </div>
       ) : active.length === 0 ? (
-        <GlassCard className="flex flex-col items-center justify-center py-20 text-center">
-          <Repeat className="mb-4 text-muted" size={32} />
-          <p className="text-sm text-muted">No habits yet.</p>
-          <button
-            onClick={openNew}
-            className="mt-4 text-sm font-medium text-accent hover:underline"
-          >
-            Add your first habit
-          </button>
-        </GlassCard>
+        <EmptyState
+          icon={Repeat}
+          title="No habits yet"
+          description="Pick one small thing to repeat every day."
+          actionLabel="Add your first habit"
+          onAction={openNew}
+        />
       ) : (
         <div className="space-y-4">
           {active.map((h, i) => {

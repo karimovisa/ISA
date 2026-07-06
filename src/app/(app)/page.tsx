@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Target,
   FolderKanban,
@@ -13,7 +13,6 @@ import {
   Flame,
   Timer,
   CalendarClock,
-  X,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { LiveClock } from "@/components/ui/LiveClock";
@@ -23,6 +22,7 @@ import { PressButton } from "@/components/ui/PressButton";
 import { AscentProgress } from "@/components/ui/AscentProgress";
 import { SleepCard } from "@/components/sections/SleepCard";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
+import { Onboarding } from "@/components/sections/Onboarding";
 import { TodoList } from "@/components/sections/TodoList";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
@@ -44,7 +44,6 @@ export default function DashboardPage() {
   const ideas = useCollection<Idea>("ideas");
   const journal = useCollection<JournalEntry>("journal_entries");
   const focus = useCollection<FocusSession>("focus_sessions");
-  const [welcomed, setWelcomed] = useState(false);
   const [ideaText, setIdeaText] = useState("");
   const [ideaSaved, setIdeaSaved] = useState(false);
 
@@ -70,6 +69,22 @@ export default function DashboardPage() {
   const streak = journalStreak(journal.data);
   const weeklyMin = focusMinutesThisWeek(focus.data);
   const deadline = nearestDeadline(goals.data);
+
+  // Fresh account (seed removed): everything loaded and still empty.
+  const anyLoading =
+    goals.loading ||
+    projects.loading ||
+    ideas.loading ||
+    journal.loading ||
+    focus.loading;
+  const freshAccount =
+    !anyLoading &&
+    goals.data.length +
+      projects.data.length +
+      ideas.data.length +
+      journal.data.length +
+      focus.data.length ===
+      0;
 
   const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
   const rise = (delay = 0) => ({
@@ -126,29 +141,8 @@ export default function DashboardPage() {
     <div>
       <WeeklyReviewModal />
 
-      {/* First-run welcome */}
-      <AnimatePresence>
-        {welcomed && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-accent/20 bg-accent-soft px-4 py-3"
-          >
-            <p className="text-sm text-fg/90">
-              Welcome to your space, {displayName}. We seeded a few starters —
-              edit or delete anything.
-            </p>
-            <button
-              onClick={() => setWelcomed(false)}
-              className="rounded-lg p-1 text-muted transition hover:text-fg"
-              aria-label="Dismiss"
-            >
-              <X size={16} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* First-run onboarding — only on a brand-new, empty account */}
+      <Onboarding name={displayName} show={freshAccount} />
 
       {/* Greeting */}
       <motion.section {...rise(0)} className="mb-8">

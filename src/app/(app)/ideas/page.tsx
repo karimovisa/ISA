@@ -6,6 +6,7 @@ import { Trash2, Lightbulb } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader, AddButton } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Modal,
   fieldClass,
@@ -56,16 +57,13 @@ export default function IdeasPage() {
           ))}
         </div>
       ) : data.length === 0 ? (
-        <GlassCard className="flex flex-col items-center justify-center py-20 text-center">
-          <Lightbulb className="mb-4 text-muted" size={32} />
-          <p className="text-sm text-muted">Your vault is empty.</p>
-          <button
-            onClick={() => setOpen(true)}
-            className="mt-4 text-sm font-medium text-accent hover:underline"
-          >
-            Capture your first idea
-          </button>
-        </GlassCard>
+        <EmptyState
+          icon={Lightbulb}
+          title="Your vault is empty"
+          description="Drop the next thought before it slips away."
+          actionLabel="Capture your first idea"
+          onAction={() => setOpen(true)}
+        />
       ) : (
         <div className="columns-1 gap-5 sm:columns-2 lg:columns-3">
           {data.map((idea, i) => (

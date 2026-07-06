@@ -7,6 +7,7 @@ import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { AscentProgress } from "@/components/ui/AscentProgress";
 import { PageHeader, AddButton } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Modal,
   fieldClass,
@@ -92,7 +93,13 @@ export default function GoalsPage() {
       {loading ? (
         <SkeletonGrid />
       ) : data.length === 0 ? (
-        <EmptyState onAdd={openNew} />
+        <EmptyState
+          icon={Target}
+          title="No goals yet"
+          description="Name your first summit and start the climb."
+          actionLabel="Add your first goal"
+          onAction={openNew}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {data.map((g, i) => {
@@ -255,21 +262,6 @@ function IconBtn({
     >
       {children}
     </button>
-  );
-}
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <GlassCard className="flex flex-col items-center justify-center py-20 text-center">
-      <Target className="mb-4 text-muted" size={32} />
-      <p className="text-sm text-muted">No goals yet.</p>
-      <button
-        onClick={onAdd}
-        className="mt-4 text-sm font-medium text-accent hover:underline"
-      >
-        Add your first goal
-      </button>
-    </GlassCard>
   );
 }
 

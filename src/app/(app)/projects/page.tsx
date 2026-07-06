@@ -7,6 +7,7 @@ import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { PageHeader, AddButton } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Modal,
   fieldClass,
@@ -150,7 +151,13 @@ export default function ProjectsPage() {
       {loading ? (
         <SkeletonGrid />
       ) : data.length === 0 ? (
-        <EmptyState onAdd={openNew} />
+        <EmptyState
+          icon={FolderKanban}
+          title="No projects yet"
+          description="Break a goal into a project you can actually ship."
+          actionLabel="Add your first project"
+          onAction={openNew}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {data.map((p, i) => {
@@ -315,21 +322,6 @@ function IconBtn({
     >
       {children}
     </button>
-  );
-}
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <GlassCard className="flex flex-col items-center justify-center py-20 text-center">
-      <FolderKanban className="mb-4 text-muted" size={32} />
-      <p className="text-sm text-muted">No projects yet.</p>
-      <button
-        onClick={onAdd}
-        className="mt-4 text-sm font-medium text-accent hover:underline"
-      >
-        Add your first project
-      </button>
-    </GlassCard>
   );
 }
 
