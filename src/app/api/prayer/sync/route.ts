@@ -82,20 +82,36 @@ async function scrapeToday(): Promise<Row | null> {
     });
     if (!res.ok) return null;
     const html = await res.text();
-    const grab = (label: string) => {
-      const re = new RegExp(`${label}[\\s\\S]{0,400}?(\\d{1,2}:\\d{2})`, "i");
-      return clean(html.match(re)?.[1] ?? "");
-    };
-    const bomdod = grab("Bomdod");
-    const quyosh = grab("Quyosh");
-    const peshin = grab("Peshin");
-    const asr = grab("Asr");
-    const shom = grab("Shom");
-    const xufton = grab("Xufton");
-    if (!(bomdod && quyosh && peshin && asr && shom && xufton)) return null;
-    const now = new Date(Date.now() + 5 * 3600_000);
-    const date = now.toISOString().slice(0, 10);
-    return { city: CITY, date, bomdod, quyosh, peshin, asr, shom, xufton };
+    // The 6 prayer times are the first run of 6 strictly-increasing times on
+    // the page (bomdod < quyosh < peshin < asr < shom < xufton). Anchoring by
+    // label is fragile (the word "Bomdod" also appears in the page <head>).
+    const all = html.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/g) ?? [];
+    const mins = all.map((t) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    });
+    for (let i = 0; i + 5 < mins.length; i++) {
+      const w = mins.slice(i, i + 6);
+      const rising = w.every((v, j) => j === 0 || v > w[j - 1]);
+      // Sanity: fajr in early morning, isha late evening.
+      if (rising && w[0] >= 120 && w[0] <= 420 && w[5] >= 1140) {
+        const [b, q, p, a, s, x] = all.slice(i, i + 6).map(clean);
+        if (b && q && p && a && s && x) {
+          const now = new Date(Date.now() + 5 * 3600_000);
+          return {
+            city: CITY,
+            date: now.toISOString().slice(0, 10),
+            bomdod: b,
+            quyosh: q,
+            peshin: p,
+            asr: a,
+            shom: s,
+            xufton: x,
+          };
+        }
+      }
+    }
+    return null;
   } catch {
     return null;
   }
