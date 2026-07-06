@@ -110,5 +110,6 @@ begin
   end loop;
 end $$;
 
--- Schedule 07:00 daily (safe to run once; re-running errors if the job exists).
-select cron.schedule('daily-energy', '0 7 * * *', 'select public.compute_all_energy_scores()');
+-- Schedule 07:00 local (UTC+5) = 02:00 UTC. cron.schedule upserts by job name,
+-- so re-running this line simply reschedules the existing job.
+select cron.schedule('daily-energy', '0 2 * * *', 'select public.compute_all_energy_scores()');

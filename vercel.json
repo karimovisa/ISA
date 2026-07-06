@@ -1,6 +1,7 @@
 {
+  "comment": "Schedules are UTC. User is UTC+5, so subtract 5h from the wanted local time. daily=21:00 local, weekly=Sun 22:00 local (after the pg_cron review generates at Sun 20:00 local / 15:00 UTC).",
   "crons": [
     { "path": "/api/push/send?type=daily", "schedule": "0 16 * * *" },
-    { "path": "/api/push/send?type=weekly", "schedule": "0 21 * * 0" }
+    { "path": "/api/push/send?type=weekly", "schedule": "0 17 * * 0" }
   ]
 }

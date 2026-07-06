@@ -77,8 +77,8 @@ begin
   end loop;
 end $$;
 
--- Sunday 20:00 (UTC).
-select cron.schedule('weekly-review', '0 20 * * 0', 'select public.generate_all_weekly_reviews()');
+-- Sunday 20:00 local (UTC+5) = 15:00 UTC. cron.schedule upserts by job name.
+select cron.schedule('weekly-review', '0 15 * * 0', 'select public.generate_all_weekly_reviews()');
 
 -- ═══════════ HABIT TRACKER ═══════════
 create table if not exists public.habits (
