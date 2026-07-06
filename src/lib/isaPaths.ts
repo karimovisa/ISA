@@ -4,14 +4,14 @@
  * no crossbar. viewBox tightly frames the content (x 120–660, y 66–190).
  */
 
-export const ISA_VIEWBOX = "104 46 572 162";
+export const ISA_VIEWBOX = "205 46 471 162";
 export const ISA_STROKE = 14;
 
 /** The life line. */
-export const BASELINE_PATH = "M120 190 H660";
+export const BASELINE_PATH = "M221 190 H660";
 
-/** I — vertical identity stroke. */
-export const I_PATH = "M175 190 L175 66";
+/** I — vertical identity stroke. x=276 so I→S gap equals the S→A gap (84). */
+export const I_PATH = "M276 190 L276 66";
 
 /** S — clean two-bowl S (process). */
 export const S_PATH =

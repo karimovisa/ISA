@@ -8,12 +8,13 @@ import { IsaRunner } from "@/components/brand/IsaRunner";
 // viewBox 900×240, baseline y=190. Runner draws the life line, fades, and the
 // I rises where it stood; then S; then the mountain A (same size, no crossbar).
 const BASELINE = "M120 190 H660";
-const I_PATH = "M175 190 L175 66";
+// I at x=276 keeps the I→S gap equal to the S→A gap (84) — matches isaPaths.ts.
+const I_PATH = "M276 190 L276 66";
 const S_PATH =
   "M456 96 C456 68 372 66 372 104 C372 138 456 130 456 164 C456 196 376 198 360 170";
 const MOUNTAIN = "M540 190 L600 66 L660 190";
 const RUN_FROM = 95;
-const RUN_TO = 175;
+const RUN_TO = 276;
 const BASELINE_Y = 190;
 
 const EASE = [0.65, 0, 0.35, 1] as const; // easeInOutCubic
