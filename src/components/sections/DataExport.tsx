@@ -25,6 +25,7 @@ const TABLES = [
   "todos",
   "runs",
   "strava_activities",
+  "reminders",
 ];
 
 export function DataExport() {

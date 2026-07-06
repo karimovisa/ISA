@@ -137,6 +137,20 @@ export type Todo = {
   created_at: string;
 };
 
+export type Reminder = {
+  id: string;
+  user_id: string;
+  kind: "custom" | "habit" | "todo";
+  habit_id: string | null;
+  title: string;
+  body: string | null;
+  remind_time: string; // "HH:MM:SS" local (UTC+5)
+  days: number[]; // 0=Sun … 6=Sat
+  enabled: boolean;
+  last_sent_date: string | null;
+  created_at: string;
+};
+
 export type RunLog = {
   id: string;
   user_id: string;

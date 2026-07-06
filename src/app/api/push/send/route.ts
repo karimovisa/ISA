@@ -3,6 +3,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Payload = { title: string; body: string; url?: string };
 
+// User's timezone offset (UTC+5) — reminder times are local wall-clock.
+const TZ_OFFSET_MIN = 300;
+
+function localNow() {
+  const local = new Date(Date.now() + TZ_OFFSET_MIN * 60_000);
+  return {
+    date: local.toISOString().slice(0, 10),
+    minutes: local.getUTCHours() * 60 + local.getUTCMinutes(),
+    dow: local.getUTCDay(),
+  };
+}
+
 /** First name from user_metadata.full_name, falling back to "there". */
 async function firstName(admin: SupabaseClient, uid: string): Promise<string> {
   const { data: u } = await admin.auth.admin.getUserById(uid);
@@ -95,9 +107,102 @@ async function weeklyPayload(
 }
 
 /**
+ * User-scheduled reminders (`reminders` table). Called every 5 minutes by
+ * Supabase pg_cron. A reminder fires when its local time has passed within
+ * the last 15 min, today matches its `days`, and it hasn't fired today.
+ */
+async function handleCustom(admin: SupabaseClient) {
+  const now = localNow();
+
+  const { data: reminders } = await admin
+    .from("reminders")
+    .select("*")
+    .eq("enabled", true)
+    .or(`last_sent_date.is.null,last_sent_date.lt.${now.date}`);
+
+  let sent = 0;
+  for (const r of reminders ?? []) {
+    const [h, m] = String(r.remind_time).split(":").map(Number);
+    const rMin = h * 60 + m;
+    if (!(rMin <= now.minutes && now.minutes - rMin < 15)) continue;
+    const days = (r.days as number[] | null) ?? [];
+    if (days.length > 0 && !days.includes(now.dow)) continue;
+
+    const uid = r.user_id as string;
+    const { data: ns } = await admin
+      .from("notification_settings")
+      .select("push_enabled")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (!ns?.push_enabled) continue;
+
+    const markSent = () =>
+      admin.from("reminders").update({ last_sent_date: now.date }).eq("id", r.id);
+
+    const name = await firstName(admin, uid);
+    let body: string;
+    let url = "/";
+
+    if (r.kind === "habit" && r.habit_id) {
+      const { data: habit } = await admin
+        .from("habits")
+        .select("name,is_active")
+        .eq("id", r.habit_id)
+        .maybeSingle();
+      if (!habit?.is_active) continue;
+      const { count } = await admin
+        .from("habit_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("habit_id", r.habit_id)
+        .eq("date", now.date)
+        .eq("completed", true);
+      if (count && count > 0) {
+        await markSent(); // already done today — stay quiet
+        continue;
+      }
+      body = (r.body as string) || `${name}, time for “${habit.name}” — keep the streak alive.`;
+      url = "/habits";
+    } else if (r.kind === "todo") {
+      const { data: todos } = await admin
+        .from("todos")
+        .select("title")
+        .eq("user_id", uid)
+        .eq("date", now.date)
+        .eq("done", false);
+      if (!todos || todos.length === 0) {
+        await markSent(); // list is clear — stay quiet
+        continue;
+      }
+      const names = todos.slice(0, 3).map((t) => t.title as string).join(", ");
+      const more = todos.length > 3 ? ` +${todos.length - 3} more` : "";
+      body =
+        (r.body as string) ||
+        `${name}, ${todos.length} task${todos.length === 1 ? "" : "s"} left today: ${names}${more}.`;
+    } else {
+      body = (r.body as string) || `${name}, don't forget: ${r.title}.`;
+    }
+
+    const { data: subs } = await admin
+      .from("push_subscriptions")
+      .select("*")
+      .eq("user_id", uid);
+    for (const s of subs ?? []) {
+      const ok = await sendToSub(admin, s, {
+        title: (r.title as string) || "ISA",
+        body,
+        url,
+      });
+      if (ok) sent++;
+    }
+    await markSent();
+  }
+  return Response.json({ type: "custom", sent });
+}
+
+/**
  * Push dispatcher. `type` selects which reminders to send:
- *   journal | habits | daily (journal + habits) | weekly
- * Cron calls `daily` every evening and `weekly` on Sundays.
+ *   journal | habits | daily (journal + habits) | weekly | custom
+ * Vercel cron calls `daily`/`weekly`; Supabase pg_cron calls `custom` every 5 min.
  */
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
@@ -107,6 +212,7 @@ export async function GET(request: Request) {
 
   const type = new URL(request.url).searchParams.get("type") ?? "daily";
   const admin = adminClient();
+  if (type === "custom") return handleCustom(admin);
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: enabled } = await admin
