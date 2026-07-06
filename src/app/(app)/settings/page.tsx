@@ -21,8 +21,16 @@ export default function SettingsPage() {
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // iOS Safari only allows push for sites opened from the Home Screen icon.
+  const [ios, setIos] = useState(false);
+  const [standalone, setStandalone] = useState(false);
 
   useEffect(() => {
+    setIos(/iPad|iPhone|iPod/.test(navigator.userAgent));
+    setStandalone(
+      window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as unknown as { standalone?: boolean }).standalone === true
+    );
     setSupported(pushSupported());
     supabase
       .from("notification_settings")
@@ -138,10 +146,69 @@ export default function SettingsPage() {
 
             {note && <p className="mt-3 text-xs text-muted">{note}</p>}
 
-            <div className="mt-5 space-y-1 border-t border-line pt-4 text-xs text-muted">
-              <p>· Android &amp; Desktop: works in any modern browser.</p>
-              <p>· iPhone/iPad: first “Add to Home Screen”, then open from there.</p>
-            </div>
+            {ios && !standalone ? (
+              <div className="mt-5 rounded-2xl border border-accent/25 bg-accent-soft p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-fg">
+                  iPhone setup — 4 steps
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  iOS only allows notifications for apps on your Home Screen, so
+                  the button above won&apos;t work from a Safari tab.
+                </p>
+                <ol className="mt-3 space-y-2.5 text-sm text-fg/90">
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold">1</span>
+                    <span>
+                      In Safari, tap the <strong>Share</strong> button (square
+                      with an arrow, bottom center).
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold">2</span>
+                    <span>
+                      Scroll down and tap <strong>Add to Home Screen</strong>,
+                      then <strong>Add</strong>.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold">3</span>
+                    <span>
+                      Close Safari and open ISA from the <strong>new icon on
+                      your Home Screen</strong> — not from Safari.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold">4</span>
+                    <span>
+                      Come back to Settings there, tap{" "}
+                      <strong>Enable notifications</strong> and choose{" "}
+                      <strong>Allow</strong>.
+                    </span>
+                  </li>
+                </ol>
+                <p className="mt-3 text-xs text-muted">
+                  Requires iOS 16.4 or newer. This also installs ISA as a
+                  full-screen app that works offline.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-1 border-t border-line pt-4 text-xs text-muted">
+                {ios && standalone ? (
+                  <p>
+                    You&apos;re in the Home Screen app — just tap Enable and
+                    choose Allow.
+                  </p>
+                ) : (
+                  <>
+                    <p>· Android &amp; Desktop: works in any modern browser.</p>
+                    <p>
+                      · iPhone/iPad: first &ldquo;Add to Home Screen&rdquo;, then
+                      open from there.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </GlassCard>
