@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { IsaIntroGate } from "@/components/brand/IsaIntro";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/ui/Toaster";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -39,6 +40,7 @@ export default function RootLayout({
             <PwaRegister />
             <IsaIntroGate />
             {children}
+            <Toaster />
           </ThemeProvider>
         </AuthProvider>
       </body>

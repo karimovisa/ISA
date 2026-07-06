@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { todayISO } from "@/lib/datetime";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
 type NavItem = {
@@ -196,15 +197,8 @@ export function CommandPalette() {
     const { error } = await supabase
       .from(compose.table)
       .insert({ ...compose.build(value), user_id: user.id } as never);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("isa:toast", {
-          detail: error
-            ? { message: `Couldn't save ${compose.entity}`, tone: "error" }
-            : { message: `${compose.label.replace("New", "Added")}`, tone: "success" },
-        })
-      );
-    }
+    if (error) toast(`Couldn't save ${compose.entity}`, "error");
+    else toast(compose.label.replace("New", "Added"), "success");
     close();
   }, [compose, query, saving, close]);
 

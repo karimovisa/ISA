@@ -18,6 +18,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
 import { fieldClass } from "@/components/ui/Modal";
 import { connectStrava, syncStrava } from "@/lib/stravaClient";
+import { toast } from "@/lib/toast";
 import {
   insightsOf,
   last7Of,
@@ -72,8 +73,10 @@ export function RunningSection() {
     setNote(null);
     const res = await syncStrava();
     setSyncing(false);
-    if (res.error) setNote(`Strava sync: ${res.error}`);
-    else {
+    if (res.error) {
+      setNote(`Strava sync: ${res.error}`);
+      toast(`Strava sync failed: ${res.error}`, "error");
+    } else {
       setNote(`Imported ${res.imported ?? 0} run${res.imported === 1 ? "" : "s"} from Strava.`);
       await loadStrava();
     }

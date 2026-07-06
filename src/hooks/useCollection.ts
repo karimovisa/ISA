@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { toast } from "@/lib/toast";
 
 type Row = { id: string };
 
@@ -39,7 +40,8 @@ export function useCollection<T extends Row>(
       const { error } = await supabase
         .from(table)
         .insert({ ...row, user_id: user.id });
-      if (!error) await refresh();
+      if (error) toast("Couldn't save — please try again.", "error");
+      else await refresh();
     },
     [table, refresh]
   );
@@ -51,7 +53,8 @@ export function useCollection<T extends Row>(
         .from(table)
         .update(patch as never)
         .eq("id", id);
-      if (!error) await refresh();
+      if (error) toast("Couldn't update — please try again.", "error");
+      else await refresh();
     },
     [table, refresh]
   );
@@ -59,7 +62,8 @@ export function useCollection<T extends Row>(
   const remove = useCallback(
     async (id: string) => {
       const { error } = await supabase.from(table).delete().eq("id", id);
-      if (!error) await refresh();
+      if (error) toast("Couldn't delete — please try again.", "error");
+      else await refresh();
     },
     [table, refresh]
   );

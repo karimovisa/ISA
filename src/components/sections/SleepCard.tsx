@@ -13,6 +13,7 @@ import {
   primaryBtnClass,
 } from "@/components/ui/Modal";
 import { todayISO } from "@/lib/datetime";
+import { toast } from "@/lib/toast";
 import type { SleepLog } from "@/lib/types";
 
 function MoonIcon({ low }: { low: boolean }) {
@@ -107,16 +108,10 @@ export function SleepCard() {
       await supabase.rpc("recompute_my_energy", { p_date: o.date });
       setOngoing(null);
       await Promise.all([logs.refresh(), loadScore()]);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("isa:toast", {
-            detail: {
-              message: `Sleep auto-closed at ${CAP_HOURS}h — you forgot to tap Wake.`,
-              tone: "info",
-            },
-          })
-        );
-      }
+      toast(
+        `Sleep auto-closed at ${CAP_HOURS}h — you forgot to tap Wake.`,
+        "info"
+      );
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ongoing, now]);
@@ -142,8 +137,10 @@ export function SleepCard() {
       },
       { onConflict: "user_id,date" }
     );
-    if (error) setNote(`Couldn't start: ${error.message}`);
-    else await loadOngoing();
+    if (error) {
+      setNote(`Couldn't start: ${error.message}`);
+      toast("Couldn't start sleep tracking.", "error");
+    } else await loadOngoing();
     setBusy(false);
   };
 
@@ -152,13 +149,18 @@ export function SleepCard() {
     setBusy(true);
     const start = new Date(ongoing.sleep_start).getTime();
     const duration = +((Date.now() - start) / 3_600_000).toFixed(2);
-    await supabase
+    const { error } = await supabase
       .from("sleep_logs")
       .update({
         sleep_end: new Date().toISOString(),
         duration_hours: duration,
       })
       .eq("id", ongoing.id);
+    if (error) {
+      toast("Couldn't save your wake time.", "error");
+      setBusy(false);
+      return;
+    }
     await supabase.rpc("recompute_my_energy", { p_date: ongoing.date });
     setOngoing(null);
     await Promise.all([logs.refresh(), loadScore()]);
