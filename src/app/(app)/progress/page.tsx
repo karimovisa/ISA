@@ -92,14 +92,14 @@ export default function ProgressPage() {
 
       {/* Summary tiles */}
       <div className="mb-6 grid grid-cols-3 gap-3 sm:gap-5">
-        <Stat label="Study (7d)" value={`${totalStudy.toFixed(1)}h`} />
+        <Stat label="Focus (7d)" value={`${totalStudy.toFixed(1)}h`} />
         <Stat label="Focus sessions" value={`${focus.data.length}`} />
         <Stat label="Projects" value={`${projects.data.length}`} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Study hours */}
-        <ChartCard title="Study hours" delay={0}>
+        {/* Focus hours */}
+        <ChartCard title="Focus hours" delay={0}>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={studyData}>
               <CartesianGrid

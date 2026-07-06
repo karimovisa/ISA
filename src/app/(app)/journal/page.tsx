@@ -13,10 +13,16 @@ import { PressButton } from "@/components/ui/PressButton";
 import { todayISO } from "@/lib/datetime";
 import type { JournalEntry } from "@/lib/types";
 
+// did_today is the main free-write; the other two are optional reflection.
 const PROMPTS = [
   { key: "did_today", label: "What did I do today?" },
   { key: "learned", label: "What did I learn?" },
   { key: "tomorrow", label: "What will I do tomorrow?" },
+] as const;
+
+const OPTIONAL = [
+  { key: "learned", label: "What did I learn? (optional)" },
+  { key: "tomorrow", label: "What will I do tomorrow? (optional)" },
 ] as const;
 
 export default function JournalPage() {
@@ -84,7 +90,7 @@ export default function JournalPage() {
     <div>
       <PageHeader
         title="Journal"
-        subtitle="Three questions. A clearer mind every night."
+        subtitle="Write your day. Clear your head."
       />
 
       {/* Today's reflection */}
@@ -101,20 +107,37 @@ export default function JournalPage() {
             <span className="text-xs text-muted">{today}</span>
           </div>
           <div className="space-y-6">
-            {PROMPTS.map((p) => (
-              <div key={p.key}>
-                <label className={labelClass}>{p.label}</label>
-                <textarea
-                  rows={2}
-                  value={draft[p.key]}
-                  onChange={(e) =>
-                    setDraft({ ...draft, [p.key]: e.target.value })
-                  }
-                  placeholder="Write freely…"
-                  className="w-full resize-none border-b border-line bg-transparent pb-2 text-[15px] leading-relaxed text-fg/90 placeholder:text-muted/50 focus:border-accent/50"
-                />
-              </div>
-            ))}
+            {/* Main free-write — just your day, thoughts, anything. */}
+            <div>
+              <label className={labelClass}>Today</label>
+              <textarea
+                rows={7}
+                value={draft.did_today}
+                onChange={(e) =>
+                  setDraft({ ...draft, did_today: e.target.value })
+                }
+                placeholder="Write about your day — what happened, what's on your mind, anything…"
+                className="w-full resize-none rounded-2xl border border-line bg-white/[0.02] p-4 text-[15px] leading-relaxed text-fg/90 placeholder:text-muted/50 focus:border-accent/50"
+              />
+            </div>
+
+            {/* Optional reflection — only if you want to go deeper. */}
+            <div className="grid gap-5 border-t border-line pt-5 sm:grid-cols-2">
+              {OPTIONAL.map((p) => (
+                <div key={p.key}>
+                  <label className={labelClass}>{p.label}</label>
+                  <textarea
+                    rows={2}
+                    value={draft[p.key]}
+                    onChange={(e) =>
+                      setDraft({ ...draft, [p.key]: e.target.value })
+                    }
+                    placeholder="Write freely…"
+                    className="w-full resize-none border-b border-line bg-transparent pb-2 text-sm leading-relaxed text-fg/90 placeholder:text-muted/50 focus:border-accent/50"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
           <div className="mt-6 border-t border-line pt-5">
             <MoodPicker />
