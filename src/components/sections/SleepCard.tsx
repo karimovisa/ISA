@@ -38,6 +38,10 @@ function MoonIcon({ low }: { low: boolean }) {
 
 type Ongoing = { id: string; sleep_start: string; date: string } | null;
 
+// If "Wake" is never tapped, cap an open session so it doesn't run forever.
+const CAP_HOURS = 16;
+const CAP_MS = CAP_HOURS * 3_600_000;
+
 export function SleepCard() {
   const logs = useCollection<SleepLog>("sleep_logs", {
     orderBy: "date",
@@ -84,6 +88,38 @@ export function SleepCard() {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, [ongoing]);
+
+  // Auto-close a forgotten session: if "Wake" wasn't tapped within ~16h, close
+  // it capped at CAP_HOURS. Runs when a session loads and on each 30s tick.
+  useEffect(() => {
+    if (!ongoing) return;
+    const start = new Date(ongoing.sleep_start).getTime();
+    if (Date.now() - start < CAP_MS) return;
+    const o = ongoing;
+    (async () => {
+      await supabase
+        .from("sleep_logs")
+        .update({
+          sleep_end: new Date(start + CAP_MS).toISOString(),
+          duration_hours: CAP_HOURS,
+        })
+        .eq("id", o.id);
+      await supabase.rpc("recompute_my_energy", { p_date: o.date });
+      setOngoing(null);
+      await Promise.all([logs.refresh(), loadScore()]);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("isa:toast", {
+            detail: {
+              message: `Sleep auto-closed at ${CAP_HOURS}h — you forgot to tap Wake.`,
+              tone: "info",
+            },
+          })
+        );
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ongoing, now]);
 
   const startSleep = async () => {
     setBusy(true);
@@ -167,7 +203,7 @@ export function SleepCard() {
   const low = score !== null && score < 40;
 
   const elapsedMs = ongoing
-    ? now - new Date(ongoing.sleep_start).getTime()
+    ? Math.min(now - new Date(ongoing.sleep_start).getTime(), CAP_MS)
     : 0;
   const eh = Math.floor(elapsedMs / 3_600_000);
   const em = Math.floor((elapsedMs % 3_600_000) / 60_000);
