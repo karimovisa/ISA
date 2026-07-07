@@ -6,6 +6,7 @@ import { IsaIntroGate } from "@/components/brand/IsaIntro";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LanguageProvider } from "@/lib/i18n";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { Toaster } from "@/components/ui/Toaster";
 
 const inter = Inter({
@@ -41,6 +42,7 @@ export default function RootLayout({
             <LanguageProvider>
               <PwaRegister />
               <IsaIntroGate />
+              <LanguageToggle />
               {children}
               <Toaster />
             </LanguageProvider>

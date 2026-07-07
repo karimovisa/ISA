@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
 import { enablePush, sendTestPush, pushSupported } from "@/lib/push";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
-import { useT, type Lang } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { DataExport } from "@/components/sections/DataExport";
 import { ReminderOverview } from "@/components/sections/ReminderOverview";
 
@@ -17,14 +17,9 @@ const THEMES: { id: Theme; label: string; bg: string; accent: string; text: stri
   { id: "girls", label: "Girls", bg: "#FFF8FB", accent: "#FF5C8A", text: "#2B1B24" },
 ];
 
-const LANGS: { id: Lang; label: string; native: string }[] = [
-  { id: "en", label: "English", native: "English" },
-  { id: "uz", label: "Uzbek", native: "O'zbekcha" },
-];
-
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { lang, setLang, t: tr } = useT();
+  const { t: tr } = useT();
   const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -81,29 +76,6 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader title="Settings" subtitle="Your space, your rules." />
-
-      <GlassCard className="mb-6 max-w-xl p-6">
-        <h3 className="mb-1 font-medium">{tr("Language")}</h3>
-        <p className="mb-4 text-sm text-muted">{tr("Choose your language.")}</p>
-        <div className="grid grid-cols-2 gap-4">
-          {LANGS.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => setLang(l.id)}
-              className={`rounded-2xl border px-4 py-3 text-left transition ${
-                lang === l.id
-                  ? "border-accent ring-1 ring-accent"
-                  : "border-line hover:border-white/20"
-              }`}
-            >
-              <div className="text-sm font-medium text-fg">{l.native}</div>
-              <div className="mt-0.5 text-xs text-muted">
-                {lang === l.id ? tr("Active") : l.label}
-              </div>
-            </button>
-          ))}
-        </div>
-      </GlassCard>
 
       <GlassCard className="mb-6 max-w-xl p-6">
         <h3 className="mb-1 font-medium">{tr("Theme")}</h3>
