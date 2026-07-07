@@ -22,6 +22,7 @@ import {
   type PrayerState,
 } from "@/lib/prayer";
 import { todayISO } from "@/lib/datetime";
+import { useT } from "@/lib/i18n";
 import type { PrayerName } from "@/lib/types";
 
 export default function PrayPage() {
@@ -57,6 +58,7 @@ function PrayLocked({
     notifications_enabled?: boolean;
   }) => Promise<void>;
 }) {
+  const { t } = useT();
   const [justOn, setJustOn] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -82,9 +84,9 @@ function PrayLocked({
   if (justOn) {
     return (
       <GlassCard className="max-w-md p-6">
-        <h3 className="font-medium">Get prayer reminders?</h3>
+        <h3 className="font-medium">{t("Get prayer reminders?")}</h3>
         <p className="mt-1 text-sm text-muted">
-          You&apos;ll get a notification when each prayer begins.
+          {t("You'll get a notification when each prayer begins.")}
         </p>
         <div className="mt-4 flex gap-2">
           <PressButton
@@ -92,14 +94,14 @@ function PrayLocked({
             disabled={busy}
             className="flex-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
           >
-            Yes, remind me
+            {t("Yes, remind me")}
           </PressButton>
           <PressButton
             onClick={() => notify(false)}
             disabled={busy}
             className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15"
           >
-            No
+            {t("No")}
           </PressButton>
         </div>
       </GlassCard>
@@ -111,16 +113,16 @@ function PrayLocked({
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
         <Lock size={24} className="text-muted" />
       </div>
-      <h3 className="text-base font-medium">Prayer is locked</h3>
+      <h3 className="text-base font-medium">{t("Prayer is locked")}</h3>
       <p className="mt-1.5 max-w-xs text-sm text-muted">
-        If you pray, activate this section to start tracking.
+        {t("If you pray, activate this section to start tracking.")}
       </p>
       <PressButton
         onClick={activate}
         disabled={busy}
         className="mt-5 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
       >
-        Activate
+        {t("Activate")}
       </PressButton>
     </GlassCard>
   );
@@ -134,6 +136,7 @@ const ROW_STATE: Record<PrayerState, string> = {
 };
 
 function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
+  const { t } = useT();
   if (p.timesLoading) {
     return <div className="glass h-72 animate-pulse rounded-3xl" />;
   }
@@ -150,7 +153,7 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
   const active = p.active;
   const dayLabel =
     p.activeDate === todayISO()
-      ? "today"
+      ? t("today")
       : new Date(p.activeDate).toLocaleDateString([], {
           weekday: "short",
           month: "short",
@@ -176,14 +179,15 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
             <h3 className="text-sm font-medium">Sirdaryo · {dayLabel}</h3>
           </div>
           <span className="text-xs tabular-nums text-muted">
-            {done}/5 done{missed > 0 ? ` · ${missed} missed` : ""}
+            {done}/5 {t("done")}
+            {missed > 0 ? ` · ${missed} ${t("missed")}` : ""}
           </span>
         </div>
 
         {/* Next prayer countdown */}
         <div className="mb-4 flex items-baseline justify-between rounded-2xl bg-accent-soft px-4 py-3">
           <span className="text-xs uppercase tracking-wider text-muted">
-            Next · {PRAYER_LABELS[next.name]}
+            {t("Next")} · {PRAYER_LABELS[next.name]}
           </span>
           <span className="text-lg font-bold tabular-nums text-fg">
             {fmtCountdown(next.inMin)}
@@ -228,12 +232,16 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
 
                 {state === "past-done" && log ? (
                   <span className={`text-xs font-medium ${STATUS_TONE[log.status]}`}>
-                    {STATUS_LABEL[log.status]}
+                    {t(STATUS_LABEL[log.status])}
                   </span>
                 ) : state === "past-missed" ? (
-                  <span className="text-xs font-medium text-red-400">missed</span>
+                  <span className="text-xs font-medium text-red-400">
+                    {t("missed")}
+                  </span>
                 ) : state === "current" ? (
-                  <span className="text-xs font-medium text-accent">now</span>
+                  <span className="text-xs font-medium text-accent">
+                    {t("now")}
+                  </span>
                 ) : null}
 
                 <span className="w-12 text-right text-sm tabular-nums text-muted">

@@ -144,8 +144,8 @@ const UZ: Record<string, string> = {
   Reminders: "Eslatmalar",
 
   // ── Prayer ──
-  "Sirdaryo · today": "Sirdaryo · bugun",
-  "Prayer is locked": "Namoz bo'limi yopiq",
+  Next: "Keyingi",
+  today: "bugun",
   Activate: "Faollashtirish",
   now: "hozir",
   missed: "qazo",
@@ -169,6 +169,37 @@ const UZ: Record<string, string> = {
   "No account yet?": "Hali hisob yo'qmi?",
   "Create one": "Yarating",
   "Already have an account?": "Hisobingiz bormi?",
+  "Your personal operating system.": "Shaxsiy operatsion tizimingiz.",
+  "One quiet place for everything that moves you forward — built like an ascent: you climb a little every day.":
+    "Sizni oldinga suradigan hamma narsa uchun bitta tinch makon — yuksalishdek qurilgan: har kuni sal-pal yuqoriga chiqasiz.",
+  "Goals as summits — every climb tracked in percent.":
+    "Maqsadlar — cho'qqilar, har biri foizda kuzatiladi.",
+  "Focus timer that logs your deep-work sessions itself.":
+    "Chuqur ish sessiyalaringizni o'zi yozib boradigan diqqat taymeri.",
+  "Daily habits with streaks and a 7-day grid.":
+    "Ketma-ketlik va 7 kunlik jadval bilan kunlik odatlar.",
+  "A two-minute journal with mood, mapped on a calendar.":
+    "Kayfiyatli, kalendarga tushadigan ikki daqiqalik kundalik.",
+  "Keep showing up, and ISA gives back":
+    "Muntazam kel — ISA evaziga qaytaradi",
+  "Streaks that build momentum": "Sur'at to'playdigan ketma-ketliklar",
+  "An Energy Score from your sleep": "Uyqungizdan Energiya bahosi",
+  "A weekly review every Sunday": "Har yakshanba haftalik sharh",
+  "The Ascent — progress as altitude": "Yuksalish — natija balandlikda",
+
+  // ── Prayer extra ──
+  "Prayer is locked": "Namoz bo'limi yopiq",
+  "If you pray, activate this section to start tracking.":
+    "Namoz o'qisangiz, kuzatuvni boshlash uchun bu bo'limni faollashtiring.",
+  "Get prayer reminders?": "Namoz eslatmalari kelsinmi?",
+  "You'll get a notification when each prayer begins.":
+    "Har namoz kirganда bildirishnoma keladi.",
+  "Yes, remind me": "Ha, eslatib turing",
+  No: "Yo'q",
+  "Times not loaded yet": "Vaqtlar hali yuklanmagan",
+  "Prayer times refresh automatically every day. Check back in a moment.":
+    "Namoz vaqtlari har kuni avtomatik yangilanadi. Birozdan keyin qayta qarang.",
+  "done": "o'qildi",
 };
 
 const Ctx = createContext<{

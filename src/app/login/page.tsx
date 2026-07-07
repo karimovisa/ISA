@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useT } from "@/lib/i18n";
 import { SetupNotice } from "@/components/layout/SetupNotice";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { fieldClass, primaryBtnClass } from "@/components/ui/Modal";
@@ -25,6 +26,7 @@ import { PressButton } from "@/components/ui/PressButton";
 export default function LoginPage() {
   const router = useRouter();
   const { session, loading } = useAuth();
+  const { t } = useT();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -87,11 +89,12 @@ export default function LoginPage() {
           className="order-2 lg:order-1"
         >
           <h2 className="text-balance text-2xl font-bold tracking-tight sm:text-3xl">
-            Your personal operating system.
+            {t("Your personal operating system.")}
           </h2>
           <p className="mt-3 max-w-md text-sm text-muted sm:text-base">
-            One quiet place for everything that moves you forward — built like
-            an ascent: you climb a little every day.
+            {t(
+              "One quiet place for everything that moves you forward — built like an ascent: you climb a little every day."
+            )}
           </p>
 
           <ul className="mt-6 space-y-3">
@@ -105,31 +108,31 @@ export default function LoginPage() {
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06]">
                   <Icon size={14} className="text-fg" />
                 </span>
-                {text}
+                {t(text)}
               </li>
             ))}
           </ul>
 
           <div className="mt-7 border-t border-line pt-5">
             <p className="text-xs font-medium uppercase tracking-wider text-muted">
-              Keep showing up, and ISA gives back
+              {t("Keep showing up, and ISA gives back")}
             </p>
             <ul className="mt-3 grid gap-2.5 text-sm text-fg/80 sm:grid-cols-2">
               <li className="flex items-center gap-2.5">
-                <Flame size={14} className="shrink-0 text-accent" /> Streaks that
-                build momentum
+                <Flame size={14} className="shrink-0 text-accent" />{" "}
+                {t("Streaks that build momentum")}
               </li>
               <li className="flex items-center gap-2.5">
-                <Moon size={14} className="shrink-0 text-accent" /> An Energy
-                Score from your sleep
+                <Moon size={14} className="shrink-0 text-accent" />{" "}
+                {t("An Energy Score from your sleep")}
               </li>
               <li className="flex items-center gap-2.5">
-                <BarChart3 size={14} className="shrink-0 text-accent" /> A weekly
-                review every Sunday
+                <BarChart3 size={14} className="shrink-0 text-accent" />{" "}
+                {t("A weekly review every Sunday")}
               </li>
               <li className="flex items-center gap-2.5">
-                <Mountain size={14} className="shrink-0 text-accent" /> The
-                Ascent — progress as altitude
+                <Mountain size={14} className="shrink-0 text-accent" />{" "}
+                {t("The Ascent — progress as altitude")}
               </li>
             </ul>
           </div>
@@ -152,8 +155,8 @@ export default function LoginPage() {
           </div>
           <p className="mt-4 text-sm text-muted">
             {mode === "signin"
-              ? "Welcome back. Sign in to your space."
-              : "Create your personal operating system."}
+              ? t("Welcome back. Sign in to your space.")
+              : t("Create your personal operating system.")}
           </p>
         </div>
 
@@ -164,7 +167,7 @@ export default function LoginPage() {
                 key="name"
                 type="text"
                 required
-                placeholder="First name"
+                placeholder={t("First name")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={fieldClass}
@@ -178,7 +181,7 @@ export default function LoginPage() {
           </AnimatePresence>
           <div>
             <label htmlFor="email" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">
-              Email
+              {t("Email")}
             </label>
             <input
               id="email"
@@ -193,7 +196,7 @@ export default function LoginPage() {
           </div>
           <div>
             <label htmlFor="password" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">
-              Password
+              {t("Password")}
             </label>
             <div className="relative">
               <input
@@ -223,15 +226,17 @@ export default function LoginPage() {
 
           <PressButton type="submit" disabled={busy} className={primaryBtnClass}>
             {busy
-              ? "Please wait…"
+              ? t("Please wait…")
               : mode === "signin"
-                ? "Sign in"
-                : "Create account"}
+                ? t("Sign in")
+                : t("Create account")}
           </PressButton>
         </form>
 
         <p className="mt-5 text-center text-xs text-muted">
-          {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
+          {mode === "signin"
+            ? t("No account yet?")
+            : t("Already have an account?")}{" "}
           <button
             onClick={() => {
               setMode(mode === "signin" ? "signup" : "signin");
@@ -240,7 +245,7 @@ export default function LoginPage() {
             }}
             className="font-medium text-accent hover:underline"
           >
-            {mode === "signin" ? "Create one" : "Sign in"}
+            {mode === "signin" ? t("Create one") : t("Sign in")}
           </button>
         </p>
         </motion.div>
