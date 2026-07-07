@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Download } from "lucide-react";
+import { useRef, useState } from "react";
+import { Download, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
+import { toast } from "@/lib/toast";
 
 // Every table holding the user's own content. RLS scopes each select to them.
 // Credential tables (strava_connections, push_subscriptions) are intentionally
@@ -33,6 +34,55 @@ const TABLES = [
 export function DataExport() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    if (
+      !window.confirm(
+        "Restore this backup into your account? Items with the same id will be overwritten."
+      )
+    )
+      return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (parsed?.app !== "ISA" || !parsed.data) {
+        toast("That doesn't look like an ISA backup file.", "error");
+        setBusy(false);
+        return;
+      }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setBusy(false);
+        return;
+      }
+      let imported = 0;
+      for (const t of TABLES) {
+        const rows = parsed.data[t];
+        if (!Array.isArray(rows) || rows.length === 0) continue;
+        // Re-own each row to the current account so RLS accepts it.
+        const owned = rows.map((r) =>
+          r && typeof r === "object" && "user_id" in r
+            ? { ...r, user_id: user.id }
+            : r
+        );
+        const { error } = await supabase.from(t).upsert(owned);
+        if (!error) imported += owned.length;
+      }
+      toast(`Restored ${imported} records.`, "success");
+      setNote(`Restored ${imported} records. Refresh to see them.`);
+    } catch {
+      toast("Import failed — is the file a valid ISA export?", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const exportAll = async () => {
     setBusy(true);
@@ -90,19 +140,35 @@ export function DataExport() {
           <Download size={20} className="text-fg" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-medium">Export your data</h3>
+          <h3 className="font-medium">Backup &amp; restore</h3>
           <p className="mt-1 text-sm text-muted">
             Download everything — goals, journal, habits, runs and more — as a
-            single JSON file. It&apos;s yours.
+            single JSON file, or restore it later. It&apos;s yours.
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-3">
             <PressButton
               onClick={exportAll}
               disabled={busy}
-              className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
             >
-              {busy ? "Preparing…" : "Download JSON"}
+              <Download size={15} />
+              {busy ? "Working…" : "Download JSON"}
             </PressButton>
+            <PressButton
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
+            >
+              <Upload size={15} />
+              Restore
+            </PressButton>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={onImport}
+              className="hidden"
+            />
           </div>
           {note && <p className="mt-3 text-xs text-muted">{note}</p>}
         </div>

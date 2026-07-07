@@ -214,7 +214,7 @@ export default function HabitsPage() {
     <div>
       <PageHeader
         title="Habits"
-        subtitle="Small daily actions. The compounding kind."
+        subtitle="Check in each day. A missed day breaks the streak."
         action={<AddButton onClick={openNew} label="New habit" />}
       />
 
@@ -259,21 +259,40 @@ export default function HabitsPage() {
                     </div>
                   </div>
 
-                  {/* 7-day dots */}
+                  {/* 7-day dots — only today is tappable; past unmarked = missed */}
                   <div className="flex items-center gap-1.5">
                     {days.map((d) => {
                       const isDone = done(h.id, d);
                       const isToday = d === days[6];
+                      const missed = !isDone && !isToday;
                       return (
                         <button
                           key={d}
-                          onClick={() => toggle(h, d)}
-                          aria-label={`${h.name} ${d}`}
+                          onClick={isToday ? () => toggle(h, d) : undefined}
+                          disabled={!isToday}
+                          title={
+                            isToday
+                              ? isDone
+                                ? "Done today — tap to undo"
+                                : "Tap to mark today"
+                              : isDone
+                                ? "Done"
+                                : "Missed"
+                          }
+                          aria-label={`${h.name} ${d} ${
+                            isDone ? "done" : missed ? "missed" : "today"
+                          }`}
                           className={`h-4 w-4 rounded-full transition-all ${
                             isDone
-                              ? "bg-white"
-                              : "bg-white/10 hover:bg-white/25"
-                          } ${isToday ? "ring-1 ring-white/40 ring-offset-2 ring-offset-transparent" : ""}`}
+                              ? "bg-fg"
+                              : missed
+                                ? "bg-red-500/35"
+                                : "bg-white/10 hover:bg-white/25"
+                          } ${
+                            isToday
+                              ? "ring-1 ring-fg/40 ring-offset-2 ring-offset-transparent"
+                              : "cursor-default"
+                          }`}
                         />
                       );
                     })}
