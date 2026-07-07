@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
 import { enablePush, sendTestPush, pushSupported } from "@/lib/push";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
+import { useT, type Lang } from "@/lib/i18n";
 import { DataExport } from "@/components/sections/DataExport";
 import { ReminderOverview } from "@/components/sections/ReminderOverview";
 
@@ -16,8 +17,14 @@ const THEMES: { id: Theme; label: string; bg: string; accent: string; text: stri
   { id: "girls", label: "Girls", bg: "#FFF8FB", accent: "#FF5C8A", text: "#2B1B24" },
 ];
 
+const LANGS: { id: Lang; label: string; native: string }[] = [
+  { id: "en", label: "English", native: "English" },
+  { id: "uz", label: "Uzbek", native: "O'zbekcha" },
+];
+
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { lang, setLang, t: tr } = useT();
   const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,8 +83,33 @@ export default function SettingsPage() {
       <PageHeader title="Settings" subtitle="Your space, your rules." />
 
       <GlassCard className="mb-6 max-w-xl p-6">
-        <h3 className="mb-1 font-medium">Theme</h3>
-        <p className="mb-4 text-sm text-muted">Pick the palette for your space.</p>
+        <h3 className="mb-1 font-medium">{tr("Language")}</h3>
+        <p className="mb-4 text-sm text-muted">{tr("Choose your language.")}</p>
+        <div className="grid grid-cols-2 gap-4">
+          {LANGS.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setLang(l.id)}
+              className={`rounded-2xl border px-4 py-3 text-left transition ${
+                lang === l.id
+                  ? "border-accent ring-1 ring-accent"
+                  : "border-line hover:border-white/20"
+              }`}
+            >
+              <div className="text-sm font-medium text-fg">{l.native}</div>
+              <div className="mt-0.5 text-xs text-muted">
+                {lang === l.id ? tr("Active") : l.label}
+              </div>
+            </button>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard className="mb-6 max-w-xl p-6">
+        <h3 className="mb-1 font-medium">{tr("Theme")}</h3>
+        <p className="mb-4 text-sm text-muted">
+          {tr("Pick the palette for your space.")}
+        </p>
         <div className="grid grid-cols-2 gap-4">
           {THEMES.map((t) => (
             <button
@@ -96,8 +128,10 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between px-4 py-2 text-xs">
-                <span className="text-muted">{t.label} theme</span>
-                {theme === t.id && <span className="text-accent">Active</span>}
+                <span className="text-muted">{t.label}</span>
+                {theme === t.id && (
+                  <span className="text-accent">{tr("Active")}</span>
+                )}
               </div>
             </button>
           ))}
@@ -114,10 +148,11 @@ export default function SettingsPage() {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-medium">Push notifications</h3>
+            <h3 className="font-medium">{tr("Push notifications")}</h3>
             <p className="mt-1 text-sm text-muted">
-              Gentle reminders for journaling, habits, and your weekly review —
-              even when ISA is closed.
+              {tr(
+                "Gentle reminders for journaling, habits, and your weekly review — even when ISA is closed."
+              )}
             </p>
 
             <div className="mt-4 flex flex-wrap gap-3">
@@ -127,19 +162,19 @@ export default function SettingsPage() {
                   disabled={busy || !supported}
                   className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
                 >
-                  {busy ? "Enabling…" : "Enable notifications"}
+                  {busy ? tr("Enabling…") : tr("Enable notifications")}
                 </PressButton>
               ) : (
                 <>
                   <span className="flex items-center gap-2 rounded-xl bg-emerald-400/10 px-4 py-2.5 text-sm font-medium text-emerald-300">
-                    <Check size={15} /> Enabled
+                    <Check size={15} /> {tr("Enabled")}
                   </span>
                   <PressButton
                     onClick={test}
                     disabled={busy}
                     className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
                   >
-                    Send test
+                    {tr("Send test")}
                   </PressButton>
                 </>
               )}

@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { IsaIntroGate } from "@/components/brand/IsaIntro";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/Toaster";
 
 const inter = Inter({
@@ -37,10 +38,12 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <ThemeProvider>
-            <PwaRegister />
-            <IsaIntroGate />
-            {children}
-            <Toaster />
+            <LanguageProvider>
+              <PwaRegister />
+              <IsaIntroGate />
+              {children}
+              <Toaster />
+            </LanguageProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

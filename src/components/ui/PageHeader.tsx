@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useT } from "@/lib/i18n";
 
 export function PageHeader({
   title,
@@ -11,6 +12,7 @@ export function PageHeader({
   subtitle?: string;
   action?: React.ReactNode;
 }) {
+  const { t } = useT();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -20,11 +22,11 @@ export function PageHeader({
     >
       <div>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          {title}
+          {t(title)}
         </h1>
         {subtitle && (
           <p className="mt-2 max-w-xl text-sm text-muted sm:text-base">
-            {subtitle}
+            {t(subtitle)}
           </p>
         )}
       </div>
@@ -40,6 +42,7 @@ export function AddButton({
   onClick: () => void;
   label: string;
 }) {
+  const { t } = useT();
   return (
     <motion.button
       onClick={onClick}
@@ -49,7 +52,7 @@ export function AddButton({
       className="glass flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-fg transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.08]"
     >
       <span className="text-lg leading-none text-accent">+</span>
-      {label}
+      {t(label)}
     </motion.button>
   );
 }

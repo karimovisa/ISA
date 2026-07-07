@@ -19,6 +19,7 @@ import {
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useT } from "@/lib/i18n";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
 
@@ -50,10 +51,11 @@ function NavLink({
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   active: boolean;
 }) {
+  const { t } = useT();
   return (
     <Link
       href={href}
-      title={label}
+      title={t(label)}
       className={cn(
         "group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
         active ? "text-fg" : "text-muted hover:text-fg"
@@ -72,7 +74,7 @@ function NavLink({
       />
       {/* Desktop tooltip */}
       <span className="pointer-events-none absolute left-14 z-20 hidden whitespace-nowrap rounded-lg bg-white/10 px-2.5 py-1 text-xs text-fg opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 md:block">
-        {label}
+        {t(label)}
       </span>
     </Link>
   );
@@ -81,6 +83,7 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
+  const { t } = useT();
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -109,7 +112,7 @@ export function Sidebar() {
         <div className="flex flex-col items-center gap-1">
           <Link
             href="/settings"
-            title="Settings"
+            title={t("Settings")}
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
               isActive("/settings") ? "text-fg" : "text-muted hover:text-fg"
@@ -119,7 +122,7 @@ export function Sidebar() {
           </Link>
           <button
             onClick={signOut}
-            title="Sign out"
+            title={t("Sign out")}
             className="flex h-11 w-11 items-center justify-center rounded-2xl text-muted transition-colors hover:text-fg"
           >
             <LogOut size={20} />
@@ -164,7 +167,7 @@ export function Sidebar() {
           className="relative flex h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl text-muted transition-colors hover:text-fg"
         >
           <Command size={19} className="relative z-10" />
-          <span className="text-[9px] font-medium leading-none">Menu</span>
+          <span className="text-[9px] font-medium leading-none">{t("Menu")}</span>
         </button>
       </nav>
     </>

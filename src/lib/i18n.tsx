@@ -1,0 +1,200 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+
+export type Lang = "en" | "uz";
+
+/**
+ * English text IS the key. This map holds Uzbek overrides; anything missing
+ * simply falls back to English, so untranslated strings never break.
+ * Use `{name}` placeholders with t("...", { name }).
+ */
+const UZ: Record<string, string> = {
+  // ── Navigation ──
+  Dashboard: "Boshqaruv",
+  Goals: "Maqsadlar",
+  Projects: "Loyihalar",
+  Ideas: "G'oyalar",
+  Progress: "Natijalar",
+  Journal: "Kundalik",
+  Focus: "Diqqat",
+  Habits: "Odatlar",
+  Calendar: "Kalendar",
+  Pray: "Namoz",
+  Prayer: "Namoz",
+  Settings: "Sozlamalar",
+  Menu: "Menyu",
+  "Sign out": "Chiqish",
+  Search: "Qidiruv",
+
+  // ── Greetings ──
+  "Good morning": "Xayrli tong",
+  "Good afternoon": "Xayrli kun",
+  "Good evening": "Xayrli kech",
+  "Good night": "Xayrli tun",
+  Welcome: "Xush kelibsiz",
+  "You are getting closer to your goals.":
+    "Maqsadlaringga yaqinlashib borayapsan.",
+
+  // ── Page subtitles ──
+  "Catch the sparks before they fade.":
+    "Uchqunlarni o'chib ketmasdan ilib qol.",
+  "Your days, colored by mood.": "Kunlaring — kayfiyat ranglarida.",
+  "The mountains you are climbing. One percent at a time.":
+    "Chiqayotgan cho'qqilaring. Har safar bir foizdan.",
+  "Write your day. Clear your head.": "Kuningni yoz. Fikringni tinitib ol.",
+  "One thing. Full attention. Nothing else.":
+    "Bitta ish. To'liq diqqat. Boshqa hech narsa.",
+  "Check in each day. A missed day breaks the streak.":
+    "Har kuni belgila. Qoldirilgan kun ketma-ketlikni uzadi.",
+  "Five daily prayers — keep track.": "Besh mahal namoz — kuzatib bor.",
+  "Your space, your rules.": "O'z makoning, o'z qoidalaring.",
+  "What you are building right now.": "Ayni damda nima qurayotganing.",
+  "The numbers behind the momentum. Last 7 days.":
+    "Sur'at ortidagi raqamlar. Oxirgi 7 kun.",
+
+  // ── Empty states ──
+  "No goals yet": "Hali maqsad yo'q",
+  "Name your first summit and start the climb.":
+    "Birinchi cho'qqingni belgila va yuksalishni boshla.",
+  "Add your first goal": "Birinchi maqsadingni qo'sh",
+  "No projects yet": "Hali loyiha yo'q",
+  "Break a goal into a project you can actually ship.":
+    "Maqsadni yakunlab bo'ladigan loyihaga ajrat.",
+  "Add your first project": "Birinchi loyihangni qo'sh",
+  "Your vault is empty": "Xazinang bo'sh",
+  "Drop the next thought before it slips away.":
+    "Keyingi fikringni yo'qolib ketmasdan yozib qo'y.",
+  "Capture your first idea": "Birinchi g'oyangni yozib ol",
+  "No habits yet": "Hali odat yo'q",
+  "Pick one small thing to repeat every day.":
+    "Har kuni takrorlaydigan bitta kichik ishni tanla.",
+  "Add your first habit": "Birinchi odatingni qo'sh",
+
+  // ── Common actions ──
+  Save: "Saqlash",
+  "Save entry": "Yozuvni saqlash",
+  Saved: "Saqlandi",
+  "Saving…": "Saqlanmoqda…",
+  Cancel: "Bekor qilish",
+  Delete: "O'chirish",
+  Edit: "Tahrirlash",
+  Add: "Qo'shish",
+  Create: "Yaratish",
+  "New goal": "Yangi maqsad",
+  "New project": "Yangi loyiha",
+  "New idea": "Yangi idea",
+  "New habit": "Yangi odat",
+  "New to-do": "Yangi vazifa",
+  "Create habit": "Odat yaratish",
+  Today: "Bugun",
+  "Today's to-do": "Bugungi vazifalar",
+  "Add a task…": "Vazifa qo'shing…",
+
+  // ── Dashboard ──
+  "Journaling streak": "Kundalik ketma-ketligi",
+  "Focus this week": "Bu hafta diqqat",
+  "Next deadline": "Keyingi muddat",
+  "set a deadline": "muddat belgilang",
+  day: "kun",
+  days: "kun",
+  min: "daq",
+  "The ascent": "Yuksalish",
+  "Your overall progress toward the summit":
+    "Cho'qqi sari umumiy natijang",
+  "Capture an idea before it fades…":
+    "G'oyani o'chib ketmasdan yozib qoling…",
+  "in your vault": "xazinangda",
+  active: "faol",
+  "% overall progress": "% umumiy natija",
+  "weekly momentum": "haftalik sur'at",
+
+  // ── Settings ──
+  Theme: "Mavzu",
+  "Pick the palette for your space.": "Makoning uchun rang tanla.",
+  Language: "Til",
+  "Choose your language.": "Tilingizni tanlang.",
+  Active: "Faol",
+  "Export your data": "Ma'lumotlaringni yuklab ol",
+  "Gentle reminders for journaling, habits, and your weekly review — even when ISA is closed.":
+    "Kundalik, odatlar va haftalik sharh uchun eslatmalar — ISA yopiq bo'lsa ham.",
+  "Push notifications": "Push bildirishnomalar",
+  "Enable notifications": "Bildirishnomalarni yoqish",
+  "Enabling…": "Yoqilmoqda…",
+  Enabled: "Yoqilgan",
+  "Send test": "Sinov yuborish",
+  "Backup & restore": "Zaxira va tiklash",
+  "Download JSON": "JSON yuklab olish",
+  Restore: "Tiklash",
+  Reminders: "Eslatmalar",
+
+  // ── Prayer ──
+  "Sirdaryo · today": "Sirdaryo · bugun",
+  "Prayer is locked": "Namoz bo'limi yopiq",
+  Activate: "Faollashtirish",
+  now: "hozir",
+  missed: "qazo",
+  "on time": "vaqtida",
+  late: "kechikkan",
+  Statistics: "Statistika",
+  "Last 7 days": "Oxirgi 7 kun",
+  "Last 30 days": "Oxirgi 30 kun",
+
+  // ── Login ──
+  "Sign in": "Kirish",
+  "Create account": "Hisob yaratish",
+  "Please wait…": "Kuting…",
+  "Welcome back. Sign in to your space.":
+    "Xush kelibsiz. Makoningizga kiring.",
+  "Create your personal operating system.":
+    "Shaxsiy operatsion tizimingizni yarating.",
+  Email: "Email",
+  Password: "Parol",
+  "First name": "Ism",
+  "No account yet?": "Hali hisob yo'qmi?",
+  "Create one": "Yarating",
+  "Already have an account?": "Hisobingiz bormi?",
+};
+
+const Ctx = createContext<{
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}>({ lang: "en", setLang: () => {}, t: (k) => k });
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>("en");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("isa_lang");
+      if (saved === "uz" || saved === "en") setLangState(saved);
+    } catch {}
+  }, []);
+
+  const setLang = (l: Lang) => {
+    setLangState(l);
+    try {
+      localStorage.setItem("isa_lang", l);
+    } catch {}
+    if (typeof document !== "undefined") document.documentElement.lang = l;
+  };
+
+  const t = (key: string, vars?: Record<string, string | number>) => {
+    let s = lang === "uz" ? UZ[key] ?? key : key;
+    if (vars)
+      for (const k of Object.keys(vars))
+        s = s.replace(new RegExp(`\\{${k}\\}`, "g"), String(vars[k]));
+    return s;
+  };
+
+  return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;
+}
+
+export const useT = () => useContext(Ctx);

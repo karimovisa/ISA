@@ -2,6 +2,7 @@
 
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
 type IconType = React.ComponentType<{ size?: number; className?: string }>;
@@ -21,6 +22,7 @@ export function EmptyState({
   onAction?: () => void;
   className?: string;
 }) {
+  const { t } = useT();
   return (
     <GlassCard
       className={cn(
@@ -31,16 +33,16 @@ export function EmptyState({
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
         <Icon size={26} className="text-muted" />
       </div>
-      <h3 className="text-base font-medium text-fg">{title}</h3>
+      <h3 className="text-base font-medium text-fg">{t(title)}</h3>
       {description && (
-        <p className="mt-1.5 max-w-xs text-sm text-muted">{description}</p>
+        <p className="mt-1.5 max-w-xs text-sm text-muted">{t(description)}</p>
       )}
       {actionLabel && onAction && (
         <PressButton
           onClick={onAction}
           className="mt-5 rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-fg transition hover:bg-white/15"
         >
-          {actionLabel}
+          {t(actionLabel)}
         </PressButton>
       )}
     </GlassCard>

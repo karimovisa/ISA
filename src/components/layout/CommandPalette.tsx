@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useT } from "@/lib/i18n";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
 import { todayISO } from "@/lib/datetime";
 import { toast } from "@/lib/toast";
@@ -128,6 +129,7 @@ function scoreMatch(item: Item, q: string): boolean {
 export function CommandPalette() {
   const router = useRouter();
   const { signOut } = useAuth();
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -253,7 +255,7 @@ export function CommandPalette() {
         className="glass fixed bottom-5 left-24 z-30 hidden items-center gap-2 rounded-full px-3.5 py-2 text-xs text-muted transition-colors hover:text-fg md:flex"
       >
         <Search size={14} />
-        <span>Search</span>
+        <span>{t("Search")}</span>
         <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-fg">
           ⌘K
         </kbd>
@@ -302,7 +304,7 @@ export function CommandPalette() {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={onInputKey}
                   placeholder={
-                    compose ? compose.placeholder : "Search or jump to…"
+                    compose ? t(compose.placeholder) : t("Search or jump to…")
                   }
                   className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted/60"
                 />
@@ -342,9 +344,9 @@ export function CommandPalette() {
                           />
                           <span className="flex-1">
                             {isAdd && (
-                              <span className="text-muted">Add: </span>
+                              <span className="text-muted">{t("Add")}: </span>
                             )}
-                            {item.label}
+                            {t(item.label)}
                           </span>
                           {i === active && (
                             <ArrowRight size={14} className="text-muted" />
