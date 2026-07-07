@@ -119,7 +119,11 @@ const PRAYER_LABELS_UZ: Record<string, string> = {
   xufton: "Xufton",
 };
 
-/** Push when a prayer's start time matches the current minute. */
+/**
+ * Push when a prayer starts. Fires within 10 min of the start so a delayed
+ * cron tick still delivers; the `prayer_sent` table dedupes to one push each.
+ * If that table doesn't exist, it safely falls back to exact-minute matching.
+ */
 async function sendPrayerNotifications(
   admin: SupabaseClient,
   now: ReturnType<typeof localNow>
@@ -132,11 +136,12 @@ async function sendPrayerNotifications(
     .maybeSingle();
   if (!times) return 0;
 
+  const startMin = (n: string) => {
+    const [h, m] = String(times[n]).split(":").map(Number);
+    return h * 60 + m;
+  };
   const due = (["bomdod", "peshin", "asr", "shom", "xufton"] as const).filter(
-    (n) => {
-      const [h, m] = String(times[n]).split(":").map(Number);
-      return h * 60 + m === now.minutes;
-    }
+    (n) => now.minutes >= startMin(n) && now.minutes - startMin(n) < 10
   );
   if (due.length === 0) return 0;
 
@@ -149,14 +154,31 @@ async function sendPrayerNotifications(
   let sent = 0;
   for (const u of users ?? []) {
     const uid = u.user_id as string;
-    const name = await firstName(admin, uid);
-    const { data: subs } = await admin
-      .from("push_subscriptions")
-      .select("*")
-      .eq("user_id", uid);
+    let name: string | null = null;
+    let subs: { id: string; endpoint: string; keys_p256dh: string; keys_auth: string }[] | null = null;
+
     for (const prayer of due) {
+      // Claim this (user, day, prayer) so we push exactly once.
+      const claim = await admin
+        .from("prayer_sent")
+        .insert({ user_id: uid, date: now.date, prayer_name: prayer })
+        .select();
+      if (claim.error) {
+        if (claim.error.code === "23505") continue; // already sent today
+        // No dedup table (or other issue): only fire on the exact minute.
+        if (now.minutes !== startMin(prayer)) continue;
+      }
+
+      if (name === null) name = await firstName(admin, uid);
+      if (subs === null) {
+        const r = await admin
+          .from("push_subscriptions")
+          .select("*")
+          .eq("user_id", uid);
+        subs = r.data ?? [];
+      }
       const body = `${name}, ${PRAYER_LABELS_UZ[prayer]} has begun — pray before it passes.`;
-      for (const s of subs ?? []) {
+      for (const s of subs) {
         const ok = await sendToSub(admin, s, {
           title: "Prayer time",
           body,
