@@ -25,7 +25,8 @@ import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { Onboarding } from "@/components/sections/Onboarding";
 import { TodoList } from "@/components/sections/TodoList";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
-import { greetingFor, formatTime, formatDate } from "@/lib/datetime";
+import { greetingFor, formatDate } from "@/lib/datetime";
+import { useT } from "@/lib/i18n";
 import { quoteOfTheDay } from "@/lib/quotes";
 import {
   journalStreak,
@@ -36,6 +37,7 @@ import type { Goal, Idea, Project, JournalEntry, FocusSession } from "@/lib/type
 
 export default function DashboardPage() {
   const { user, displayName } = useAuth();
+  const { t } = useT();
   const [dateNow, setDateNow] = useState<Date | null>(null);
   useEffect(() => setDateNow(new Date()), []);
   const reduce = useReducedMotion();
@@ -107,7 +109,7 @@ export default function DashboardPage() {
       label: "Goals",
       Icon: Target,
       value: goals.data.length,
-      sub: `${overall}% overall progress`,
+      sub: t("{n}% overall progress", { n: overall }),
       tint: "from-white/[0.05]",
     },
     {
@@ -115,7 +117,7 @@ export default function DashboardPage() {
       label: "Projects",
       Icon: FolderKanban,
       value: projects.data.length,
-      sub: `${activeProjects} active`,
+      sub: t("{n} active", { n: activeProjects }),
       tint: "from-white/[0.05]",
     },
     {
@@ -123,7 +125,7 @@ export default function DashboardPage() {
       label: "Ideas",
       Icon: Lightbulb,
       value: ideas.data.length,
-      sub: "in your vault",
+      sub: t("in your vault"),
       tint: "from-white/[0.05]",
     },
     {
@@ -132,7 +134,7 @@ export default function DashboardPage() {
       Icon: BarChart3,
       value: overall,
       suffix: "%",
-      sub: "weekly momentum",
+      sub: t("weekly momentum"),
       tint: "from-white/[0.05]",
     },
   ];
@@ -148,10 +150,10 @@ export default function DashboardPage() {
       <motion.section {...rise(0)} className="mb-8">
         <p className="text-sm text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
         <h1 className="mt-2 text-balance text-4xl font-bold tracking-tight sm:text-5xl">
-          {dateNow ? greetingFor(dateNow) : "Welcome"}, {displayName}.
+          {dateNow ? t(greetingFor(dateNow)) : t("Welcome")}, {displayName}.
         </h1>
         <p className="mt-3 text-base text-muted sm:text-lg">
-          You are getting closer to your goals.
+          {t("You are getting closer to your goals.")}
         </p>
         <div className="mt-4 font-mono text-3xl font-semibold tabular-nums tracking-tight text-fg/90">
           <LiveClock />
@@ -167,21 +169,21 @@ export default function DashboardPage() {
           <Momentum
             Icon={Flame}
             color="text-fg/85"
-            label="Journaling streak"
+            label={t("Journaling streak")}
             main={<AnimatedNumber value={streak} />}
-            unit={streak === 1 ? "day" : "days"}
+            unit={streak === 1 ? t("day") : t("days")}
           />
           <Momentum
             Icon={Timer}
             color="text-fg/85"
-            label="Focus this week"
+            label={t("Focus this week")}
             main={<AnimatedNumber value={weeklyMin} />}
-            unit="min"
+            unit={t("min")}
           />
           <Momentum
             Icon={CalendarClock}
             color="text-fg/85"
-            label="Next deadline"
+            label={t("Next deadline")}
             main={
               deadline ? (
                 <AnimatedNumber value={deadline.daysLeft} />
@@ -189,7 +191,11 @@ export default function DashboardPage() {
                 <span className="text-muted">—</span>
               )
             }
-            unit={deadline ? `days · ${deadline.title}` : "set a deadline"}
+            unit={
+              deadline
+                ? `${t("days")} · ${deadline.title}`
+                : t("set a deadline")
+            }
           />
         </GlassCard>
         <SleepCard />
@@ -220,14 +226,14 @@ export default function DashboardPage() {
           <input
             value={ideaText}
             onChange={(e) => setIdeaText(e.target.value)}
-            placeholder="Capture an idea before it fades…"
+            placeholder={t("Capture an idea before it fades…")}
             className="min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-muted/60"
           />
           <PressButton
             type="submit"
             className="shrink-0 rounded-2xl bg-white/10 px-4 py-2 text-xs font-medium text-fg transition-colors duration-200 hover:bg-white/15"
           >
-            {ideaSaved ? "Saved ✓" : "Save"}
+            {ideaSaved ? `${t("Saved")} ✓` : t("Save")}
           </PressButton>
         </form>
       </motion.div>
@@ -260,7 +266,7 @@ export default function DashboardPage() {
                     <AnimatedNumber value={c.value} suffix={c.suffix ?? ""} />
                   </div>
                   <div className="mt-1 text-sm font-medium text-fg">
-                    {c.label}
+                    {t(c.label)}
                   </div>
                   <div className="text-xs text-muted">{c.sub}</div>
                 </div>
@@ -275,9 +281,9 @@ export default function DashboardPage() {
         <GlassCard className="mt-6 p-6">
           <div className="mb-2 flex items-center justify-between">
             <div>
-              <span className="text-sm font-medium">The ascent</span>
+              <span className="text-sm font-medium">{t("The ascent")}</span>
               <p className="text-xs text-muted">
-                Your overall progress toward the summit
+                {t("Your overall progress toward the summit")}
               </p>
             </div>
             <span className="text-2xl font-bold tabular-nums">

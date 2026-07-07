@@ -12,6 +12,7 @@ import { MoodPicker } from "@/components/sections/MoodPicker";
 import { PressButton } from "@/components/ui/PressButton";
 import { todayISO } from "@/lib/datetime";
 import { toast } from "@/lib/toast";
+import { useT } from "@/lib/i18n";
 import type { JournalEntry } from "@/lib/types";
 
 // did_today is the main free-write; the other two are optional reflection.
@@ -28,6 +29,7 @@ const OPTIONAL = [
 
 export default function JournalPage() {
   const { user } = useAuth();
+  const { t } = useT();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [draft, setDraft] = useState({
     did_today: "",
@@ -113,14 +115,16 @@ export default function JournalPage() {
           <div className="space-y-6">
             {/* Main free-write — just your day, thoughts, anything. */}
             <div>
-              <label className={labelClass}>Today</label>
+              <label className={labelClass}>{t("Today")}</label>
               <textarea
                 rows={7}
                 value={draft.did_today}
                 onChange={(e) =>
                   setDraft({ ...draft, did_today: e.target.value })
                 }
-                placeholder="Write about your day — what happened, what's on your mind, anything…"
+                placeholder={t(
+                  "Write about your day — what happened, what's on your mind, anything…"
+                )}
                 className="w-full resize-none rounded-2xl border border-line bg-white/[0.02] p-4 text-[15px] leading-relaxed text-fg/90 placeholder:text-muted/50 focus:border-accent/50"
               />
             </div>
@@ -129,14 +133,14 @@ export default function JournalPage() {
             <div className="grid gap-5 border-t border-line pt-5 sm:grid-cols-2">
               {OPTIONAL.map((p) => (
                 <div key={p.key}>
-                  <label className={labelClass}>{p.label}</label>
+                  <label className={labelClass}>{t(p.label)}</label>
                   <textarea
                     rows={2}
                     value={draft[p.key]}
                     onChange={(e) =>
                       setDraft({ ...draft, [p.key]: e.target.value })
                     }
-                    placeholder="Write freely…"
+                    placeholder={t("Write freely…")}
                     className="w-full resize-none border-b border-line bg-transparent pb-2 text-sm leading-relaxed text-fg/90 placeholder:text-muted/50 focus:border-accent/50"
                   />
                 </div>
@@ -152,7 +156,7 @@ export default function JournalPage() {
             className="mt-7 flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition duration-200 hover:brightness-110 hover:shadow-[0_8px_24px_-8px_rgba(79,140,255,0.55)] disabled:opacity-50"
           >
             {saved ? <Check size={16} /> : null}
-            {saved ? "Saved" : busy ? "Saving…" : "Save entry"}
+            {saved ? t("Saved") : busy ? t("Saving…") : t("Save entry")}
           </PressButton>
         </GlassCard>
       </motion.div>
@@ -161,7 +165,7 @@ export default function JournalPage() {
       {entries.length > 0 && (
         <div className="mt-10">
           <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-muted">
-            Saved entries
+            {t("Saved entries")}
           </h2>
           <div className="space-y-4">
             {entries.map((e, i) => (
@@ -175,7 +179,7 @@ export default function JournalPage() {
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-medium text-accent">
                       {e.entry_date === today
-                        ? "Today"
+                        ? t("Today")
                         : new Date(e.entry_date).toLocaleDateString([], {
                             weekday: "short",
                             month: "short",
@@ -193,7 +197,7 @@ export default function JournalPage() {
                     {PROMPTS.map((p) =>
                       e[p.key] ? (
                         <div key={p.key}>
-                          <dt className="text-xs text-muted">{p.label}</dt>
+                          <dt className="text-xs text-muted">{t(p.label)}</dt>
                           <dd className="text-fg/85">{e[p.key]}</dd>
                         </div>
                       ) : null

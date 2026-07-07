@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/ReminderFields";
 import { todayISO } from "@/lib/datetime";
 import { toast } from "@/lib/toast";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import type { Todo, Reminder } from "@/lib/types";
 
@@ -24,6 +25,7 @@ export function TodoList() {
     ascending: true,
   });
   const [draft, setDraft] = useState("");
+  const { t } = useT();
   // Daily reminder for the whole list (one kind='todo' row per user).
   const [reminder, setReminder] = useState<Reminder | null>(null);
   const [remOpen, setRemOpen] = useState(false);
@@ -108,7 +110,7 @@ export function TodoList() {
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ListTodo size={18} className="text-muted" />
-          <h3 className="text-sm font-medium">Today&apos;s to-do</h3>
+          <h3 className="text-sm font-medium">{t("Today's to-do")}</h3>
         </div>
         <div className="flex items-center gap-2">
           {items.length > 0 && (
@@ -195,7 +197,7 @@ export function TodoList() {
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Add a task…"
+          placeholder={t("Add a task…")}
           className="flex-1 bg-transparent py-1 text-sm text-fg/90 placeholder:text-muted/60"
         />
       </form>

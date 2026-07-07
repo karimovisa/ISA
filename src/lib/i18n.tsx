@@ -96,6 +96,15 @@ const UZ: Record<string, string> = {
   Today: "Bugun",
   "Today's to-do": "Bugungi vazifalar",
   "Add a task…": "Vazifa qo'shing…",
+  "What did I do today?": "Bugun nima qildim?",
+  "What did I learn?": "Nima o'rgandim?",
+  "What will I do tomorrow?": "Ertaga nima qilaman?",
+  "What did I learn? (optional)": "Nima o'rgandim? (ixtiyoriy)",
+  "What will I do tomorrow? (optional)": "Ertaga nima qilaman? (ixtiyoriy)",
+  "Write about your day — what happened, what's on your mind, anything…":
+    "Kuning haqida yoz — nima bo'ldi, nima o'yingda, istagan narsang…",
+  "Write freely…": "Erkin yoz…",
+  "Saved entries": "Saqlangan yozuvlar",
 
   // ── Dashboard ──
   "Journaling streak": "Kundalik ketma-ketligi",
@@ -111,8 +120,8 @@ const UZ: Record<string, string> = {
   "Capture an idea before it fades…":
     "G'oyani o'chib ketmasdan yozib qoling…",
   "in your vault": "xazinangda",
-  active: "faol",
-  "% overall progress": "% umumiy natija",
+  "{n}% overall progress": "{n}% umumiy natija",
+  "{n} active": "{n} ta faol",
   "weekly momentum": "haftalik sur'at",
 
   // ── Settings ──
