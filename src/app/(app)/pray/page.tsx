@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Lock, X } from "lucide-react";
+import { Bell, BellOff, Check, Lock, X } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
@@ -135,6 +135,44 @@ const ROW_STATE: Record<PrayerState, string> = {
   future: "opacity-45",
 };
 
+function ReminderToggle({ p }: { p: ReturnType<typeof usePrayer> }) {
+  const { t } = useT();
+  const [busy, setBusy] = useState(false);
+  const on = Boolean(p.prefs?.notifications_enabled);
+
+  const toggle = async () => {
+    setBusy(true);
+    if (on) {
+      await p.savePrefs({ notifications_enabled: false });
+      toast(t("Reminders off."), "info");
+    } else {
+      const res = await enablePush();
+      await p.savePrefs({ notifications_enabled: res.ok });
+      toast(
+        res.ok ? t("Reminders enabled.") : t("Couldn't enable — check browser notification permission."),
+        res.ok ? "success" : "info"
+      );
+    }
+    setBusy(false);
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={busy}
+      aria-label={on ? t("Turn off prayer reminders") : t("Turn on prayer reminders")}
+      title={on ? t("Reminders on") : t("Reminders off")}
+      className={`flex h-8 w-8 items-center justify-center rounded-full border transition disabled:opacity-50 ${
+        on
+          ? "border-accent/40 bg-accent-soft text-accent"
+          : "border-line text-muted hover:bg-white/[0.06]"
+      }`}
+    >
+      {on ? <Bell size={15} /> : <BellOff size={15} />}
+    </button>
+  );
+}
+
 function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
   const { t } = useT();
   if (p.timesLoading) {
@@ -178,10 +216,13 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
             <MosqueIcon size={18} className="text-accent" />
             <h3 className="text-sm font-medium">Sirdaryo · {dayLabel}</h3>
           </div>
-          <span className="text-xs tabular-nums text-muted">
-            {done}/5 {t("done")}
-            {missed > 0 ? ` · ${missed} ${t("missed")}` : ""}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs tabular-nums text-muted">
+              {done}/5 {t("done")}
+              {missed > 0 ? ` · ${missed} ${t("missed")}` : ""}
+            </span>
+            <ReminderToggle p={p} />
+          </div>
         </div>
 
         {/* Next prayer countdown */}
