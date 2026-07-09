@@ -1,4 +1,6 @@
 import { adminClient, sendToSub } from "@/lib/webpush";
+import { PRAYERS, windowOf } from "@/lib/prayer";
+import type { PrayerTimes } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Payload = { title: string; body: string; url?: string };
@@ -191,10 +193,88 @@ async function sendPrayerNotifications(
   return sent;
 }
 
+/**
+ * Hourly "not yet prayed" nudge. For each prayer whose window is currently
+ * open, once at least 60 min have passed since it started, push a reminder
+ * every additional 60 min (2h, 3h, ...) until the user ticks it or the
+ * window closes. `prayer_reminders_sent` dedupes to one push per hour-slot.
+ * (Xufton's window is capped at midnight here — the cross-midnight portion
+ * is a known limitation, not handled by this pass.)
+ */
+async function sendPrayerReminders(
+  admin: SupabaseClient,
+  now: ReturnType<typeof localNow>
+): Promise<number> {
+  const { data: times } = await admin
+    .from("prayer_times")
+    .select("*")
+    .eq("city", "sirdaryo")
+    .eq("date", now.date)
+    .maybeSingle();
+  if (!times) return 0;
+
+  const { data: users } = await admin
+    .from("prayer_preferences")
+    .select("user_id")
+    .eq("notifications_enabled", true)
+    .eq("activated", true);
+  if (!users || users.length === 0) return 0;
+
+  let sent = 0;
+  for (const u of users) {
+    const uid = u.user_id as string;
+
+    for (const name of PRAYERS) {
+      const win = windowOf(name, times as unknown as PrayerTimes);
+      const end = Math.min(win.end, 1440);
+      if (now.minutes < win.start || now.minutes >= end) continue;
+
+      const elapsed = now.minutes - win.start;
+      if (elapsed < 60) continue; // first-hour nudge is the "just started" push
+      const slot = Math.floor(elapsed / 60);
+
+      const { data: log } = await admin
+        .from("prayer_logs")
+        .select("id")
+        .eq("user_id", uid)
+        .eq("date", now.date)
+        .eq("prayer_name", name)
+        .maybeSingle();
+      if (log) continue; // already prayed — stay quiet
+
+      const claim = await admin
+        .from("prayer_reminders_sent")
+        .insert({ user_id: uid, date: now.date, prayer_name: name, hour_slot: slot })
+        .select();
+      if (claim.error) {
+        if (claim.error.code === "23505") continue; // already sent this hour-slot
+        continue; // no dedup table or other issue — skip to be safe
+      }
+
+      const name_ = await firstName(admin, uid);
+      const { data: subs } = await admin
+        .from("push_subscriptions")
+        .select("*")
+        .eq("user_id", uid);
+      const body = `${name_}, ${PRAYER_LABELS_UZ[name]} hali belgilanmagan — ${elapsed} daqiqadan beri o'tmoqda.`;
+      for (const s of subs ?? []) {
+        const ok = await sendToSub(admin, s, {
+          title: "Namoz eslatmasi",
+          body,
+          url: "/pray",
+        });
+        if (ok) sent++;
+      }
+    }
+  }
+  return sent;
+}
+
 async function handleCustom(admin: SupabaseClient) {
   const now = localNow();
   let sentAlarms = 0;
   const prayerSent = await sendPrayerNotifications(admin, now);
+  const prayerReminders = await sendPrayerReminders(admin, now);
 
   // Focus alarms: timer finished while the app was closed → one push, then
   // the row is deleted (the app logs the session when reopened).
@@ -309,7 +389,13 @@ async function handleCustom(admin: SupabaseClient) {
     }
     await markSent();
   }
-  return Response.json({ type: "custom", sent, alarms: sentAlarms, prayers: prayerSent });
+  return Response.json({
+    type: "custom",
+    sent,
+    alarms: sentAlarms,
+    prayers: prayerSent,
+    prayerReminders,
+  });
 }
 
 /**
