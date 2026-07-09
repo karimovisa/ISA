@@ -16,29 +16,67 @@ export const PRAYER_LABELS: Record<PrayerName, string> = {
   xufton: "Xufton",
 };
 
+/**
+ * Manual per-prayer offset (in minutes), added on top of the scraped/
+ * calculated start time. namozvaqti.uz reports the fiqh-earliest start of
+ * each window, but a given jome masjid's jamoat (congregation) azon can be
+ * called later — e.g. Peshin's azon at this user's masjid is ~13:00 even
+ * though the window technically opens at 12:35, a 25 min gap. Adjust the
+ * numbers below if your masjid's timing differs or changes.
+ */
+export const PRAYER_OFFSET_MIN: Record<PrayerName, number> = {
+  bomdod: 0,
+  peshin: 25,
+  asr: 0,
+  shom: 0,
+  xufton: 0,
+};
+
 /** "HH:MM[:SS]" → minutes since midnight. */
 export function toMin(t: string): number {
   const [h, m] = t.split(":");
   return Number(h) * 60 + Number(m);
 }
 
-/** Window [start,end) in minutes for each prayer. Xufton runs past midnight
- *  (end > 1440), using the next day's bomdod (≈ today's bomdod) as the edge. */
+const RAW_FIELD: Record<PrayerName, keyof PrayerTimes> = {
+  bomdod: "bomdod",
+  peshin: "peshin",
+  asr: "asr",
+  shom: "shom",
+  xufton: "xufton",
+};
+
+/** The masjid-adjusted start minute for a prayer (raw scraped time + offset). */
+export function adjustedStart(name: PrayerName, t: PrayerTimes): number {
+  return toMin(t[RAW_FIELD[name]]) + PRAYER_OFFSET_MIN[name];
+}
+
+/** Adjusted start time formatted as "HH:MM", for display. */
+export function displayTime(name: PrayerName, t: PrayerTimes): string {
+  const min = ((adjustedStart(name, t) % 1440) + 1440) % 1440;
+  const h = Math.floor(min / 60).toString().padStart(2, "0");
+  const m = (min % 60).toString().padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+/** Window [start,end) in minutes for each prayer, using masjid-adjusted
+ *  start times throughout. Xufton runs past midnight (end > 1440), using
+ *  the next day's bomdod (≈ today's bomdod) as the edge. */
 export function windowOf(
   name: PrayerName,
   t: PrayerTimes
 ): { start: number; end: number } {
   switch (name) {
     case "bomdod":
-      return { start: toMin(t.bomdod), end: toMin(t.quyosh) };
+      return { start: adjustedStart("bomdod", t), end: toMin(t.quyosh) };
     case "peshin":
-      return { start: toMin(t.peshin), end: toMin(t.asr) };
+      return { start: adjustedStart("peshin", t), end: adjustedStart("asr", t) };
     case "asr":
-      return { start: toMin(t.asr), end: toMin(t.shom) };
+      return { start: adjustedStart("asr", t), end: adjustedStart("shom", t) };
     case "shom":
-      return { start: toMin(t.shom), end: toMin(t.xufton) };
+      return { start: adjustedStart("shom", t), end: adjustedStart("xufton", t) };
     case "xufton":
-      return { start: toMin(t.xufton), end: toMin(t.bomdod) + 1440 };
+      return { start: adjustedStart("xufton", t), end: adjustedStart("bomdod", t) + 1440 };
   }
 }
 

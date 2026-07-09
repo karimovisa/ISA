@@ -1,6 +1,6 @@
 import { adminClient, sendToSub } from "@/lib/webpush";
-import { PRAYERS, windowOf } from "@/lib/prayer";
-import type { PrayerTimes } from "@/lib/types";
+import { PRAYERS, windowOf, adjustedStart } from "@/lib/prayer";
+import type { PrayerTimes, PrayerName } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Payload = { title: string; body: string; url?: string };
@@ -138,11 +138,8 @@ async function sendPrayerNotifications(
     .maybeSingle();
   if (!times) return 0;
 
-  const startMin = (n: string) => {
-    const [h, m] = String(times[n]).split(":").map(Number);
-    return h * 60 + m;
-  };
-  const due = (["bomdod", "peshin", "asr", "shom", "xufton"] as const).filter(
+  const startMin = (n: PrayerName) => adjustedStart(n, times as unknown as PrayerTimes);
+  const due = PRAYERS.filter(
     (n) => now.minutes >= startMin(n) && now.minutes - startMin(n) < 10
   );
   if (due.length === 0) return 0;

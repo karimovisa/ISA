@@ -19,6 +19,7 @@ import {
   prayerState,
   nextPrayer,
   fmtCountdown,
+  displayTime,
   type PrayerState,
 } from "@/lib/prayer";
 import { todayISO } from "@/lib/datetime";
@@ -237,7 +238,7 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
 
         <ul className="space-y-2">
           {rows.map(({ name, log, state }) => {
-            const time = active[name].slice(0, 5);
+            const time = displayTime(name, active);
             const interactive = state === "current";
             return (
               <li
