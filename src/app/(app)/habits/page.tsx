@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil, Archive, Repeat } from "lucide-react";
+import { Pencil, Trash2, Repeat } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -45,6 +45,7 @@ export default function HabitsPage() {
   });
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [streaks, setStreaks] = useState<Record<string, number>>({});
+  const [totals, setTotals] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
   const [name, setName] = useState("");
@@ -76,24 +77,40 @@ export default function HabitsPage() {
     }
   }, []);
 
+  const loadTotals = useCallback(async () => {
+    const { data } = await supabase.rpc("get_my_habit_totals");
+    if (data) {
+      const map: Record<string, number> = {};
+      for (const r of data as { habit_id: string; total: number }[])
+        map[r.habit_id] = r.total;
+      setTotals(map);
+    }
+  }, []);
+
   useEffect(() => {
     loadLogs();
     loadStreaks();
-  }, [loadLogs, loadStreaks, habits.data.length]);
+    loadTotals();
+  }, [loadLogs, loadStreaks, loadTotals, habits.data.length]);
 
   const active = habits.data.filter((h) => h.is_active);
   const done = (habitId: string, date: string) =>
     logs.some((l) => l.habit_id === habitId && l.date === date && l.completed);
 
-  const toggle = async (habit: Habit, date: string) => {
-    const current = done(habit.id, date);
-    // optimistic
+  // One-way: marking a habit done for today requires confirmation, and once
+  // confirmed it can't be undone the same day (the day-dot becomes locked —
+  // see the disabled/canToggle logic in the row render below).
+  const markDone = async (habit: Habit, date: string) => {
+    if (
+      !window.confirm(
+        `Mark "${habit.name}" as done for today?\n\nThis can't be undone once confirmed.`
+      )
+    )
+      return;
+
     setLogs((prev) => {
       const ex = prev.find((l) => l.habit_id === habit.id && l.date === date);
-      if (ex)
-        return prev.map((l) =>
-          l === ex ? { ...l, completed: !current } : l
-        );
+      if (ex) return prev.map((l) => (l === ex ? { ...l, completed: true } : l));
       return [
         ...prev,
         {
@@ -101,17 +118,18 @@ export default function HabitsPage() {
           habit_id: habit.id,
           user_id: habit.user_id,
           date,
-          completed: !current,
+          completed: true,
         } as HabitLog,
       ];
     });
     await supabase
       .from("habit_logs")
       .upsert(
-        { habit_id: habit.id, user_id: habit.user_id, date, completed: !current },
+        { habit_id: habit.id, user_id: habit.user_id, date, completed: true },
         { onConflict: "habit_id,date" }
       );
     loadStreaks();
+    loadTotals();
   };
 
   const resetReminderForm = () => {
@@ -208,7 +226,15 @@ export default function HabitsPage() {
     setSaving(false);
     setOpen(false);
   };
-  const archive = (h: Habit) => habits.update(h.id, { is_active: false });
+  const deleteHabit = (h: Habit) => {
+    if (
+      !window.confirm(
+        `Delete "${h.name}"?\n\nThis removes its full history and can't be undone.`
+      )
+    )
+      return;
+    habits.remove(h.id);
+  };
 
   return (
     <div>
@@ -240,6 +266,7 @@ export default function HabitsPage() {
         <div className="space-y-4">
           {active.map((h, i) => {
             const streak = streaks[h.id] ?? 0;
+            const total = totals[h.id] ?? 0;
             return (
               <motion.div
                 key={h.id}
@@ -259,21 +286,33 @@ export default function HabitsPage() {
                     </div>
                   </div>
 
-                  {/* 7-day dots — only today is tappable; past unmarked = missed */}
+                  {/* Lifetime completed-days count — always visible, off to the side. */}
+                  <div className="hidden shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.04] px-3 py-1.5 sm:flex">
+                    <span className="text-lg font-bold tabular-nums leading-none">
+                      {total}
+                    </span>
+                    <span className="mt-0.5 text-[10px] uppercase tracking-wide text-muted">
+                      done
+                    </span>
+                  </div>
+
+                  {/* 7-day dots — today is tappable only until marked done,
+                      then it locks in; past days are read-only either way. */}
                   <div className="flex items-center gap-1.5">
                     {days.map((d) => {
                       const isDone = done(h.id, d);
                       const isToday = d === days[6];
                       const missed = !isDone && !isToday;
+                      const canTap = isToday && !isDone;
                       return (
                         <button
                           key={d}
-                          onClick={isToday ? () => toggle(h, d) : undefined}
-                          disabled={!isToday}
+                          onClick={canTap ? () => markDone(h, d) : undefined}
+                          disabled={!canTap}
                           title={
                             isToday
                               ? isDone
-                                ? "Done today — tap to undo"
+                                ? "Done today — locked in"
                                 : "Tap to mark today"
                               : isDone
                                 ? "Done"
@@ -289,7 +328,7 @@ export default function HabitsPage() {
                                 ? "bg-red-500/35"
                                 : "bg-white/10 hover:bg-white/25"
                           } ${
-                            isToday
+                            canTap
                               ? "ring-1 ring-fg/40 ring-offset-2 ring-offset-transparent"
                               : "cursor-default"
                           }`}
@@ -306,11 +345,11 @@ export default function HabitsPage() {
                       <Pencil size={15} />
                     </button>
                     <button
-                      onClick={() => archive(h)}
-                      title="Archive"
-                      className="rounded-lg p-2 text-muted transition hover:text-amber-300"
+                      onClick={() => deleteHabit(h)}
+                      title="Delete"
+                      className="rounded-lg p-2 text-muted transition hover:text-red-400"
                     >
-                      <Archive size={15} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </GlassCard>
