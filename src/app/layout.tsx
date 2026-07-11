@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { IsaIntroGate } from "@/components/brand/IsaIntro";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { NavOrderProvider } from "@/components/NavOrderProvider";
 import { LanguageProvider } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Toaster } from "@/components/ui/Toaster";
@@ -39,13 +40,15 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <ThemeProvider>
-            <LanguageProvider>
-              <PwaRegister />
-              <IsaIntroGate />
-              <LanguageToggle />
-              {children}
-              <Toaster />
-            </LanguageProvider>
+            <NavOrderProvider>
+              <LanguageProvider>
+                <PwaRegister />
+                <IsaIntroGate />
+                <LanguageToggle />
+                {children}
+                <Toaster />
+              </LanguageProvider>
+            </NavOrderProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

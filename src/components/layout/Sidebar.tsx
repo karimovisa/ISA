@@ -22,8 +22,9 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useT } from "@/lib/i18n";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
+import { useNavOrder } from "@/components/NavOrderProvider";
 
-const NAV = [
+export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/projects", label: "Projects", icon: FolderKanban },
@@ -36,9 +37,10 @@ const NAV = [
   { href: "/pray", label: "Pray", icon: MosqueIcon },
 ];
 
-// Mobile: 6 primary items in the bar. Everything else lives in the ⌘K palette.
+// Mobile: 6 primary items in the bar (user-orderable in Settings).
+// Everything else lives in the ⌘K palette.
 const PRIMARY = ["/", "/goals", "/habits", "/journal", "/focus", "/progress"];
-const MOBILE_MAIN = NAV.filter((n) => PRIMARY.includes(n.href));
+const NAV_BY_HREF = Object.fromEntries(NAV.map((n) => [n.href, n]));
 
 function NavLink({
   href,
@@ -84,8 +86,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const { t } = useT();
+  const { order } = useNavOrder();
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const mobileMain = order
+    .filter((href) => PRIMARY.includes(href))
+    .map((href) => NAV_BY_HREF[href])
+    .filter(Boolean);
 
   return (
     <>
@@ -135,7 +142,7 @@ export function Sidebar() {
         className="glass fixed inset-x-3 z-40 flex items-center justify-around rounded-3xl px-1 py-1.5 md:hidden"
         style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
-        {MOBILE_MAIN.map((item) => {
+        {mobileMain.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
           return (

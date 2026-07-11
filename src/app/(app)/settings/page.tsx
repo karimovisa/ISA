@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Check } from "lucide-react";
+import { Bell, BellOff, Check, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
 import { enablePush, sendTestPush, pushSupported } from "@/lib/push";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
+import { useNavOrder } from "@/components/NavOrderProvider";
+import { NAV } from "@/components/layout/Sidebar";
 import { useT } from "@/lib/i18n";
 import { DataExport } from "@/components/sections/DataExport";
 import { ReminderOverview } from "@/components/sections/ReminderOverview";
@@ -19,6 +21,7 @@ const THEMES: { id: Theme; label: string; bg: string; accent: string; text: stri
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { order: navOrder, setOrder: setNavOrder } = useNavOrder();
   const { t: tr } = useT();
   const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
@@ -73,6 +76,14 @@ export default function SettingsPage() {
     setNote("Test notification sent — check your device.");
   };
 
+  const moveNavItem = (index: number, dir: -1 | 1) => {
+    const next = [...navOrder];
+    const swapWith = index + dir;
+    if (swapWith < 0 || swapWith >= next.length) return;
+    [next[index], next[swapWith]] = [next[swapWith], next[index]];
+    setNavOrder(next);
+  };
+
   return (
     <div>
       <PageHeader title="Settings" subtitle="Your space, your rules." />
@@ -107,6 +118,47 @@ export default function SettingsPage() {
               </div>
             </button>
           ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard className="mb-6 max-w-xl p-6">
+        <h3 className="mb-1 font-medium">{tr("Bottom menu order")}</h3>
+        <p className="mb-4 text-sm text-muted">
+          {tr("Reorder the icons in your mobile bottom bar.")}
+        </p>
+        <div className="space-y-2">
+          {navOrder.map((href, i) => {
+            const item = NAV.find((n) => n.href === href);
+            if (!item) return null;
+            const Icon = item.icon;
+            return (
+              <div
+                key={href}
+                className="flex items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2.5"
+              >
+                <Icon size={18} className="shrink-0 text-muted" />
+                <span className="flex-1 text-sm font-medium">
+                  {tr(item.label)}
+                </span>
+                <button
+                  onClick={() => moveNavItem(i, -1)}
+                  disabled={i === 0}
+                  aria-label={`Move ${item.label} up`}
+                  className="rounded-lg p-1.5 text-muted transition hover:text-fg disabled:opacity-30"
+                >
+                  <ChevronUp size={16} />
+                </button>
+                <button
+                  onClick={() => moveNavItem(i, 1)}
+                  disabled={i === navOrder.length - 1}
+                  aria-label={`Move ${item.label} down`}
+                  className="rounded-lg p-1.5 text-muted transition hover:text-fg disabled:opacity-30"
+                >
+                  <ChevronDown size={16} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </GlassCard>
 
