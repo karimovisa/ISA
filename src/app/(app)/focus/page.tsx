@@ -40,13 +40,24 @@ export default function FocusPage() {
   const [duration, setDuration] = useState(25 * 60);
   const [left, setLeft] = useState(25 * 60);
   const [running, setRunning] = useState(false);
+  const [busy, setBusy] = useState(false);
   const tick = useRef<ReturnType<typeof setInterval> | null>(null);
   const leftRef = useRef(left);
   leftRef.current = left;
   const restored = useRef(false);
+  // Absolute wall-clock finish time for the running timer. Recomputing `left`
+  // from this (instead of just decrementing a counter) means the countdown
+  // self-corrects after the JS timer gets throttled — e.g. screen locked or
+  // the tab backgrounded — instead of drifting or freezing.
+  const endAtRef = useRef<number | null>(null);
+  const completedRef = useRef(false);
+  const savingRef = useRef(false);
+  const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
 
   const logSession = async (seconds: number, sessionLabel?: string) => {
-    if (!user || seconds < 30) return;
+    if (!user || seconds < 30 || savingRef.current) return;
+    savingRef.current = true;
+    setBusy(true);
     const { error } = await supabase.from("focus_sessions").insert({
       user_id: user.id,
       label: (sessionLabel ?? label).trim() || "Focus",
@@ -57,6 +68,22 @@ export default function FocusPage() {
       toast(`Focus session saved — ${Math.round(seconds / 60)} min ✓`, "success");
       sessions.refresh();
     }
+    savingRef.current = false;
+    setBusy(false);
+  };
+
+  // Timer finished: fires exactly once per run (completedRef guards re-entry
+  // from the interval tick and the visibility/focus resync firing together).
+  const complete = () => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    if (tick.current) clearInterval(tick.current);
+    endAtRef.current = null;
+    setRunning(false);
+    setLeft(0);
+    localStorage.removeItem(STORAGE);
+    syncAlarm(false);
+    logSession(duration);
   };
 
   // Restore a running/paused timer once the user is known (needed for logging
@@ -74,10 +101,13 @@ export default function FocusPage() {
       if (s.endAt) {
         const remaining = Math.round((s.endAt - Date.now()) / 1000);
         if (remaining > 0) {
+          endAtRef.current = s.endAt;
+          completedRef.current = false;
           setLeft(remaining);
           setRunning(true);
         } else {
           // Finished while away — count the full session.
+          completedRef.current = true;
           localStorage.removeItem(STORAGE);
           setLeft(0);
           logSession(s.duration, s.label);
@@ -114,16 +144,19 @@ export default function FocusPage() {
   useEffect(() => {
     if (!restored.current && !running) return;
     if (running) {
+      endAtRef.current = Date.now() + leftRef.current * 1000;
+      completedRef.current = false;
       localStorage.setItem(
         STORAGE,
         JSON.stringify({
           label,
           duration,
-          endAt: Date.now() + leftRef.current * 1000,
+          endAt: endAtRef.current,
         } satisfies SavedTimer)
       );
       syncAlarm(true);
     } else {
+      endAtRef.current = null;
       if (leftRef.current > 0 && leftRef.current < duration) {
         localStorage.setItem(
           STORAGE,
@@ -139,20 +172,65 @@ export default function FocusPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
+  // Resync against the true wall-clock end time whenever the app regains
+  // visibility/focus — this is what actually catches a finish that happened
+  // while the screen was locked or the tab backgrounded, since setInterval
+  // ticks get throttled or paused in both of those states and can't be
+  // trusted to fire on their own.
+  useEffect(() => {
+    const resync = () => {
+      if (!running || !endAtRef.current) return;
+      const remaining = Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000));
+      setLeft(remaining);
+      if (remaining <= 0) complete();
+    };
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("focus", resync);
+    return () => {
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("focus", resync);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running]);
+
+  // Keep the screen awake during an active session where supported, so the
+  // countdown and completion notification aren't left to a throttled
+  // background timer in the first place. Not all browsers support this —
+  // the wall-clock resync above is what covers those.
+  useEffect(() => {
+    if (!running) {
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    const nav = navigator as Navigator & {
+      wakeLock?: { request: (type: "screen") => Promise<{ release: () => Promise<void> }> };
+    };
+    nav.wakeLock
+      ?.request("screen")
+      .then((wl) => {
+        if (cancelled) wl.release().catch(() => {});
+        else wakeLockRef.current = wl;
+      })
+      .catch(() => {
+        // Unsupported or denied — the resync effect still catches completion.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [running]);
+
   useEffect(() => {
     if (!running) return;
-    tick.current = setInterval(() => {
-      setLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(tick.current!);
-          setRunning(false);
-          localStorage.removeItem(STORAGE);
-          logSession(duration);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const step = () => {
+      if (!endAtRef.current) return;
+      const remaining = Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000));
+      setLeft(remaining);
+      if (remaining <= 0) complete();
+    };
+    step();
+    tick.current = setInterval(step, 1000);
     return () => {
       if (tick.current) clearInterval(tick.current);
     };
@@ -178,6 +256,7 @@ export default function FocusPage() {
 
   // Save the elapsed part of a paused session, then reset.
   const saveNow = () => {
+    if (savingRef.current) return; // guard against a rapid double-tap double-logging
     const elapsed = duration - left;
     if (elapsed >= 30) logSession(elapsed);
     localStorage.removeItem(STORAGE);
@@ -274,10 +353,11 @@ export default function FocusPage() {
             {!running && left > 0 && duration - left >= 30 && (
               <PressButton
                 onClick={saveNow}
-                className="flex h-12 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-white/90"
+                disabled={busy}
+                className="flex h-12 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
               >
                 <Check size={16} />
-                Save {Math.round((duration - left) / 60)}m
+                {busy ? "Saving…" : `Save ${Math.round((duration - left) / 60)}m`}
               </PressButton>
             )}
           </div>
