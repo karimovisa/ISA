@@ -31,8 +31,8 @@ function last7(): string[] {
     d.setDate(d.getDate() - i);
     out.push(
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-        d.getDate()
-      ).padStart(2, "0")}`
+        d.getDate(),
+      ).padStart(2, "0")}`,
     );
   }
   return out;
@@ -103,14 +103,15 @@ export default function HabitsPage() {
   const markDone = async (habit: Habit, date: string) => {
     if (
       !window.confirm(
-        `Mark "${habit.name}" as done for today?\n\nThis can't be undone once confirmed.`
+        `Mark "${habit.name}" as done for today?\n\nThis can't be undone once confirmed.`,
       )
     )
       return;
 
     setLogs((prev) => {
       const ex = prev.find((l) => l.habit_id === habit.id && l.date === date);
-      if (ex) return prev.map((l) => (l === ex ? { ...l, completed: true } : l));
+      if (ex)
+        return prev.map((l) => (l === ex ? { ...l, completed: true } : l));
       return [
         ...prev,
         {
@@ -126,7 +127,7 @@ export default function HabitsPage() {
       .from("habit_logs")
       .upsert(
         { habit_id: habit.id, user_id: habit.user_id, date, completed: true },
-        { onConflict: "habit_id,date" }
+        { onConflict: "habit_id,date" },
       );
     loadStreaks();
     loadTotals();
@@ -215,7 +216,10 @@ export default function HabitsPage() {
           enabled: true,
         };
         const { error } = reminderId
-          ? await supabase.from("reminders").update(payload).eq("id", reminderId)
+          ? await supabase
+              .from("reminders")
+              .update(payload)
+              .eq("id", reminderId)
           : await supabase.from("reminders").insert(payload);
         if (error) toast("Habit saved, but the reminder failed.", "error");
       } else if (reminderId) {
@@ -229,7 +233,7 @@ export default function HabitsPage() {
   const deleteHabit = (h: Habit) => {
     if (
       !window.confirm(
-        `Delete "${h.name}"?\n\nThis removes its full history and can't be undone.`
+        `Delete "${h.name}"?\n\nThis removes its full history and can't be undone.`,
       )
     )
       return;
@@ -274,7 +278,10 @@ export default function HabitsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.05 }}
               >
-                <GlassCard hover className="group flex items-center gap-4 p-5">
+                <GlassCard
+                  hover
+                  className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:gap-4"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="truncate font-medium">{h.name}</h3>
@@ -286,71 +293,75 @@ export default function HabitsPage() {
                     </div>
                   </div>
 
-                  {/* Lifetime completed-days count — always visible, off to the side. */}
-                  <div className="hidden shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.04] px-3 py-1.5 sm:flex">
-                    <span className="text-lg font-bold tabular-nums leading-none">
-                      {total}
-                    </span>
-                    <span className="mt-0.5 text-[10px] uppercase tracking-wide text-muted">
-                      done
-                    </span>
-                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end sm:gap-4">
+                    {/* Lifetime completed-days count — always visible, off to the side. */}
+                    <div className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.04] px-3 py-1.5">
+                      <span className="text-lg font-bold tabular-nums leading-none">
+                        {total}
+                      </span>
+                      <span className="mt-0.5 text-[10px] uppercase tracking-wide text-muted">
+                        done
+                      </span>
+                    </div>
 
-                  {/* 7-day dots — today is tappable only until marked done,
-                      then it locks in; past days are read-only either way. */}
-                  <div className="flex items-center gap-1.5">
-                    {days.map((d) => {
-                      const isDone = done(h.id, d);
-                      const isToday = d === days[6];
-                      const missed = !isDone && !isToday;
-                      const canTap = isToday && !isDone;
-                      return (
-                        <button
-                          key={d}
-                          onClick={canTap ? () => markDone(h, d) : undefined}
-                          disabled={!canTap}
-                          title={
-                            isToday
-                              ? isDone
-                                ? "Done today — locked in"
-                                : "Tap to mark today"
-                              : isDone
-                                ? "Done"
-                                : "Missed"
-                          }
-                          aria-label={`${h.name} ${d} ${
-                            isDone ? "done" : missed ? "missed" : "today"
-                          }`}
-                          className={`h-4 w-4 rounded-full transition-all ${
-                            isDone
-                              ? "bg-fg"
-                              : missed
-                                ? "bg-red-500/35"
-                                : "bg-white/10 hover:bg-white/25"
-                          } ${
-                            canTap
-                              ? "ring-1 ring-fg/40 ring-offset-2 ring-offset-transparent"
-                              : "cursor-default"
-                          }`}
-                        />
-                      );
-                    })}
-                  </div>
+                    {/* 7-day dots — today is tappable only until marked done,
+                        then it locks in; past days are read-only either way. */}
+                    <div className="flex items-center gap-1.5">
+                      {days.map((d) => {
+                        const isDone = done(h.id, d);
+                        const isToday = d === days[6];
+                        const missed = !isDone && !isToday;
+                        const canTap = isToday && !isDone;
+                        return (
+                          <button
+                            key={d}
+                            onClick={canTap ? () => markDone(h, d) : undefined}
+                            disabled={!canTap}
+                            title={
+                              isToday
+                                ? isDone
+                                  ? "Done today — locked in"
+                                  : "Tap to mark today"
+                                : isDone
+                                  ? "Done"
+                                  : "Missed"
+                            }
+                            aria-label={`${h.name} ${d} ${
+                              isDone ? "done" : missed ? "missed" : "today"
+                            }`}
+                            className={`h-4 w-4 shrink-0 rounded-full transition-all ${
+                              isDone
+                                ? "bg-fg"
+                                : missed
+                                  ? "bg-red-500/35"
+                                  : "bg-white/10 hover:bg-white/25"
+                            } ${
+                              canTap
+                                ? "ring-1 ring-fg/40 ring-offset-2 ring-offset-transparent"
+                                : "cursor-default"
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
 
-                  <div className="flex shrink-0 gap-1 opacity-0 transition group-hover:opacity-100">
-                    <button
-                      onClick={() => openEdit(h)}
-                      className="rounded-lg p-2 text-muted transition hover:text-fg"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      onClick={() => deleteHabit(h)}
-                      title="Delete"
-                      className="rounded-lg p-2 text-muted transition hover:text-red-400"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {/* Always visible — no hover-gating, since touch devices
+                        have no hover state and these were invisible on mobile. */}
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        onClick={() => openEdit(h)}
+                        className="rounded-lg p-2 text-muted transition hover:text-fg"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        onClick={() => deleteHabit(h)}
+                        title="Delete"
+                        className="rounded-lg p-2 text-muted transition hover:text-red-400"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
                 </GlassCard>
               </motion.div>
@@ -398,7 +409,11 @@ export default function HabitsPage() {
             )}
           </div>
 
-          <PressButton type="submit" disabled={saving} className={primaryBtnClass}>
+          <PressButton
+            type="submit"
+            disabled={saving}
+            className={primaryBtnClass}
+          >
             {saving ? "Saving…" : editing ? "Save" : "Create habit"}
           </PressButton>
         </form>
