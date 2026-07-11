@@ -19,6 +19,7 @@ const UZ: Record<string, string> = {
   // ── Navigation ──
   Dashboard: "Boshqaruv",
   Goals: "Maqsadlar",
+  Money: "Moliya",
   Projects: "Loyihalar",
   Ideas: "G'oyalar",
   Progress: "Natijalar",
@@ -200,6 +201,49 @@ const UZ: Record<string, string> = {
   "Prayer times refresh automatically every day. Check back in a moment.":
     "Namoz vaqtlari har kuni avtomatik yangilanadi. Birozdan keyin qayta qarang.",
   "done": "o'qildi",
+
+  // ── Money ──
+  "Where it comes from, where it goes, and what it's building toward.":
+    "Qayerdan kelayotgani, qayerga ketayotgani va nimaga xizmat qilayotgani.",
+  Income: "Kirim",
+  Expense: "Chiqim",
+  Balance: "Qoldiq",
+  "This month's income": "Bu oy kirimi",
+  "This month's expenses": "Bu oy chiqimi",
+  "Saving rate": "Jamg'arish darajasi",
+  "Financial health score": "Moliyaviy salomatlik bali",
+  Insights: "Tavsiyalar",
+  "Add a few transactions to see insights here.":
+    "Tavsiyalarni ko'rish uchun bir nechta tranzaksiya qo'shing.",
+  "Spending by category": "Kategoriya bo'yicha xarajatlar",
+  "Recurring payments": "Doimiy to'lovlar",
+  "Recent transactions": "So'nggi tranzaksiyalar",
+  "No transactions yet": "Hali tranzaksiya yo'q",
+  "Add your first income or expense to get started.":
+    "Boshlash uchun birinchi kirim yoki chiqimingizni qo'shing.",
+  "Add a transaction": "Tranzaksiya qo'shish",
+  "No savings goals yet": "Hali jamg'arma maqsadi yo'q",
+  "Name what you're saving for and track it here.":
+    "Nima uchun jamg'arayotganingizni nomlang va shu yerda kuzating.",
+  "No recurring payments": "Doimiy to'lovlar yo'q",
+  "Track subscriptions and bills so they never surprise you.":
+    "Obuna va to'lovlaringizni kuzatib, ular sizni hech qachon ajablantirmasin.",
+  "Goal name": "Maqsad nomi",
+  "Target amount": "Maqsad summasi",
+  "Saved so far": "Hozirgacha jamg'arilgan",
+  "Target date (optional)": "Maqsad sanasi (ixtiyoriy)",
+  "Create goal": "Maqsad yaratish",
+  "Save changes": "O'zgarishlarni saqlash",
+  Amount: "Summa",
+  Category: "Kategoriya",
+  Date: "Sana",
+  "Note (optional)": "Izoh (ixtiyoriy)",
+  "New expense": "Yangi chiqim",
+  "New income": "Yangi kirim",
+  "Add payment": "To'lov qo'shish",
+  "Day of month": "Oyning kuni",
+  "due today": "bugun",
+  "in {n}d": "{n} kundan keyin",
 };
 
 const Ctx = createContext<{

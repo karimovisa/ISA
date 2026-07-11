@@ -193,3 +193,40 @@ export type RunLog = {
   duration_s: number;
   created_at: string;
 };
+
+// ── Money / Finance ──
+
+export type TxType = "income" | "expense";
+
+export type Transaction = {
+  id: string;
+  user_id: string;
+  type: TxType;
+  amount: number;
+  category: string;
+  note: string | null;
+  date: string;
+  created_at: string;
+};
+
+export type FinanceGoal = {
+  id: string;
+  user_id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  target_date: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type RecurringPayment = {
+  id: string;
+  user_id: string;
+  name: string;
+  amount: number;
+  category: string;
+  day_of_month: number;
+  is_active: boolean;
+  created_at: string;
+};

@@ -15,6 +15,7 @@ import {
   Settings,
   LogOut,
   Command,
+  Wallet,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
@@ -27,6 +28,7 @@ import { useNavOrder } from "@/components/NavOrderProvider";
 export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/goals", label: "Goals", icon: Target },
+  { href: "/money", label: "Money", icon: Wallet },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
   { href: "/progress", label: "Progress", icon: BarChart3 },

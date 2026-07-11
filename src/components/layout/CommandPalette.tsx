@@ -19,6 +19,7 @@ import {
   Settings,
   Plus,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -41,7 +42,7 @@ type AddItem = {
   kind: "add";
   id: string;
   label: string;
-  entity: "goal" | "todo" | "habit" | "idea";
+  entity: "goal" | "todo" | "habit" | "idea" | "expense";
   table: string;
   placeholder: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -54,6 +55,7 @@ type Item = NavItem | AddItem;
 const NAV: NavItem[] = [
   { kind: "nav", id: "nav-dash", label: "Dashboard", href: "/", icon: LayoutDashboard, keywords: "home" },
   { kind: "nav", id: "nav-goals", label: "Goals", href: "/goals", icon: Target, keywords: "peaks aims" },
+  { kind: "nav", id: "nav-money", label: "Money", href: "/money", icon: Wallet, keywords: "finance budget expenses income" },
   { kind: "nav", id: "nav-projects", label: "Projects", href: "/projects", icon: FolderKanban },
   { kind: "nav", id: "nav-ideas", label: "Ideas", href: "/ideas", icon: Lightbulb, keywords: "notes" },
   { kind: "nav", id: "nav-progress", label: "Progress", href: "/progress", icon: BarChart3, keywords: "charts runs strava" },
@@ -110,6 +112,23 @@ const ADD: AddItem[] = [
     icon: Lightbulb,
     keywords: "create add note capture",
     build: (v) => ({ content: v, tag: null }),
+  },
+  {
+    kind: "add",
+    id: "add-expense",
+    label: "New expense",
+    entity: "expense",
+    table: "transactions",
+    placeholder: "Amount, e.g. 50000…",
+    icon: Wallet,
+    keywords: "create add money spend expense finance",
+    build: (v) => ({
+      type: "expense",
+      amount: Number(v.replace(/[^\d.]/g, "")) || 0,
+      category: "Other",
+      note: null,
+      date: todayISO(),
+    }),
   },
 ];
 
