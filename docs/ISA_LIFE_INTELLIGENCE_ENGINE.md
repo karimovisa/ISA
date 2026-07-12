@@ -29,11 +29,13 @@ The Engine exists so ISA can answer the questions no single module can:
 
 ### First-principles definition
 The Engine is a **deterministic, transparent, event-driven understanding of one human's life over time**, composed of:
-1. a stream of **Life Events** (meaningful actions, normalized),
-2. layered **Context** (the same events viewed at different time-scales and abstraction levels),
-3. durable **Memory** (what ISA carries forward vs. lets fade),
-4. a **Life Timeline** (the connected long-term record),
-5. and a **Pipeline** that turns raw actions into reflection, insight, recommendation, and prediction.
+1. an **Identity Layer** (who the person wants to become — the apex and deepest constraint),
+2. a stream of **Life Events** (meaningful actions, normalized),
+3. layered **Context** (the same events viewed at different time-scales and abstraction levels),
+4. durable **Memory** (what ISA carries forward vs. lets fade),
+5. a **Life Timeline** (the connected long-term record),
+6. a **Pipeline** that turns raw actions into reflection, insight, recommendation, and prediction,
+7. and a **Decision Engine** that arbitrates which of the many things ISA *could* say actually reaches the user.
 
 Intelligence (rule-based today, model-augmented later) is applied **on top of** these structures — never in place of them. The structures are the brain's anatomy; models are one kind of thought.
 
@@ -42,16 +44,18 @@ Intelligence (rule-based today, model-augmented later) is applied **on top of** 
 ## 2. Responsibilities of the Engine
 
 ### What the Engine MUST do
-1. **Capture** every meaningful user action as a normalized Life Event.
-2. **Connect** events across modules into one coherent picture of the person.
-3. **Maintain context** at every relevant time-scale (now → lifetime).
-4. **Detect patterns** honestly — real, repeated, statistically meaningful ones.
-5. **Remember** what matters and **let go** of what doesn't, deliberately.
-6. **Surface understanding** — reflection, insight, recommendation, prediction — with reasoning attached.
-7. **Preserve provenance** — every insight must be traceable to the events that produced it.
-8. **Respect timing** — hold intelligence until the moment it is useful; stay silent otherwise.
-9. **Stay explainable** — no black boxes; the "because" is always reconstructable.
-10. **Guard the user's agency** — output proposals, never commands or autonomous actions.
+1. **Hold the Identity** — maintain the user's declared aspirational self (who they want to become) and measure every insight and recommendation against it.
+2. **Capture** every meaningful user action as a normalized Life Event.
+3. **Connect** events across modules into one coherent picture of the person.
+4. **Maintain context** at every relevant time-scale (now → lifetime).
+5. **Arbitrate attention** — via the Decision Engine, decide what (if anything) is worth surfacing, so intelligence never becomes noise.
+6. **Detect patterns** honestly — real, repeated, statistically meaningful ones.
+7. **Remember** what matters and **let go** of what doesn't, deliberately.
+8. **Surface understanding** — reflection, insight, recommendation, prediction — with reasoning attached.
+9. **Preserve provenance** — every insight must be traceable to the events that produced it.
+10. **Respect timing** — hold intelligence until the moment it is useful; stay silent otherwise.
+11. **Stay explainable** — no black boxes; the "because" is always reconstructable.
+12. **Guard the user's agency** — output proposals, never commands or autonomous actions.
 
 ### What the Engine MUST NEVER do
 1. **Never fabricate** patterns, insights, or certainty from noise or thin data.
@@ -77,7 +81,11 @@ flowchart TB
         DASH[Dashboard] & MODS[Module screens] & NUDGE[Notifications & timed guidance] & REVIEW[Reviews: day / week / month / year]
     end
 
-    subgraph L7["Layer 7 — REFLECTION & COUNSEL"]
+    subgraph L8["Layer 8 — DECISION ENGINE"]
+        DEC[Arbitration: of everything generated, what earns the user's attention now?]
+    end
+
+    subgraph L7["Layer 7 — GENERATION: REFLECTION & COUNSEL"]
         REF[Reflection: honest mirrors]
         REC[Recommendations: proposals + reasoning]
         PRED[Predictions: foresight]
@@ -91,7 +99,8 @@ flowchart TB
         PAT[Patterns: real, repeated, cross-domain]
     end
 
-    subgraph L4["Layer 4 — CONTEXT"]
+    subgraph L4["Layer 4 — CONTEXT (incl. IDENTITY)"]
+        IDN[["IDENTITY LAYER: who I want to become"]]
         CTX[Context layers: now → lifetime]
     end
 
@@ -109,15 +118,16 @@ flowchart TB
     end
 
     subgraph Constraints["ALWAYS-ON CONSTRAINTS"]
-        VAL[User Values & Settings]
+        ID2[Identity & Values]
         PRIV[Privacy & Ownership]
         HON[Honesty & Provenance]
         CALM[Calm & Timing]
     end
 
-    CAP --> EVT --> MEM & TL --> CTX --> PAT --> INS --> REF & REC & PRED
-    REF & REC & PRED --> Surfaces
-    Constraints -.governs.- L1 & L2 & L3 & L4 & L5 & L6 & L7
+    CAP --> EVT --> MEM & TL --> CTX --> PAT --> INS --> REF & REC & PRED --> DEC
+    IDN --> CTX
+    DEC --> Surfaces
+    Constraints -.governs.- L1 & L2 & L3 & L4 & L5 & L6 & L7 & L8
 ```
 
 **Layer responsibilities (contracts):**
@@ -127,13 +137,18 @@ flowchart TB
 | 1 · Capture | Turn a module action into a raw signal | User action | Raw signal |
 | 2 · Event System | Normalize signals into typed Life Events with metadata & provenance | Raw signals | Life Events |
 | 3 · Memory & Timeline | Persist what matters; connect events across time | Life Events | Durable memory + timeline |
-| 4 · Context | View events at each time-scale & abstraction level | Events + memory | Context layers |
+| 4 · Context (incl. **Identity**) | View events at each time-scale & abstraction level; hold *who the person wants to become* | Events + memory + declared identity | Context layers + Identity model |
 | 5 · Patterns | Find real, repeated, cross-domain regularities | Context | Patterns |
 | 6 · Insight | Attach meaning ("what this means") | Patterns | Insights |
-| 7 · Reflection / Recommendation / Prediction | Mirror the past, propose the next step, foresee the future | Insights + context | Reflection, proposals, forecasts |
-| Constraints | Govern every layer: values, privacy, honesty, calm/timing | — | Guardrails |
+| 7 · Generation | Mirror the past, propose the next step, foresee the future | Insights + context + identity | Candidate reflections, proposals, forecasts |
+| **8 · Decision Engine** | **Arbitrate: of everything generated, decide what (if anything) surfaces now, and in what priority** | Candidates + attention budget + identity + feedback | The one/few things the user actually sees |
+| Constraints | Govern every layer: **identity/values**, privacy, honesty, calm/timing | — | Guardrails |
 
-The **Constraints band** is not a layer that runs once; it is a set of laws every layer obeys at all times. An insight that violates honesty is discarded at Layer 6. A recommendation that violates the user's values is discarded at Layer 7. A perfectly true insight delivered at the wrong moment is held by the calm/timing law.
+The **Constraints band** is not a layer that runs once; it is a set of laws every layer obeys at all times. An insight that violates honesty is discarded at Layer 6. A recommendation that violates the user's **identity or values** is discarded at Layer 7. A perfectly true, well-aligned recommendation that isn't the *most important thing to say today* is held back by **Layer 8, the Decision Engine.** Truth earns a candidate; alignment keeps it; the Decision Engine decides whether it is worth the user's scarce attention *right now.*
+
+> **Two structural additions make ISA wise rather than merely reactive:**
+> - The **Identity Layer** (inside Layer 4) means ISA reasons about *who you are trying to become*, not just what you did. It is the highest-priority context and the deepest constraint.
+> - The **Decision Engine** (Layer 8) means ISA can generate a hundred true things and still say only the one that matters — the operational enforcement of "silence is the default."
 
 ---
 
@@ -295,37 +310,80 @@ This graph — not any single event — is what lets ISA say something no module
 
 ---
 
-## 6. Context Layers
+## 6. The Identity Layer & Context Layers
 
-The **same events** are viewed through multiple lenses simultaneously. Context is not extra data — it is *perspective* on the event stream. Each layer answers a different question and serves different intelligence.
+Context has two faces. Most of it is **descriptive** — perspectives on what *is* and what *happened*. But the most important context is **normative** — *who the person is trying to become.* That normative apex is the **Identity Layer**, and it changes everything downstream.
+
+### 6.1 The Identity Layer (the apex — the most important layer)
+
+> **Events tell ISA what you did. The Identity Layer tells ISA who you are doing it *for*.** Without it, ISA can only optimize toward your stated tasks. With it, ISA can align every recommendation to the person you are trying to become.
+
+The Identity Layer holds the **aspirational self**, mostly *declared* by the user (in Settings/onboarding and refined over time), not merely inferred:
+
+| Component | What it captures | Example |
+|---|---|---|
+| **Who I want to become** | Aspirational identities the person is growing into | "a healthy father," "a disciplined builder," "a person of my word" |
+| **Core values** | The non-negotiables that bound every decision | faith, honesty, family, health, generosity |
+| **Principles** | Personal rules the person chooses to live by | "sleep before midnight," "no debt," "pray on time," "ship every week" |
+| **Long-term identity** | The stable self-concept beneath goals | "I am a learner," "I am someone who finishes" |
+| **Personal mission** | The single sentence a life is organized around | "raise a strong family and build things that outlast me" |
+
+**Two selves, kept distinct on purpose:**
+- **Life Context** = the *descriptive* self — "who I am, based on my data." (What the events reveal.)
+- **Identity Layer** = the *aspirational* self — "who I want to become." (What the person declares and commits to.)
+
+The gap between them is the single most useful thing ISA can reason about. *"Your data says X; your identity says you want Y; here is where they diverged this week, and here is the one move that closes the gap."*
+
+**How the Identity Layer governs the Engine:**
+1. **It is the deepest constraint.** A recommendation that advances a goal but contradicts an identity or value is **rejected**, even if it is otherwise optimal. Identity outranks optimization.
+2. **It is the highest-priority context** fed into every recommendation and into the Decision Engine (§12): the thing most aligned to *who you're becoming* wins the user's attention.
+3. **It reframes advice from tactics to meaning.** Not "you overspent 200,000" but *"This purchase pulls against your 'no-debt, disciplined builder' identity — is it worth it?"*
+4. **It makes reflection identity-aware.** Weekly/yearly reviews are measured against *who the person said they wanted to be*, not against generic productivity.
+
+**Worked example of the difference it makes:**
+> A late-night food-delivery habit. **Without Identity:** "You spend more on Food on weekends." (True, mild, ignorable.) **With Identity ('healthy father'):** *"This weekend pattern pulls against the 'healthy father' you said you want to become — it's the one place your habits and your identity disagree. Want a lighter default for weekends?"* Same data. Entirely different weight, because it now speaks to who the person is trying to be.
+
+**Rules for the Identity Layer:**
+- **Declared first, inferred cautiously.** Identity is primarily the user's stated commitment; ISA may *propose* an inferred identity ("you consistently act like someone who values learning — is that who you're becoming?") but never *impose* one.
+- **Slow to change.** Identity shifts only on strong, repeated, or explicitly-declared evidence — it is the most permanent thing in User Memory (§7).
+- **Never used to shame.** The identity–behavior gap is shown as *direction*, never as judgment. "Here's the gap and the next step," never "you failed to be who you wanted."
+- **Always the user's.** ISA never overwrites a person's chosen identity with its own model of them.
+
+### 6.2 Context lenses
+
+Below the Identity apex, the **same events** are viewed through multiple descriptive lenses simultaneously. Context is not extra data — it is *perspective* on the event stream.
 
 ```mermaid
 flowchart TB
+    IDN["★ IDENTITY LAYER: 'who I want to become' (apex + hard constraint)"]:::apex
     E[(Life Event stream)] --> C0
     C0[Current Context: 'right now'] --> C1
     C1[Today's Context: 'this day'] --> C2
     C2[Weekly Context: 'this rhythm'] --> C3
     C3[Monthly Context: 'this season'] --> C4
     C4[Long-term Context: 'this era'] --> C5
-    C5[Life Context: 'who I am'] 
+    C5[Life Context: 'who I am (descriptive)'] 
     E --> BC[Behavior Context: 'how I tend to act']
-    E --> DC[Decision Context: 'what I should weigh now']
+    IDN --> DC
     C5 --> DC
     BC --> DC
+    C0 --> DC[Decision Context: 'what I should weigh now']
+    classDef apex fill:#fef3c7,stroke:#b45309,stroke-width:2px;
 ```
 
 | Layer | Question it answers | Time window | Primary use |
 |---|---|---|---|
+| **★ Identity** | "Who do I want to become?" | lifetime (declared) | the apex constraint + top priority for every recommendation & the Decision Engine |
 | **Current** | "What is true this exact moment?" | now (minutes) | timely nudges, "next prayer in 20m," protect the free block |
 | **Today** | "What is this day shaped like?" | today | the daily picture, realistic load, morning intent / evening review |
 | **Weekly** | "What is my rhythm?" | rolling 7 days | pattern onset, "this week vs last," the weekly review |
 | **Monthly** | "What season am I in?" | rolling ~30 days | cash-flow shape, goal pace, habit reliability, monthly review |
 | **Long-term** | "What era am I in?" | quarters / years | trajectory, life-phase shifts, multi-year trends |
-| **Life** | "Who is this person, fundamentally?" | lifetime | durable identity, values, stable traits — the deep model |
+| **Life** | "Who is this person, descriptively?" | lifetime | durable traits inferred from data — the deep descriptive model |
 | **Behavior** | "How does this person tend to act?" | learned over time | prediction & recommendation grounding (tendencies, not events) |
-| **Decision** | "Given everything, what should I weigh right now?" | synthesized on demand | the input to any recommendation — fuses Life + Behavior + Current |
+| **Decision** | "Given everything, what should I weigh right now?" | synthesized on demand | the input to any recommendation — fuses Identity + Life + Behavior + Current |
 
-**Key architectural idea — Decision Context:** when the Engine is about to advise or predict, it assembles a **Decision Context** — a fused snapshot of *who the person is* (Life), *how they tend to behave* (Behavior), and *what is true now* (Current). Recommendations are computed from Decision Context, never from a single layer. This is what makes ISA's advice feel like it comes from someone who *knows you*, not from a rule reacting to one data point.
+**Key architectural idea — Decision Context:** when the Engine is about to advise or predict, it assembles a **Decision Context** — a fused snapshot of *who the person wants to become* (**Identity**), *who they are* (Life), *how they tend to behave* (Behavior), and *what is true now* (Current). Recommendations are computed from Decision Context, never from a single layer, and **Identity is the highest-weighted input.** This is what makes ISA's advice feel like it comes from someone who *knows who you are and who you're trying to be* — not from a rule reacting to one data point.
 
 ---
 
@@ -349,8 +407,9 @@ The Engine deliberately distinguishes **remembering** from **storing**. Everythi
 > Forgetting is a *feature of understanding*. It is how the Engine keeps a clear, current picture instead of an ever-heavier archive. The raw events remain available; it is the *active model* that stays lean.
 
 ### 7.3 What becomes permanent knowledge
+- **Declared identity, values, principles & personal mission** (the Identity Layer, §6.1) — the *most* permanent memory in the system; changed only by the user's explicit declaration or strong, repeated, sustained evidence. This is the North Star everything else is measured against.
 - **Pivotal life events** (Life Timeline).
-- **Durable identity/values** (Life Context) — changed only by strong, repeated evidence.
+- **Durable descriptive traits** (Life Context) — the inferred self; updated as the person genuinely changes.
 - **The event log itself**, as the user's inviolable record and export.
 
 ### 7.4 Memory decision tree
@@ -399,14 +458,15 @@ flowchart LR
 Before ISA advises, it gathers a defined set of signals. A recommendation made without these is forbidden (it would be generic advice — an anti-pattern).
 
 **Signals collected before any recommendation:**
-1. **Decision Context** (§6): who the person is + how they behave + what's true now.
-2. **Active goals & their state** — what the person is trying to achieve, and which are at risk.
-3. **Declared values & constraints** — faith, priorities, quiet hours, hard limits (from Settings).
-4. **Current capacity** — energy, sleep debt, mood, calendar load (can they act on this today?).
-5. **Relevant baselines** — is the situation actually a deviation, or normal for this person?
-6. **Cross-domain links** — does the money situation touch a goal? does the calendar block the focus?
-7. **Recent feedback** — what similar advice did the person accept or dismiss before?
-8. **Timing appropriateness** — is *now* a moment where advice helps, or would it be noise/pressure?
+1. **Identity alignment (§6.1)** — *first and highest-weighted:* does this serve who the person wants to become? A recommendation that fails identity alignment is discarded before anything else is considered.
+2. **Decision Context** (§6): who the person wants to become + who they are + how they behave + what's true now.
+3. **Active goals & their state** — what the person is trying to achieve, and which are at risk.
+4. **Declared values & constraints** — faith, priorities, quiet hours, hard limits (from Settings).
+5. **Current capacity** — energy, sleep debt, mood, calendar load (can they act on this today?).
+6. **Relevant baselines** — is the situation actually a deviation, or normal for this person?
+7. **Cross-domain links** — does the money situation touch a goal? does the calendar block the focus?
+8. **Recent feedback** — what similar advice did the person accept or dismiss before?
+9. **Timing appropriateness** — is *now* a moment where advice helps, or would it be noise/pressure? (Final go/no-go is the Decision Engine's, §12.)
 
 **Recommendation quality contract:** every recommendation must be **specific** (to this person's data), **grounded** (traceable to events), **bounded** (respects values & capacity), **optional** (a proposal), and **timely** (delivered when actionable). Fails any → not shown.
 
@@ -439,31 +499,127 @@ The permanent path from raw action to wisdom. Each stage has one job and hands a
 
 ```mermaid
 flowchart LR
-    A[User Action] --> B[Life Event] --> C[Context] --> D[Patterns] --> E[Insights] --> F[Recommendations] --> G[Predictions] --> H[Reflection]
+    A[User Action] --> B[Life Event] --> C[Context + Identity] --> D[Patterns] --> E[Insights] --> F[Recommendations] & G[Predictions] & H[Reflection]
+    F & G & H --> DEC[["★ Decision Engine: what surfaces now?"]]
+    DEC --> S[Surface]
     H -. feeds back .-> C
-    F -. accepted/dismissed .-> D
+    S -. accepted/dismissed .-> D
+    S -. accepted/dismissed .-> DEC
 ```
 
 | Stage | What happens | Input → Output | Governing law |
 |---|---|---|---|
 | **1 · User Action** | The person does something meaningful in a module | interaction → raw signal | capture faithfully |
 | **2 · Life Event** | Signal normalized, typed, weighted, linked, provenance kept | signal → event | honesty & provenance |
-| **3 · Context** | Event folded into every time-scale & behavioral lens | event → context layers | completeness |
+| **3 · Context + Identity** | Event folded into every time-scale & behavioral lens, under the Identity apex | event → context layers | completeness + identity-aware |
 | **4 · Patterns** | Real, repeated, cross-domain regularities detected; noise rejected | context → patterns | no fabrication |
 | **5 · Insights** | Meaning attached — "what this means" with its reasoning | patterns → insight | intelligence > information |
-| **6 · Recommendations** | A grounded, bounded, optional proposal, if warranted | insight + Decision Context → proposal | agency + values |
-| **7 · Predictions** | Probable, explainable foresight, if data supports it | insight + behavior model → forecast | probabilistic + actionable |
-| **8 · Reflection** | Honest mirrors across day/week/month/year; the story | everything → reflection | calm + truth |
+| **6 · Recommendations** | A grounded, bounded, optional, *identity-aligned* proposal, if warranted | insight + Decision Context → proposal candidate | agency + identity/values |
+| **7 · Predictions** | Probable, explainable foresight, if data supports it | insight + behavior model → forecast candidate | probabilistic + actionable |
+| **8 · Reflection** | Honest mirrors across day/week/month/year; the story | everything → reflection candidate | calm + truth |
+| **9 · Decision Engine** | Of **all** candidates from 6–8, decide what (if anything) surfaces now, and in what priority (§12) | candidates + attention budget + identity + feedback → the surfaced few | calm + priority |
+
+Stages 6–8 are **generators**: they may each produce many candidates. Stage 9, the **Decision Engine**, is the single gate to the user's attention — it turns *"here is everything true we could say"* into *"here is the one thing worth saying now."*
 
 **Feedback loops (why the Engine gets smarter over time):**
 - **Reflection → Context:** last period's synthesis becomes context for the next (the system has a memory of how it summarized you).
-- **Recommendation outcome → Patterns:** accepted/dismissed proposals refine what counts as a useful pattern *for this person*. This is how ISA learns your taste in advice without a model — and later, with one.
+- **Surface outcome → Patterns:** accepted/dismissed items refine what counts as a useful pattern *for this person*.
+- **Surface outcome → Decision Engine:** what the user engaged with vs. ignored tunes *what earns attention* next time — the Decision Engine learns the person's threshold and taste.
 
-**Crucial rule:** every stage can output **nothing**. No pattern? No insight. No warranted proposal? Silence. The pipeline is not a content generator; it is a truth filter. Most raw actions produce no visible intelligence — and that is correct.
+**Crucial rule:** every stage can output **nothing**. No pattern? No insight. No warranted proposal? Nothing surfaced. The pipeline is not a content generator; it is a truth-and-attention filter. Most raw actions produce no visible intelligence — and that is correct.
 
 ---
 
-## 12. Cross-Module Intelligence
+## 12. The Decision Engine (attention arbitration)
+
+The Engine's generators (§11 stages 6–8) are *abundant*: as ISA matures, on any given day they may produce dozens or hundreds of true, well-formed, identity-aligned candidates — insights, recommendations, predictions, reflections. Almost all of them are correct. **Saying all of them would destroy the product.** The whole philosophy — *calm, silence-by-default, attention is sacred* — collapses the moment ISA becomes a firehose of true-but-unimportant remarks.
+
+The **Decision Engine** is the layer that solves this. Its single job:
+
+> **Of everything ISA *could* truthfully say right now, decide the one (or few) things it *should* say — or decide to stay silent.**
+
+It is the operational enforcement of the Calm principle. Truth earns a candidate the right to *exist*; identity keeps it *aligned*; the Decision Engine decides whether it is worth the user's *attention today.*
+
+### 12.1 Why it must be its own layer
+Without it, every module and every rule competes directly for the user's attention, and the loudest or most recent wins — which is exactly how every notification-farming product decays. A dedicated arbitration layer means attention is allocated **globally and intentionally**, by one authority that sees *all* candidates at once and holds the user's attention budget.
+
+### 12.2 The flow
+
+```mermaid
+flowchart TB
+    subgraph GEN["Generators (many candidates)"]
+      I1[Insight A] & I2[Insight B] & R1[Recommendation C] & P1[Prediction D] & X1[... dozens more]
+    end
+    GEN --> DE
+    subgraph DE["★ DECISION ENGINE"]
+      SCORE[Score each candidate] --> RANK[Rank by priority] --> BUDGET{Within today's<br/>attention budget?<br/>Above the bar?}
+    end
+    BUDGET -- "highest 1–few" --> SURF[Surface: the right place, the right moment]
+    BUDGET -- "everyone else" --> HOLD[Hold / defer / discard]
+    SURF -. engaged? ignored? .-> LEARN[(Tune future thresholds)]
+    LEARN -.-> DE
+```
+
+The permanent shape the user asked for:
+
+```
+Generated candidates → Decision Engine → Priority → Recommendation(s) → Surface
+                                    ↘ (most candidates) → silence
+```
+
+### 12.3 How a candidate is scored
+Each candidate is scored on a fixed set of dimensions. The score is **relative and global** — a candidate competes against every other candidate for the same scarce attention.
+
+| Dimension | Question | Raises priority when… |
+|---|---|---|
+| **Identity alignment** | Does this serve *who the user wants to become?* | it closes a gap between behavior and a declared identity/value |
+| **Importance** | How life-significant is the underlying event/pattern? | it's Significant/Pivotal (§5.3), not Trivial |
+| **Timeliness** | Is *now* the moment it can change something? | acting now prevents a cost; the window is closing |
+| **Actionability** | Can the user actually do something about it? | there is a clear, doable next step |
+| **Novelty** | Does the user already know this? | it reveals something not obvious / not recently said |
+| **Confidence** | How sure is the Engine? | evidence is strong; no fabrication risk |
+| **Cost of silence** | What happens if ISA says nothing? | staying quiet lets a real problem grow |
+| **Fit to the moment** | Does the current context welcome it? | the user is in a receptive state, not overloaded/resting |
+
+### 12.4 The attention budget
+The Decision Engine holds a deliberately **small, finite budget** of interruptions per day/week — a spending limit on the user's attention. Rules:
+1. **Silence is free and preferred; speaking is expensive.** A candidate must beat the bar *and* fit the budget.
+2. **One clear thing beats five true things.** When several candidates qualify, the Engine prefers the single most important over a list.
+3. **Budget shrinks when the user is depleted.** Low energy, a hard season, quiet hours → the bar rises and the budget falls.
+4. **Unspent attention does not roll over into nagging.** A quiet day is a success, not a backlog.
+5. **The bar rises with horizon.** Daily nudges are rare; a yearly reflection is worth a larger, once-a-year spend.
+
+### 12.5 Decision tree (does this candidate surface?)
+```mermaid
+flowchart TD
+    C[Candidate] --> Q1{True & confident?<br/>no fabrication}
+    Q1 -- No --> DROP[Discard]
+    Q1 -- Yes --> Q2{Identity/values<br/>aligned?}
+    Q2 -- No --> DROP
+    Q2 -- Yes --> Q3{Important & novel<br/>to this person?}
+    Q3 -- No --> HOLD[Hold - fold into a review, don't interrupt]
+    Q3 -- Yes --> Q4{Actionable now<br/>& timely?}
+    Q4 -- No --> HOLD
+    Q4 -- Yes --> Q5{Highest-priority<br/>candidate right now?}
+    Q5 -- No --> QUEUE[Wait its turn / defer]
+    Q5 -- Yes --> Q6{Within attention budget<br/>& fits the moment?}
+    Q6 -- No --> QUEUE
+    Q6 -- Yes --> SURFACE[Surface it - once, well, in the right place]
+```
+
+### 12.6 Rules the Decision Engine obeys
+- **Global, not local.** It arbitrates across *all* modules; no module can surface on its own authority.
+- **One authority for attention.** Every notification, nudge, and highlighted insight passes through it. There is no side channel.
+- **Prefer silence.** When in doubt, hold. The cost of an unsaid true thing is almost always lower than the cost of eroding trust with noise.
+- **Prefer the review over the interruption.** Non-urgent truths are saved for the daily/weekly/monthly/yearly reflection, where the user *chooses* to receive them — not pushed.
+- **Learn the person's threshold.** Repeated dismissal of a class of candidate raises its bar; engagement lowers it. The Engine adapts to how much, and what, this person wants to hear.
+- **Never manufacture a reason to speak.** The budget is a ceiling, not a quota to fill.
+
+> **The Decision Engine is what lets ISA generate the intelligence of a thousand observations and still feel like a calm friend who speaks rarely and always means it.** It is the bridge between "ISA is smart" and "ISA is trusted."
+
+---
+
+## 13. Cross-Module Intelligence
 
 This is the payoff of the whole architecture: **the connections are the product.** Below are representative, load-bearing relationships. They are *rules of reasoning*, not features — the Engine applies them continuously.
 
@@ -520,7 +676,7 @@ That sentence requires Money **and** Goals **and** Focus **and** Energy **and** 
 
 ---
 
-## 13. Temporal Intelligence
+## 14. Temporal Intelligence
 
 The Engine expresses itself at four cadences, each with a distinct job. Same brain, different zoom.
 
@@ -539,7 +695,7 @@ The Engine expresses itself at four cadences, each with a distinct job. Same bra
 
 ---
 
-## 14. Why ISA is fundamentally different
+## 15. Why ISA is fundamentally different
 
 Every tool below is excellent at one slice. Each is, architecturally, a **silo with no nervous system.** ISA's difference is not features — it's the Engine.
 
@@ -562,25 +718,30 @@ A collection of productivity tools can make you *organized.* Only a connected in
 ---
 
 ## Appendix A — Glossary
+- **Identity Layer:** the aspirational self — who the user wants to become (values, principles, long-term identity, personal mission). The apex context and the deepest constraint; the most permanent memory.
 - **Life Event:** a normalized, provenance-bearing record of a meaningful action/state-change; the Engine's source of truth.
 - **Context Layer:** a perspective (time-scale or abstraction) on the event stream.
-- **Decision Context:** the fused snapshot (identity + behavior + now) used to generate any recommendation.
+- **Decision Context:** the fused snapshot (**Identity** + Life + Behavior + Current) used to generate any recommendation, with Identity highest-weighted.
+- **Decision Engine:** the attention-arbitration layer that decides which of many true candidates (if any) surfaces now — the operational enforcement of calm/silence-by-default.
+- **Attention budget:** the finite, deliberately small allowance of interruptions the Decision Engine may spend; shrinks when the user is depleted.
 - **Life Timeline:** the connected long-term record; the substance of long-horizon reflection.
 - **Pattern:** a real, repeated, cross-domain regularity — never a one-off.
 - **Insight:** a pattern with meaning and reasoning attached.
-- **Constraints band:** the always-on laws (values, privacy, honesty, calm/timing) every layer obeys.
+- **Constraints band:** the always-on laws (identity/values, privacy, honesty, calm/timing) every layer obeys.
 
 ## Appendix B — Non-negotiable engine laws (quick reference)
 1. Connections are the product; silos are forbidden.
 2. Understanding over information, always.
-3. Every insight is traceable to its events.
-4. No fabrication from noise or thin data.
-5. The human decides; the Engine proposes.
-6. Values and privacy are hard constraints, not preferences.
-7. Silence is the default; speaking must be earned.
-8. Forgetting is part of understanding.
-9. Every stage may output nothing — the pipeline is a truth filter, not a content mill.
-10. Optimize the person's life, never the app's engagement.
+3. **Identity outranks optimization.** Never advance a goal by contradicting who the user wants to become.
+4. Every insight is traceable to its events.
+5. No fabrication from noise or thin data.
+6. The human decides; the Engine proposes.
+7. Identity, values, and privacy are hard constraints, not preferences.
+8. Silence is the default; speaking must be earned — and **only the Decision Engine may spend the user's attention.**
+9. One clear thing beats five true things.
+10. Forgetting is part of understanding; declared identity is the most permanent memory.
+11. Every stage may output nothing — the pipeline is a truth-and-attention filter, not a content mill.
+12. Optimize the person's life toward their chosen identity, never the app's engagement.
 
 ---
 

@@ -206,6 +206,18 @@ These are the beliefs every feature must embody. Each is a lens; a feature that 
   - ISA can suggest *rest* as the right move, not only more work.
 - **Anti-example (rejected):** Treating a burned-out user as an under-performing worker to be pushed.
 
+### 6.9 Aligned to Who You're Becoming
+
+- **Purpose:** Measure everything against the person's *aspirational identity* — who they want to become — not only their tasks and data.
+- **Reason:** Goals are tactics; identity is direction. A system that optimizes tasks while ignoring identity can make someone efficiently become the wrong person. ISA's job is to help the user become **who they actually want to be** — so identity is the deepest input to every judgment and the one thing optimization may never override.
+- **Examples:**
+  - A recommendation that would advance a goal but pull against a declared identity ("healthy father," "person of my word") is dropped — identity outranks optimization.
+  - Reflection is scored against the person's own stated mission and values, not against generic productivity.
+  - Insights are framed in identity terms: *"this is the one place your habits and the person you want to be disagree."*
+- **Anti-example (rejected):** Advice that maximizes output or savings while quietly eroding the values or the self the user said they were building toward.
+
+> This principle is the philosophical face of the Engine's **Identity Layer** (see the Life Intelligence Engine spec). Identity is declared by the user, changed slowly, never imposed, and never used to shame — only to point at direction and the next step.
+
 ---
 
 ## 7. Product Principles (the feature gate)
@@ -248,10 +260,12 @@ ISA's intelligence — whether rule-based today or model-driven later — obeys 
 - **The bar for speaking is high on purpose.** An AI that talks constantly is an AI no one listens to.
 
 ### How AI should make recommendations
+- **Aligned to identity first.** Before anything else, a recommendation must serve *who the user wants to become*; one that contradicts their declared identity or values is discarded, however "optimal" it looks.
 - **With reasoning attached.** Every recommendation carries its "because" so the user can judge it.
 - **As options, not orders.** ISA proposes; the human disposes.
 - **Grounded only in the user's own data.** No generic advice; everything is specific to *this* person's real patterns.
 - **Bounded by values.** Recommendations respect the user's declared priorities, faith, and limits.
+- **One at a time, and only when it matters.** ISA may know a hundred true things; it says the single most important one, or nothing. (This is arbitrated by the Engine's Decision Engine.)
 - **Reversibly.** Anything ISA helps set in motion, the user can easily undo.
 
 ### What AI must never do
