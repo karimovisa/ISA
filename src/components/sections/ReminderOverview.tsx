@@ -1,6 +1,6 @@
 "use client";
 
-import { AlarmClock, Bell, ListTodo, Repeat, Trash2 } from "lucide-react";
+import { AlarmClock, Bell, ListTodo, Repeat, Trash2, Wallet } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { cn } from "@/lib/cn";
@@ -12,6 +12,7 @@ const KIND_ICON = {
   habit: Repeat,
   todo: ListTodo,
   custom: Bell,
+  recurring: Wallet,
 } as const;
 
 function daysLabel(days: number[]) {

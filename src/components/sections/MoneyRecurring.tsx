@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil, Trash2, Repeat2 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
+import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
 import { EXPENSE_CATEGORIES, formatSom, upcomingRecurring } from "@/lib/money";
+import { toast } from "@/lib/toast";
 import { useT } from "@/lib/i18n";
 import type { RecurringPayment } from "@/lib/types";
 
@@ -27,11 +29,12 @@ const empty: Draft = {
 
 export function MoneyRecurring() {
   const { t } = useT();
-  const { data, loading, add, update, remove } =
+  const { data, loading, remove, refresh } =
     useCollection<RecurringPayment>("recurring_payments");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringPayment | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
+  const [saving, setSaving] = useState(false);
 
   const list = upcomingRecurring(data.filter((p) => p.is_active));
 
@@ -52,6 +55,8 @@ export function MoneyRecurring() {
     setOpen(true);
   };
 
+  // Also keeps a linked `reminders` row in sync, so the payment surfaces
+  // through the existing push-notification cron on its due day each month.
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
@@ -61,9 +66,70 @@ export function MoneyRecurring() {
       day_of_month: Math.min(31, Math.max(1, Number(draft.day_of_month) || 1)),
       is_active: true,
     };
-    if (!payload.name || payload.amount <= 0) return;
-    if (editing) await update(editing.id, payload);
-    else await add(payload);
+    if (!payload.name || payload.amount <= 0 || saving) return;
+    setSaving(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setSaving(false);
+      return;
+    }
+
+    let paymentId = editing?.id;
+    if (editing) {
+      const { error } = await supabase
+        .from("recurring_payments")
+        .update(payload)
+        .eq("id", editing.id);
+      if (error) {
+        toast("Couldn't save — please try again.", "error");
+        setSaving(false);
+        return;
+      }
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("recurring_payments")
+        .insert({ ...payload, user_id: user.id })
+        .select()
+        .single();
+      if (error || !inserted) {
+        toast("Couldn't save — please try again.", "error");
+        setSaving(false);
+        return;
+      }
+      paymentId = inserted.id;
+    }
+
+    const { data: existingReminder } = await supabase
+      .from("reminders")
+      .select("id")
+      .eq("recurring_payment_id", paymentId)
+      .maybeSingle();
+
+    const reminderFields = {
+      user_id: user.id,
+      kind: "recurring" as const,
+      recurring_payment_id: paymentId,
+      title: payload.name,
+      body: `"${payload.name}" (${formatSom(payload.amount)}) is due today.`,
+      remind_time: "09:00",
+      days: [],
+      day_of_month: payload.day_of_month,
+      enabled: true,
+    };
+    if (existingReminder) {
+      await supabase
+        .from("reminders")
+        .update(reminderFields)
+        .eq("id", existingReminder.id);
+    } else {
+      await supabase.from("reminders").insert(reminderFields);
+    }
+
+    await refresh();
+    setSaving(false);
     setOpen(false);
   };
 
@@ -189,8 +255,8 @@ export function MoneyRecurring() {
               ))}
             </select>
           </div>
-          <PressButton type="submit" className={primaryBtnClass}>
-            {editing ? t("Save changes") : t("Add payment")}
+          <PressButton type="submit" disabled={saving} className={primaryBtnClass}>
+            {saving ? t("Saving…") : editing ? t("Save changes") : t("Add payment")}
           </PressButton>
         </form>
       </Modal>

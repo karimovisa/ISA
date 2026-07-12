@@ -105,16 +105,80 @@ export function upcomingRecurring(
     .sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
+export function categoryAverage(
+  txns: Transaction[],
+  category: string,
+  excludeId?: string
+): number {
+  const amounts = txns
+    .filter(
+      (t) => t.type === "expense" && t.category === category && t.id !== excludeId
+    )
+    .map((t) => t.amount);
+  if (!amounts.length) return 0;
+  return amounts.reduce((a, b) => a + b, 0) / amounts.length;
+}
+
+/** Short rule-based tag shown under a transaction card, or null for nothing. */
+export function transactionTag(txns: Transaction[], tx: Transaction): string | null {
+  if (tx.type !== "expense") return null;
+  const avg = categoryAverage(txns, tx.category, tx.id);
+  if (avg > 0 && tx.amount >= avg * 1.3) return "Above your average";
+  const similarElsewhere = txns.some(
+    (o) =>
+      o.id !== tx.id &&
+      o.type === "expense" &&
+      o.category === tx.category &&
+      monthKeyOf(o.date) !== monthKeyOf(tx.date) &&
+      Math.abs(o.amount - tx.amount) / Math.max(o.amount, tx.amount) < 0.15
+  );
+  if (similarElsewhere) return "Recurring expense";
+  return null;
+}
+
+function daysAgoISO(n: number, from = new Date()): string {
+  const d = new Date(from);
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** This 7-day window vs the previous 7-day window, expense-only. Null if
+ *  there's no prior-week spending to meaningfully compare against. */
+export function weekComparison(
+  txns: Transaction[],
+  today = new Date()
+): { pct: number; thisWeek: number; lastWeek: number } | null {
+  const end0 = daysAgoISO(0, today);
+  const start0 = daysAgoISO(6, today);
+  const end1 = daysAgoISO(7, today);
+  const start1 = daysAgoISO(13, today);
+  const inRange = (d: string, a: string, b: string) => d >= a && d <= b;
+  const thisWeek = txns
+    .filter((t) => t.type === "expense" && inRange(t.date, start0, end0))
+    .reduce((s, t) => s + t.amount, 0);
+  const lastWeek = txns
+    .filter((t) => t.type === "expense" && inRange(t.date, start1, end1))
+    .reduce((s, t) => s + t.amount, 0);
+  if (lastWeek <= 0) return null;
+  return { pct: Math.round(((thisWeek - lastWeek) / lastWeek) * 100), thisWeek, lastWeek };
+}
+
+export type HealthScore = {
+  score: number;
+  label: string;
+  savingPts: number;
+  controlPts: number;
+  goalPts: number;
+  suggestions: string[];
+};
+
 /**
  * 0-100 financial health score:
  *   - up to 40 pts for this month's saving rate
  *   - up to 30 pts for spending control (fewer categories spiking vs last month)
  *   - up to 30 pts for average progress across active goals (neutral 15 if none)
  */
-export function healthScore(
-  txns: Transaction[],
-  goals: FinanceGoal[]
-): number {
+export function healthScore(txns: Transaction[], goals: FinanceGoal[]): HealthScore {
   const thisMonth = currentMonthKey();
   const lastMonth = previousMonthKey();
   const { savingRate } = summarizeMonth(txns, thisMonth);
@@ -141,7 +205,59 @@ export function healthScore(
       30
     : 15;
 
-  return Math.round(Math.max(0, Math.min(100, savingPts + controlPts + goalPts)));
+  const score = Math.round(
+    Math.max(0, Math.min(100, savingPts + controlPts + goalPts))
+  );
+  const label =
+    score >= 80 ? "Excellent" : score >= 60 ? "Good" : score >= 40 ? "Needs work" : "At risk";
+
+  const suggestions: string[] = [];
+  if (savingPts < 25)
+    suggestions.push("Increase your saving rate — aim for at least 20% of income.");
+  if (controlPts < 20)
+    suggestions.push("A category spiked over 20% vs last month — worth a look.");
+  if (goalPts < 15)
+    suggestions.push("Add or fund a savings goal to give your money direction.");
+  if (suggestions.length === 0)
+    suggestions.push("You're on a healthy pace — keep it up.");
+
+  return {
+    score,
+    label,
+    savingPts: Math.round(savingPts),
+    controlPts: Math.round(controlPts),
+    goalPts: Math.round(goalPts),
+    suggestions: suggestions.slice(0, 2),
+  };
+}
+
+/** How long until a goal is reached, and a one-line motivation message. */
+export function goalEta(
+  goal: FinanceGoal,
+  monthlyNet: number
+): { months: number | null; text: string } {
+  const remaining = goal.target_amount - goal.current_amount;
+  if (remaining <= 0) return { months: 0, text: "Goal reached! 🎉" };
+  if (goal.target_date) {
+    const days = Math.max(
+      1,
+      Math.ceil((new Date(goal.target_date).getTime() - Date.now()) / 86_400_000)
+    );
+    const months = Math.max(1, Math.round(days / 30));
+    const perMonth = remaining / months;
+    return {
+      months,
+      text: `Save ${formatSom(perMonth)}/month to reach this on time.`,
+    };
+  }
+  if (monthlyNet > 0) {
+    const months = Math.ceil(remaining / monthlyNet);
+    return {
+      months,
+      text: `At this pace, you'll get there in about ${months} month${months === 1 ? "" : "s"}.`,
+    };
+  }
+  return { months: null, text: "Save a bit each month to start making progress." };
 }
 
 /** Rule-based "assistant" insights — plain math over the user's own data,
@@ -157,8 +273,17 @@ export function generateInsights(
 
   const hasThisMonth = txns.some((t) => monthKeyOf(t.date) === thisMonth);
   if (!hasThisMonth) {
-    out.push("No transactions logged yet this month — add income and expenses to see insights here.");
-    return out;
+    return [
+      "No transactions logged yet this month — add income and expenses to see insights here.",
+    ];
+  }
+
+  const week = weekComparison(txns);
+  if (week) {
+    if (week.pct <= -10)
+      out.push(`You spent ${Math.abs(week.pct)}% less than last week — nice.`);
+    else if (week.pct >= 15)
+      out.push(`You spent ${week.pct}% more than last week.`);
   }
 
   const curCats = categoryBreakdown(txns, thisMonth, "expense");
@@ -169,31 +294,30 @@ export function generateInsights(
     if (prev <= 0) continue;
     const pct = Math.round(((c.total - prev) / prev) * 100);
     if (pct >= 15) out.push(`Your ${c.category} expenses increased ${pct}% this month.`);
-    else if (pct <= -20) out.push(`Your ${c.category} spending is down ${Math.abs(pct)}% this month — nice.`);
+    else if (pct <= -20)
+      out.push(`Your ${c.category} spending is down ${Math.abs(pct)}% this month.`);
+  }
+
+  if (curCats.length > 0) {
+    const top = curCats[0];
+    const saved = Math.round(top.total * 0.1);
+    if (saved > 0)
+      out.push(
+        `If you reduce ${top.category} spending by 10%, you'll save ${formatSom(saved)} this month.`
+      );
   }
 
   if (cur.income > 0 && cur.savingRate < 10) {
-    out.push("Your saving rate is low this month — worth a look at discretionary categories like Shopping or Entertainment.");
+    out.push(
+      "Your saving rate is low this month — worth a look at discretionary categories."
+    );
   }
 
   for (const g of goals.filter((g) => g.is_active)) {
-    const remaining = g.target_amount - g.current_amount;
-    if (remaining <= 0) continue;
-    if (g.target_date) {
-      const days = Math.max(
-        1,
-        Math.ceil(
-          (new Date(g.target_date).getTime() - Date.now()) / 86_400_000
-        )
-      );
-      const months = Math.max(1, Math.round(days / 30));
-      const perMonth = remaining / months;
-      out.push(`Save ${formatSom(perMonth)}/month to reach "${g.name}" on time.`);
-    } else if (cur.balance > 0) {
-      const months = Math.ceil(remaining / cur.balance);
-      out.push(`At this month's saving pace, you'll reach "${g.name}" in about ${months} month${months === 1 ? "" : "s"}.`);
-    }
+    if (g.current_amount >= g.target_amount) continue;
+    out.push(`${goalEta(g, cur.balance).text.replace(/^/, "")} — "${g.name}".`);
   }
 
-  return out.slice(0, 4);
+  return out.slice(0, 5);
 }
+

@@ -1,5 +1,6 @@
 import { adminClient, sendToSub } from "@/lib/webpush";
 import { PRAYERS, windowOf, adjustedStart } from "@/lib/prayer";
+import { formatSom } from "@/lib/money";
 import type { PrayerTimes, PrayerName } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -316,7 +317,13 @@ async function handleCustom(admin: SupabaseClient) {
     const rMin = h * 60 + m;
     if (!(rMin <= now.minutes && now.minutes - rMin < 15)) continue;
     const days = (r.days as number[] | null) ?? [];
-    if (days.length > 0 && !days.includes(now.dow)) continue;
+    const dayOfMonth = r.day_of_month as number | null;
+    if (dayOfMonth) {
+      // Monthly (e.g. a recurring payment) — ignores the weekday list.
+      if (Number(now.date.slice(8, 10)) !== dayOfMonth) continue;
+    } else if (days.length > 0 && !days.includes(now.dow)) {
+      continue;
+    }
 
     const uid = r.user_id as string;
     const { data: ns } = await admin
@@ -368,6 +375,17 @@ async function handleCustom(admin: SupabaseClient) {
       body =
         (r.body as string) ||
         `${name}, ${todos.length} task${todos.length === 1 ? "" : "s"} left today: ${names}${more}.`;
+    } else if (r.kind === "recurring" && r.recurring_payment_id) {
+      const { data: pay } = await admin
+        .from("recurring_payments")
+        .select("name,amount,is_active")
+        .eq("id", r.recurring_payment_id)
+        .maybeSingle();
+      if (!pay?.is_active) continue;
+      body =
+        (r.body as string) ||
+        `${name}, "${pay.name}" (${formatSom(pay.amount as number)}) is due today.`;
+      url = "/money";
     } else {
       body = (r.body as string) || `${name}, don't forget: ${r.title}.`;
     }

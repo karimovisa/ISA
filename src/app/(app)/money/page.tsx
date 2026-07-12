@@ -175,23 +175,32 @@ export default function MoneyPage() {
             {t("Financial health score")}
           </h3>
           <div className="mt-3 flex items-end gap-2">
-            <span className="text-5xl font-bold tabular-nums">{score}</span>
-            <span className="mb-1 text-lg text-muted">/100</span>
+            <span className="text-5xl font-bold tabular-nums">{score.score}</span>
+            <span className="mb-1 text-lg text-muted">
+              /100 · {t(score.label)}
+            </span>
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/5">
             <motion.div
               className={`h-full rounded-full ${
-                score >= 70
+                score.score >= 70
                   ? "bg-emerald-400"
-                  : score >= 40
+                  : score.score >= 40
                     ? "bg-amber-400"
                     : "bg-red-400"
               }`}
               initial={{ width: 0 }}
-              animate={{ width: `${score}%` }}
+              animate={{ width: `${score.score}%` }}
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
+          <ul className="mt-4 space-y-1.5">
+            {score.suggestions.map((s, i) => (
+              <li key={i} className="text-xs leading-relaxed text-muted">
+                {s}
+              </li>
+            ))}
+          </ul>
         </GlassCard>
 
         {/* AI insights */}

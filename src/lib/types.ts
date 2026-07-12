@@ -140,12 +140,14 @@ export type Todo = {
 export type Reminder = {
   id: string;
   user_id: string;
-  kind: "custom" | "habit" | "todo";
+  kind: "custom" | "habit" | "todo" | "recurring";
   habit_id: string | null;
+  recurring_payment_id: string | null;
   title: string;
   body: string | null;
   remind_time: string; // "HH:MM:SS" local (UTC+5)
-  days: number[]; // 0=Sun … 6=Sat
+  days: number[]; // 0=Sun … 6=Sat, ignored when day_of_month is set
+  day_of_month: number | null; // 1-31, monthly recurrence (recurring payments)
   enabled: boolean;
   last_sent_date: string | null;
   created_at: string;

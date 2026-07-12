@@ -212,6 +212,10 @@ const UZ: Record<string, string> = {
   "This month's expenses": "Bu oy chiqimi",
   "Saving rate": "Jamg'arish darajasi",
   "Financial health score": "Moliyaviy salomatlik bali",
+  Excellent: "A'lo",
+  Good: "Yaxshi",
+  "Needs work": "Yaxshilash kerak",
+  "At risk": "Xavfli holat",
   Insights: "Tavsiyalar",
   "Add a few transactions to see insights here.":
     "Tavsiyalarni ko'rish uchun bir nechta tranzaksiya qo'shing.",
