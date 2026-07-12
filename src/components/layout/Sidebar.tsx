@@ -60,6 +60,7 @@ function NavLink({
     <Link
       href={href}
       title={t(label)}
+      data-tour={`nav-${href}`}
       className={cn(
         "group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
         active ? "text-fg" : "text-muted hover:text-fg"
@@ -107,7 +108,10 @@ export function Sidebar() {
         >
           <IsaLogo className="w-12" />
         </Link>
-        <nav className="glass flex flex-col items-center gap-1 rounded-3xl p-2">
+        <nav
+          data-tour="nav-bar"
+          className="glass flex flex-col items-center gap-1 rounded-3xl p-2"
+        >
           {NAV.map((item) => (
             <NavLink
               key={item.href}
@@ -122,6 +126,7 @@ export function Sidebar() {
           <Link
             href="/settings"
             title={t("Settings")}
+            data-tour="nav-/settings"
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
               isActive("/settings") ? "text-fg" : "text-muted hover:text-fg"
@@ -141,6 +146,7 @@ export function Sidebar() {
 
       {/* Mobile bottom bar (everything else lives in ⌘K) */}
       <nav
+        data-tour="nav-bar"
         className="glass fixed inset-x-3 z-40 flex items-center justify-around rounded-3xl px-1 py-1.5 md:hidden"
         style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
@@ -151,6 +157,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              data-tour={`nav-${item.href}`}
               className={cn(
                 "relative flex h-11 flex-1 items-center justify-center rounded-2xl transition-colors",
                 active ? "text-fg" : "text-muted"
@@ -173,6 +180,7 @@ export function Sidebar() {
             window.dispatchEvent(new CustomEvent("isa:open-palette"))
           }
           aria-label="Menu and search"
+          data-tour="nav-menu"
           className="relative flex h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl text-muted transition-colors hover:text-fg"
         >
           <Command size={19} className="relative z-10" />

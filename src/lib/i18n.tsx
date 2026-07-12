@@ -259,6 +259,35 @@ const UZ: Record<string, string> = {
   Taxi: "Taksi",
   Shopping: "Xarid",
   Education: "Ta'lim",
+
+  // ── Onboarding ──
+  Skip: "O'tkazib yuborish",
+  Back: "Orqaga",
+  Done: "Tayyor",
+  "Welcome to ISA": "ISA'ga xush kelibsiz",
+  "Your Personal Life Operating System. Let's take a quick tour so nothing stays hidden.":
+    "Shaxsiy hayot operatsion tizimingiz. Hech narsa yashirin qolmasligi uchun qisqa sayohat qilaylik.",
+  "Start tour": "Sayohatni boshlash",
+  "Skip for now": "Hozircha o'tkazib yuborish",
+  "Your navigation": "Navigatsiyangiz",
+  "Every part of ISA is one tap away from here.":
+    "ISA'ning har bir qismi shu yerdan bir bosishda.",
+  "Your day at a glance — momentum, sleep, to-dos and a daily quote.":
+    "Kuningiz bir qarashda — sur'at, uyqu, vazifalar va kunlik iqtibos.",
+  "Check in each day and build streaks. A missed day breaks the streak.":
+    "Har kuni belgilang va ketma-ketlik tuzing. Qoldirilgan kun ketma-ketlikni uzadi.",
+  "Track income, expenses and savings goals — with one-tap quick-add.":
+    "Kirim, chiqim va jamg'arma maqsadlarini kuzating — bir bosishli tez qo'shish bilan.",
+  "Follow the five daily prayers and keep your record.":
+    "Besh mahal namozni kuzatib boring va yozuvingizni saqlang.",
+  "A distraction-free timer that logs your deep-work sessions for you.":
+    "Chuqur ish sessiyalaringizni o'zi yozib boradigan xalaqitsiz taymer.",
+  "Theme, language, notifications, reminders and your data live here.":
+    "Mavzu, til, bildirishnomalar, eslatmalar va ma'lumotlaringiz shu yerda.",
+  "On your phone, Money, Prayer, Settings and more open from this Menu.":
+    "Telefonda Pul, Namoz, Sozlamalar va boshqalar shu Menyudan ochiladi.",
+  "No projects yet — add one on the Projects page to track progress here.":
+    "Hali loyiha yo'q — Loyihalar sahifasida qo'shsangiz, natijasi shu yerda ko'rinadi.",
 };
 
 const Ctx = createContext<{

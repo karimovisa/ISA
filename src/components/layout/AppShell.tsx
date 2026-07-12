@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Sun, Moon, SunMoon } from "lucide-react";
+import { Sun, Moon, SunMoon, HelpCircle } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme, type GirlsMode } from "@/components/ThemeProvider";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { OnboardingPrayerModal } from "@/components/sections/OnboardingPrayerModal";
+import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { SetupNotice } from "@/components/layout/SetupNotice";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MountainBackdrop } from "@/components/brand/MountainBackdrop";
@@ -57,6 +58,21 @@ function DayNightToggle() {
   );
 }
 
+// Re-opens the nav walkthrough on demand. Sits left of the EN/UZ toggle.
+function HelpButton() {
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new CustomEvent("isa:start-tour"))}
+      aria-label="Help — take the tour"
+      title="Take the tour"
+      className="glass fixed right-20 z-50 flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:text-fg"
+      style={{ top: "calc(0.6rem + env(safe-area-inset-top))" }}
+    >
+      <HelpCircle size={16} />
+    </button>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   const router = useRouter();
@@ -82,7 +98,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <CommandPalette />
       <DayNightToggle />
+      <HelpButton />
       <OnboardingPrayerModal />
+      <OnboardingGate />
     </div>
   );
 }

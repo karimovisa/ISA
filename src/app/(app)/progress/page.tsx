@@ -18,6 +18,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RunningSection } from "@/components/sections/RunningSection";
 import { WeeklyReviewHistory } from "@/components/sections/WeeklyReviewHistory";
+import { useT } from "@/lib/i18n";
 import type { FocusSession, Project } from "@/lib/types";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -40,6 +41,7 @@ const tooltipStyle = {
 };
 
 export default function ProgressPage() {
+  const { t } = useT();
   const focus = useCollection<FocusSession>("focus_sessions");
   const projects = useCollection<Project>("projects");
 
@@ -137,8 +139,8 @@ export default function ProgressPage() {
         {/* Project progress */}
         <ChartCard title="Project progress" delay={0.1} className="lg:col-span-2">
           {projectData.length === 0 ? (
-            <div className="flex h-[220px] items-center justify-center text-sm text-muted">
-              No projects yet.
+            <div className="flex h-[220px] items-center justify-center px-6 text-center text-sm text-muted">
+              {t("No projects yet — add one on the Projects page to track progress here.")}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
