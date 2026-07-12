@@ -15,7 +15,7 @@ import {
   primaryBtnClass,
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
-import { formatSom } from "@/lib/money";
+import { formatSom, goalEta } from "@/lib/money";
 import { useT } from "@/lib/i18n";
 import type { FinanceGoal } from "@/lib/types";
 
@@ -33,7 +33,7 @@ const empty: Draft = {
   target_date: "",
 };
 
-export function MoneyGoals() {
+export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
   const { t } = useT();
   const { data, loading, add, update, remove } =
     useCollection<FinanceGoal>("finance_goals");
@@ -136,6 +136,9 @@ export function MoneyGoals() {
                   <div className="mt-3">
                     <AscentProgress value={pct} />
                   </div>
+                  <p className="mt-2 text-xs leading-relaxed text-muted">
+                    {goalEta(g, monthlyNet).text}
+                  </p>
                 </GlassCard>
               </motion.div>
             );

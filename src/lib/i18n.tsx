@@ -248,6 +248,17 @@ const UZ: Record<string, string> = {
   "Day of month": "Oyning kuni",
   "due today": "bugun",
   "in {n}d": "{n} kundan keyin",
+  "this month": "bu oy",
+  "Quick add": "Tez qo'shish",
+  "Add expense": "Chiqim qo'shish",
+  "Above your average": "O'rtachadan yuqori",
+  "Recurring expense": "Takroriy chiqim",
+  Coffee: "Qahva",
+  Food: "Ovqat",
+  Fuel: "Yoqilg'i",
+  Taxi: "Taksi",
+  Shopping: "Xarid",
+  Education: "Ta'lim",
 };
 
 const Ctx = createContext<{
