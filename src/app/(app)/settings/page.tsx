@@ -15,6 +15,7 @@ import { useNavOrder } from "@/components/NavOrderProvider";
 import { NAV } from "@/components/layout/Sidebar";
 import { useT } from "@/lib/i18n";
 import { DataExport } from "@/components/sections/DataExport";
+import { AdminPanel } from "@/components/sections/AdminPanel";
 import { ReminderOverview } from "@/components/sections/ReminderOverview";
 import { SubscriptionSection } from "@/components/sections/SubscriptionSection";
 
@@ -311,6 +312,9 @@ export default function SettingsPage() {
 
       {/* 8 — Backup & Restore */}
       <DataExport />
+
+      {/* Owner-only — hidden for everyone else, and server-enforced. */}
+      <AdminPanel />
 
       {/* 9 — Language */}
       <GlassCard className="mb-6 mt-6 p-6">

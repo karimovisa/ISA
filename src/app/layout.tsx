@@ -9,6 +9,7 @@ import { NavOrderProvider } from "@/components/NavOrderProvider";
 import { LanguageProvider } from "@/lib/i18n";
 import { EntitlementProvider } from "@/components/EntitlementProvider";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { ProWelcome } from "@/components/ProWelcome";
 import { HelpModal } from "@/components/HelpModal";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Toaster } from "@/components/ui/Toaster";
@@ -51,6 +52,7 @@ export default function RootLayout({
                   <LanguageToggle />
                   {children}
                   <UpgradeModal />
+                  <ProWelcome />
                   <HelpModal />
                   <Toaster />
                 </EntitlementProvider>
