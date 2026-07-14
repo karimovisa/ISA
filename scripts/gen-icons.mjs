@@ -10,11 +10,13 @@ import { mkdirSync } from "node:fs";
 mkdirSync("public/icons", { recursive: true });
 
 // The ISA mark: the mountain (aim) standing on the life line. Square, edge-to-edge.
+// The mark fills ~60% of the canvas: big enough to read at 60px on a home screen,
+// with enough margin to survive a maskable crop.
 const appIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#0A0A0A"/>
-  <g stroke="#F5F0E8" stroke-width="26" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M150 352 H362" opacity="0.45"/>
-    <path d="M170 332 L256 158 L342 332"/>
+  <g stroke="#F5F0E8" stroke-width="34" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 374 H400" opacity="0.45"/>
+    <path d="M150 344 L256 104 L362 344"/>
   </g>
 </svg>`;
 

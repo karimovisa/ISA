@@ -333,6 +333,53 @@ const UZ: Record<string, string> = {
   "No matches": "Topilmadi",
   "No entries match your search.": "Qidiruvingizga mos yozuv topilmadi.",
   Learned: "O'rgandim",
+
+  // ── Progress page ──
+  "Am I becoming a better version of myself?": "Men o'zimning yaxshiroq versiyamga aylanyapmanmi?",
+  "Productivity Score": "Samaradorlik balli",
+  "vs last week": "o'tgan haftaga nisbatan",
+  Strongest: "Eng kuchli",
+  "Needs improvement": "Yaxshilash kerak",
+  Rest: "Dam olish",
+  "Focus / week": "Haftalik diqqat",
+  Momentum: "Sur'at",
+  "Goal avg": "Maqsad o'rtacha",
+  "Run / week": "Haftalik yugurish",
+  Mood: "Kayfiyat",
+  "Weekly activity": "Haftalik faollik",
+  Average: "O'rtacha",
+  Best: "Eng yaxshi",
+  Quietest: "Eng sokin",
+  Score: "Ball",
+  "AI insights": "AI tahlillari",
+  "Life Timeline": "Hayot xronologiyasi",
+  "{n} days left": "{n} kun qoldi",
+  "Need {n}% this week": "Bu hafta {n}% kerak",
+  "On schedule": "Rejada",
+  "Behind schedule": "Rejadan orqada",
+  "Ahead of schedule": "Rejadan oldinda",
+  "On track": "Yo'lida",
+  "You focused {n}% more than last week.": "O'tgan haftaga nisbatan {n}% ko'proq diqqat qildingiz.",
+  "You focused {n}% less than last week.": "O'tgan haftaga nisbatan {n}% kamroq diqqat qildingiz.",
+  "Running is up {n}%.": "Yugurish {n}% ga oshdi.",
+  "Running consistency decreased.": "Yugurish barqarorligi pasaydi.",
+  "Your journaling is steady — that usually predicts a productive week.":
+    "Kundalik yozishingiz barqaror — bu odatda samarali haftadan darak beradi.",
+  "Momentum is improving.": "Sur'at yaxshilanmoqda.",
+  "Momentum has softened this week.": "Bu hafta sur'at pasaydi.",
+  "Not enough history yet — a couple more weeks and patterns appear.":
+    "Hozircha ma'lumot kam — yana bir-ikki hafta, naqshlar ko'rinadi.",
+  "Cross-domain correlations (sleep↔focus, mood↔productivity), predictions, and monthly/yearly reviews are a Pro feature.":
+    "Sohalararo bog'liqliklar (uyqu↔diqqat, kayfiyat↔samaradorlik), bashoratlar va oylik/yillik hisobotlar — Pro imkoniyati.",
+
+  // Weekday short labels (chart axis)
+  Sun: "Yak",
+  Mon: "Dush",
+  Tue: "Sesh",
+  Wed: "Chor",
+  Thu: "Pay",
+  Fri: "Jum",
+  Sat: "Shan",
 };
 
 /** Russian overrides. Anything missing falls back to English, exactly like UZ. */
@@ -475,6 +522,56 @@ const RU: Record<string, string> = {
   "Couldn't delete — please try again.": "Не удалось удалить — попробуйте снова.",
   "Couldn't update — please try again.": "Не удалось обновить — попробуйте снова.",
   "Couldn't save your entry — please try again.": "Не удалось сохранить запись — попробуйте снова.",
+
+  // ── Progress page ──
+  "Am I becoming a better version of myself?": "Становлюсь ли я лучшей версией себя?",
+  "Productivity Score": "Балл продуктивности",
+  "vs last week": "к прошлой неделе",
+  Strongest: "Сильнее всего",
+  "Needs improvement": "Нужно улучшить",
+  Rest: "Отдых",
+  "Focus / week": "Фокус за неделю",
+  Momentum: "Динамика",
+  "Goal avg": "Средний прогресс целей",
+  "Run / week": "Бег за неделю",
+  Mood: "Настроение",
+  "Weekly activity": "Активность за неделю",
+  Average: "Среднее",
+  Best: "Лучший",
+  Quietest: "Самый тихий",
+  Score: "Балл",
+  "AI insights": "AI-инсайты",
+  "Life Timeline": "Лента жизни",
+  "{n} days left": "осталось {n} дн.",
+  "Need {n}% this week": "Нужно {n}% на этой неделе",
+  "On schedule": "По плану",
+  "Behind schedule": "Отстаёт",
+  "Ahead of schedule": "Опережает план",
+  "On track": "В графике",
+  "No deadline": "Без срока",
+  "No projects yet — add one on the Projects page to track progress here.":
+    "Проектов пока нет — добавьте на странице «Проекты», и прогресс появится здесь.",
+  "You focused {n}% more than last week.": "Вы сфокусировались на {n}% больше, чем на прошлой неделе.",
+  "You focused {n}% less than last week.": "Вы сфокусировались на {n}% меньше, чем на прошлой неделе.",
+  "Running is up {n}%.": "Бег вырос на {n}%.",
+  "Running consistency decreased.": "Регулярность бега снизилась.",
+  "Your journaling is steady — that usually predicts a productive week.":
+    "Вы стабильно ведёте дневник — обычно это предвещает продуктивную неделю.",
+  "Momentum is improving.": "Динамика улучшается.",
+  "Momentum has softened this week.": "На этой неделе динамика ослабла.",
+  "Not enough history yet — a couple more weeks and patterns appear.":
+    "Пока мало данных — ещё пара недель, и закономерности проявятся.",
+  "Cross-domain correlations (sleep↔focus, mood↔productivity), predictions, and monthly/yearly reviews are a Pro feature.":
+    "Связи между сферами (сон↔фокус, настроение↔продуктивность), прогнозы и месячные/годовые отчёты — функция Pro.",
+
+  // Weekday short labels (chart axis)
+  Sun: "Вс",
+  Mon: "Пн",
+  Tue: "Вт",
+  Wed: "Ср",
+  Thu: "Чт",
+  Fri: "Пт",
+  Sat: "Сб",
 };
 
 const DICTS: Record<Lang, Record<string, string>> = { en: {}, uz: UZ, ru: RU };

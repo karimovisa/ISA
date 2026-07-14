@@ -146,11 +146,13 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile bottom bar (everything else lives in ⌘K) */}
+      {/* Mobile bottom bar (everything else lives in ⌘K).
+          Docked to the bottom edge and filling the safe area — it never floats
+          above the home indicator and never covers page content. */}
       <nav
         data-tour="nav-bar"
-        className="glass fixed inset-x-3 z-40 flex items-center justify-around rounded-3xl px-1 py-1.5 md:hidden"
-        style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+        className="glass fixed inset-x-0 bottom-0 z-40 flex items-center justify-around rounded-t-3xl px-2 pt-1.5 md:hidden"
+        style={{ paddingBottom: "calc(0.4rem + env(safe-area-inset-bottom))" }}
       >
         {mobileMain.map((item) => {
           const active = isActive(item.href);
