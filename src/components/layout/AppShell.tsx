@@ -65,7 +65,7 @@ function HelpButton() {
       onClick={() => window.dispatchEvent(new CustomEvent("isa:start-tour"))}
       aria-label="Help — take the tour"
       title="Take the tour"
-      className="glass fixed right-20 z-50 flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:text-fg"
+      className="glass fixed right-[104px] z-40 flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:text-fg"
       style={{ top: "calc(0.6rem + env(safe-area-inset-top))" }}
     >
       <HelpCircle size={16} />

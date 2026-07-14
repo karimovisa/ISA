@@ -6,6 +6,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { todayISO } from "@/lib/datetime";
 import { PRAYERS, windowOf, statusAt, toMin } from "@/lib/prayer";
 import { toast } from "@/lib/toast";
+import { captureLifeEvent } from "@/lib/life-events";
 import type {
   PrayerLog,
   PrayerName,
@@ -140,9 +141,45 @@ export function usePrayer() {
         status === "vaqtida" ? "On time ✓" : "Late — logged anyway",
         status === "vaqtida" ? "success" : "info"
       );
+      void captureLifeEvent({
+        type: status === "vaqtida" ? "PrayerCompleted" : "PrayerLate",
+        occurredAt: activeDate,
+        payload: { prayer: name, status },
+        context: {
+          linkedToIdentityValue: true,
+          outcome: status === "vaqtida" ? "consistency" : "informational",
+        },
+      });
+      // Perfect day — all five prayed.
+      const { count } = await supabase
+        .from("prayer_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("date", activeDate);
+      if (count === 5)
+        void captureLifeEvent({
+          type: "PerfectPrayerDay",
+          occurredAt: activeDate,
+          payload: {},
+          context: { linkedToIdentityValue: true, outcome: "achievement" },
+        });
       loadLogs(activeDate);
     },
     [user, active, activeDate, effNow, loadLogs]
+  );
+
+  // Undo a just-marked prayer (deletes today's log for it).
+  const untick = useCallback(
+    async (name: PrayerName) => {
+      if (!user || !activeDate) return;
+      await supabase
+        .from("prayer_logs")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("date", activeDate)
+        .eq("prayer_name", name);
+      loadLogs(activeDate);
+    },
+    [user, activeDate, loadLogs]
   );
 
   const logFor = (name: PrayerName) =>
@@ -160,6 +197,7 @@ export function usePrayer() {
     logs,
     logFor,
     tick,
+    untick,
     prayers: PRAYERS,
     reloadLogs: () => loadLogs(activeDate),
   };

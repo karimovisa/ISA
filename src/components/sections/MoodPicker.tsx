@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { MOOD_COLORS, MOOD_LABELS } from "@/lib/mood";
 import { todayISO } from "@/lib/datetime";
+import { captureLifeEvent } from "@/lib/life-events";
 
 /** End-of-day mood: five color dots, no emoji. Loads + saves today's mood. */
 export function MoodPicker() {
@@ -30,6 +31,13 @@ export function MoodPicker() {
         { user_id: user.id, date: todayISO(), mood_score: s },
         { onConflict: "user_id,date" }
       );
+    void captureLifeEvent({
+      type: "MoodLogged",
+      occurredAt: todayISO(),
+      payload: { mood: s },
+      emotionalImpact: (s - 3) / 2, // 1..5 → -1..1
+      context: { outcome: "informational" },
+    });
   };
 
   return (

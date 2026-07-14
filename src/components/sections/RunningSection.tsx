@@ -26,6 +26,7 @@ import {
   type NormRun,
 } from "@/lib/runStats";
 import { todayISO } from "@/lib/datetime";
+import { captureLifeEvent } from "@/lib/life-events";
 import type { RunLog, StravaActivityRow } from "@/lib/types";
 
 const ORANGE = "#FC4C02";
@@ -129,6 +130,12 @@ export function RunningSection() {
       log_date: date,
       distance_km: distance,
       duration_s: Number(min || 0) * 60 + Number(sec || 0),
+    });
+    void captureLifeEvent({
+      type: "RunLogged",
+      occurredAt: date,
+      payload: { distance_km: distance, duration_s: Number(min || 0) * 60 + Number(sec || 0) },
+      context: { metricValue: distance, outcome: "achievement" },
     });
     setKm("");
     setMin("");

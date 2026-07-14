@@ -1,18 +1,24 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { HelpCircle } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import { HELP } from "@/lib/help";
 
 export function PageHeader({
   title,
   subtitle,
   action,
+  help,
 }: {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
+  help?: string;
 }) {
   const { t } = useT();
+  const helpKey = (help ?? title).toLowerCase();
+  const hasHelp = helpKey in HELP;
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -30,7 +36,18 @@ export function PageHeader({
           </p>
         )}
       </div>
-      {action}
+      <div className="flex items-center gap-2">
+        {hasHelp && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("isa:open-help", { detail: helpKey }))}
+            aria-label={t("Help")}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line text-muted transition hover:bg-white/5 hover:text-fg"
+          >
+            <HelpCircle size={17} />
+          </button>
+        )}
+        {action}
+      </div>
     </motion.div>
   );
 }

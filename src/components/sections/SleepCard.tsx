@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/Modal";
 import { todayISO } from "@/lib/datetime";
 import { toast } from "@/lib/toast";
+import { captureLifeEvent } from "@/lib/life-events";
 import type { SleepLog } from "@/lib/types";
 
 function MoonIcon({ low }: { low: boolean }) {
@@ -162,6 +163,12 @@ export function SleepCard() {
       return;
     }
     await supabase.rpc("recompute_my_energy", { p_date: ongoing.date });
+    void captureLifeEvent({
+      type: "SleepLogged",
+      occurredAt: ongoing.date,
+      payload: { hours: duration },
+      context: { metricValue: duration, outcome: "informational" },
+    });
     setOngoing(null);
     await Promise.all([logs.refresh(), loadScore()]);
     setBusy(false);
@@ -186,6 +193,12 @@ export function SleepCard() {
         { onConflict: "user_id,date" }
       );
       await supabase.rpc("recompute_my_energy", { p_date: todayISO() });
+      void captureLifeEvent({
+        type: "SleepLogged",
+        occurredAt: todayISO(),
+        payload: { hours: d, quality: quality || null },
+        context: { metricValue: d, outcome: "informational" },
+      });
       await Promise.all([logs.refresh(), loadScore()]);
     }
     setBusy(false);

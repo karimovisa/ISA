@@ -190,6 +190,14 @@ select:focus {
   }
 }
 
+/* Touch devices can't hover — reveal action controls (edit/delete/duplicate)
+   that are hover-hidden on desktop so they stay reachable one-handed. */
+@media (hover: none) {
+  [class*="group-hover"][class*="opacity-100"] {
+    opacity: 1 !important;
+  }
+}
+
 /* Respect reduced-motion: collapse all motion to near-instant crossfades */
 @media (prefers-reduced-motion: reduce) {
   *,

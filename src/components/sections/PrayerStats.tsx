@@ -67,6 +67,26 @@ export function PrayerStats() {
     };
   }, [logs, since]);
 
+  // Streaks from "perfect" days (all five prayed).
+  const streaks = useMemo(() => {
+    const byDate = new Map<string, number>();
+    for (const l of logs) if (l.ticked_at) byDate.set(l.date, (byDate.get(l.date) ?? 0) + 1);
+    const perfect = [...byDate.entries()].filter(([, c]) => c >= 5).map(([d]) => d).sort();
+    const set = new Set(perfect);
+    const today = todayISO();
+    let current = 0;
+    for (let i = 1; i < 500; i++) { if (set.has(shift(today, -i))) current++; else break; }
+    if (set.has(today)) current++;
+    let longest = 0, run = 0;
+    let prev: Date | null = null;
+    for (const d of perfect) {
+      const dt = new Date(`${d}T00:00:00`);
+      if (prev && Math.round((dt.getTime() - prev.getTime()) / 86_400_000) === 1) run++; else run = 1;
+      longest = Math.max(longest, run); prev = dt;
+    }
+    return { current, longest, perfectDays: perfect.length, perfectWeeks: Math.floor(longest / 7) };
+  }, [logs]);
+
   if (loading) {
     return <div className="glass h-72 animate-pulse rounded-3xl" />;
   }
@@ -77,6 +97,11 @@ export function PrayerStats() {
   return (
     <GlassCard className="p-6">
       <h3 className="mb-4 text-sm font-medium">Statistics</h3>
+      <div className="mb-5 grid grid-cols-3 gap-2 text-center">
+        <Metric label="Current streak" value={streaks.current} tone="text-emerald-400" />
+        <Metric label="Longest" value={streaks.longest} tone="text-fg" />
+        <Metric label="Perfect days" value={streaks.perfectDays} tone="text-accent" />
+      </div>
       <div className="space-y-5">
         <StatBlock title="Last 7 days" b={week} />
         <div className="border-t border-line" />
@@ -97,7 +122,7 @@ function StatBlock({ title, b }: { title: string; b: Block }) {
           {title}
         </span>
         <span className="text-xs text-muted">
-          {b.prayed}/{b.expected} prayed
+          {b.prayed}/{b.expected} · {b.expected > 0 ? Math.round((b.prayed / b.expected) * 100) : 0}%
         </span>
       </div>
       {b.expected > 0 && (

@@ -7,6 +7,9 @@ import { PwaRegister } from "@/components/PwaRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { NavOrderProvider } from "@/components/NavOrderProvider";
 import { LanguageProvider } from "@/lib/i18n";
+import { EntitlementProvider } from "@/components/EntitlementProvider";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { HelpModal } from "@/components/HelpModal";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Toaster } from "@/components/ui/Toaster";
 
@@ -42,11 +45,15 @@ export default function RootLayout({
           <ThemeProvider>
             <NavOrderProvider>
               <LanguageProvider>
-                <PwaRegister />
-                <IsaIntroGate />
-                <LanguageToggle />
-                {children}
-                <Toaster />
+                <EntitlementProvider>
+                  <PwaRegister />
+                  <IsaIntroGate />
+                  <LanguageToggle />
+                  {children}
+                  <UpgradeModal />
+                  <HelpModal />
+                  <Toaster />
+                </EntitlementProvider>
               </LanguageProvider>
             </NavOrderProvider>
           </ThemeProvider>

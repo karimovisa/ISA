@@ -12,6 +12,7 @@ import { PrayerStats } from "@/components/sections/PrayerStats";
 import { usePrayer } from "@/hooks/usePrayer";
 import { enablePush } from "@/lib/push";
 import { toast } from "@/lib/toast";
+import { captureLifeEvent } from "@/lib/life-events";
 import {
   PRAYER_LABELS,
   STATUS_TONE,
@@ -145,10 +146,12 @@ function ReminderToggle({ p }: { p: ReturnType<typeof usePrayer> }) {
     setBusy(true);
     if (on) {
       await p.savePrefs({ notifications_enabled: false });
+      void captureLifeEvent({ type: "PrayerReminderDisabled", payload: {}, actor: "user" });
       toast(t("Reminders off."), "info");
     } else {
       const res = await enablePush();
       await p.savePrefs({ notifications_enabled: res.ok });
+      if (res.ok) void captureLifeEvent({ type: "PrayerReminderEnabled", payload: {}, actor: "user" });
       toast(
         res.ok ? t("Reminders enabled.") : t("Couldn't enable — check browser notification permission."),
         res.ok ? "success" : "info"
@@ -176,6 +179,12 @@ function ReminderToggle({ p }: { p: ReturnType<typeof usePrayer> }) {
 
 function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
   const { t } = useT();
+  const [undoName, setUndoName] = useState<PrayerName | null>(null);
+  const mark = async (name: PrayerName) => {
+    await p.tick(name);
+    setUndoName(name);
+    setTimeout(() => setUndoName((n) => (n === name ? null : n)), 5000);
+  };
   if (p.timesLoading) {
     return <div className="glass h-72 animate-pulse rounded-3xl" />;
   }
@@ -249,7 +258,7 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
               >
                 <button
                   disabled={!interactive}
-                  onClick={() => p.tick(name)}
+                  onClick={() => mark(name)}
                   aria-label={`${PRAYER_LABELS[name]} belgilash`}
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition ${
                     state === "past-done"
@@ -285,6 +294,15 @@ function Checklist({ p }: { p: ReturnType<typeof usePrayer> }) {
                     {t("now")}
                   </span>
                 ) : null}
+
+                {undoName === name && (
+                  <button
+                    onClick={() => { p.untick(name); setUndoName(null); }}
+                    className="text-xs font-medium text-accent underline-offset-2 hover:underline"
+                  >
+                    {t("Undo")}
+                  </button>
+                )}
 
                 <span className="w-12 text-right text-sm tabular-nums text-muted">
                   {time}

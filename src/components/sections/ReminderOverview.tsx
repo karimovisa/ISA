@@ -79,12 +79,12 @@ export function ReminderOverview() {
                       aria-label={r.enabled ? "Disable" : "Enable"}
                       className={cn(
                         "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-                        r.enabled ? "bg-accent" : "bg-white/10"
+                        r.enabled ? "bg-accent" : "bg-white/15"
                       )}
                     >
                       <span
                         className={cn(
-                          "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
+                          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all",
                           r.enabled ? "left-[18px]" : "left-0.5"
                         )}
                       />

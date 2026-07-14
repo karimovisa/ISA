@@ -134,44 +134,35 @@ export function DataExport() {
   };
 
   return (
-    <GlassCard className="mt-6 max-w-xl p-6">
-      <div className="flex items-start gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.06]">
-          <Download size={20} className="text-fg" />
+    <GlassCard className="mt-6 max-w-xl p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">
+          <Download size={16} className="text-fg" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-medium">Backup &amp; restore</h3>
-          <p className="mt-1 text-sm text-muted">
-            Download everything — goals, journal, habits, runs and more — as a
-            single JSON file, or restore it later. It&apos;s yours.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <PressButton
-              onClick={exportAll}
-              disabled={busy}
-              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
-            >
-              <Download size={15} />
-              {busy ? "Working…" : "Download JSON"}
-            </PressButton>
-            <PressButton
-              onClick={() => fileRef.current?.click()}
-              disabled={busy}
-              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
-            >
-              <Upload size={15} />
-              Restore
-            </PressButton>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              onChange={onImport}
-              className="hidden"
-            />
-          </div>
-          {note && <p className="mt-3 text-xs text-muted">{note}</p>}
+          <h3 className="text-sm font-medium">Backup &amp; restore</h3>
+          <p className="text-xs text-muted">Your whole account as one JSON file — download or restore anytime.</p>
         </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <PressButton
+          onClick={exportAll}
+          disabled={busy}
+          className="flex items-center gap-2 rounded-xl bg-white/10 px-3.5 py-2 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
+        >
+          <Download size={15} />
+          {busy ? "Working…" : "Download JSON"}
+        </PressButton>
+        <PressButton
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="flex items-center gap-2 rounded-xl bg-white/10 px-3.5 py-2 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
+        >
+          <Upload size={15} />
+          Restore
+        </PressButton>
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={onImport} className="hidden" />
+        {note && <p className="w-full text-xs text-muted">{note}</p>}
       </div>
     </GlassCard>
   );

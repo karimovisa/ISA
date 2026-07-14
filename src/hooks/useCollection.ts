@@ -6,6 +6,10 @@ import { toast } from "@/lib/toast";
 
 type Row = { id: string };
 
+// Module-level stale-while-revalidate cache: revisiting a page renders instantly
+// from cache while a fresh fetch runs in the background (no loading flash).
+const collectionCache = new Map<string, unknown[]>();
+
 /**
  * Generic CRUD hook over a Supabase table. RLS scopes every query to the
  * signed-in user, so we never filter by user_id on reads.
@@ -15,17 +19,21 @@ export function useCollection<T extends Row>(
   options: { orderBy?: string; ascending?: boolean } = {}
 ) {
   const { orderBy = "created_at", ascending = false } = options;
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${table}|${orderBy}|${ascending}`;
+  const [data, setData] = useState<T[]>(() => (collectionCache.get(cacheKey) as T[]) ?? []);
+  const [loading, setLoading] = useState(() => !collectionCache.has(cacheKey));
 
   const refresh = useCallback(async () => {
     const { data: rows, error } = await supabase
       .from(table)
       .select("*")
       .order(orderBy, { ascending });
-    if (!error && rows) setData(rows as T[]);
+    if (!error && rows) {
+      setData(rows as T[]);
+      collectionCache.set(cacheKey, rows);
+    }
     setLoading(false);
-  }, [table, orderBy, ascending]);
+  }, [table, orderBy, ascending, cacheKey]);
 
   useEffect(() => {
     refresh();

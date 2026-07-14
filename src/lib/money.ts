@@ -1,4 +1,4 @@
-import type { Transaction, FinanceGoal, RecurringPayment } from "@/lib/types";
+import type { Transaction, FinanceGoal, RecurringPayment, TxType } from "@/lib/types";
 
 export const EXPENSE_CATEGORIES = [
   "Food",
@@ -258,6 +258,93 @@ export function goalEta(
     };
   }
   return { months: null, text: "Save a bit each month to start making progress." };
+}
+
+// ── Smart category suggestion (from a note) ──
+const CATEGORY_KEYWORDS: Record<string, string> = {
+  mcdonald: "Food", kfc: "Food", cafe: "Food", coffee: "Food", restaurant: "Food",
+  lunch: "Food", dinner: "Food", food: "Food", pizza: "Food", osh: "Food", non: "Food",
+  yandex: "Transport", taxi: "Transport", bus: "Transport", fuel: "Transport",
+  petrol: "Transport", benzin: "Transport", uber: "Transport", bolt: "Transport", metro: "Transport",
+  book: "Education", course: "Education", school: "Education", university: "Education",
+  ielts: "Education", tuition: "Education", kurs: "Education",
+  pharmacy: "Health", doctor: "Health", medicine: "Health", dorixona: "Health", clinic: "Health", shifokor: "Health",
+  cloth: "Shopping", shop: "Shopping", market: "Shopping", store: "Shopping", amazon: "Shopping", bozor: "Shopping",
+  netflix: "Entertainment", spotify: "Entertainment", cinema: "Entertainment", game: "Entertainment", kino: "Entertainment",
+  family: "Family", gift: "Family", oila: "Family",
+};
+export function suggestCategory(note: string): string | null {
+  const n = note.toLowerCase();
+  for (const [k, v] of Object.entries(CATEGORY_KEYWORDS)) if (n.includes(k)) return v;
+  return null;
+}
+
+/** Categories the user uses most for a type, most-frequent first. */
+export function recentCategories(txns: Transaction[], type: TxType, limit = 4): string[] {
+  const counts = new Map<string, number>();
+  for (const t of txns) if (t.type === type) counts.set(t.category, (counts.get(t.category) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([c]) => c);
+}
+
+export type HealthWhy = { score: number; label: string; reasons: string[] };
+/** Health score plus a plain-language WHY (compared to last month). */
+export function healthWithReasons(txns: Transaction[], goals: FinanceGoal[]): HealthWhy {
+  const h = healthScore(txns, goals);
+  const cur = summarizeMonth(txns, currentMonthKey());
+  const prev = summarizeMonth(txns, previousMonthKey());
+  const reasons: string[] = [];
+  if (prev.expense > 0) {
+    if (cur.expense < prev.expense) reasons.push("Expenses decreased vs last month");
+    else if (cur.expense > prev.expense * 1.1) reasons.push("Expenses rose vs last month");
+  }
+  if (cur.savingRate >= 20) reasons.push("Healthy saving rate");
+  else if (cur.savingRate < 5 && cur.income > 0) reasons.push("Low saving rate this month");
+  if (cur.balance > prev.balance) reasons.push("Savings increased");
+  if (reasons.length === 0) reasons.push(...h.suggestions);
+  return { score: h.score, label: h.label, reasons: reasons.slice(0, 3) };
+}
+
+export type SpendAnalytics = {
+  largest: { category: string; total: number } | null;
+  dailyAvg: number;
+  highestDay: { date: string; total: number } | null;
+  monthPct: number | null;
+};
+export function spendAnalytics(txns: Transaction[]): SpendAnalytics {
+  const month = currentMonthKey();
+  const cats = categoryBreakdown(txns, month, "expense");
+  const monthTx = txns.filter((t) => t.type === "expense" && monthKeyOf(t.date) === month);
+  const totalExp = monthTx.reduce((s, t) => s + t.amount, 0);
+  const dayNum = new Date().getDate();
+  const byDay = new Map<string, number>();
+  for (const t of monthTx) byDay.set(t.date, (byDay.get(t.date) ?? 0) + t.amount);
+  const hd = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0];
+  const prevTotal = categoryBreakdown(txns, previousMonthKey(), "expense").reduce((s, c) => s + c.total, 0);
+  return {
+    largest: cats[0] ?? null,
+    dailyAvg: dayNum > 0 ? Math.round(totalExp / dayNum) : 0,
+    highestDay: hd ? { date: hd[0], total: hd[1] } : null,
+    monthPct: prevTotal > 0 ? Math.round(((totalExp - prevTotal) / prevTotal) * 100) : null,
+  };
+}
+
+export type FinanceStatus = "ahead" | "on_track" | "behind" | "done";
+/** Money-goal status, required monthly saving, and a completion prediction. */
+export function financeGoalStatus(goal: FinanceGoal, monthlyNet: number): { status: FinanceStatus; label: string; requiredMonthly: number | null; prediction: string; pct: number } {
+  const pct = Math.min(100, Math.round((goal.current_amount / Math.max(1, goal.target_amount)) * 100));
+  if (pct >= 100) return { status: "done", label: "Reached", requiredMonthly: 0, prediction: "Goal reached 🎉", pct: 100 };
+  const remaining = goal.target_amount - goal.current_amount;
+  const eta = goalEta(goal, monthlyNet);
+  let status: FinanceStatus = "on_track";
+  let label = "On track";
+  let requiredMonthly: number | null = null;
+  if (goal.target_date) {
+    const months = Math.max(1, Math.round((new Date(goal.target_date).getTime() - Date.now()) / 2.592e9));
+    requiredMonthly = Math.ceil(remaining / months);
+    if (monthlyNet >= requiredMonthly * 1.1) { status = "ahead"; label = "Ahead"; }
+    else if (monthlyNet < requiredMonthly * 0.9) { status = "behind"; label = "Behind"; }
+  }
+  return { status, label, requiredMonthly, prediction: eta.text, pct };
 }
 
 /** Rule-based "assistant" insights — plain math over the user's own data,

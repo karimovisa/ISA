@@ -2,13 +2,26 @@ export type Goal = {
   id: string;
   user_id: string;
   title: string;
-  percentage: number;
+  percentage: number; // DERIVED from milestones (auto-synced), no longer manual
   deadline: string | null;
   motivation: string | null;
+  archived: boolean;
   created_at: string;
 };
 
-export type ProjectStatus = "planning" | "active" | "paused" | "done";
+export type GoalMilestone = {
+  id: string;
+  user_id: string;
+  goal_id: string;
+  title: string;
+  done: boolean;
+  done_at: string | null;
+  position: number;
+  created_at: string;
+};
+
+export type ProjectStatus =
+  | "planning" | "active" | "paused" | "done" | "on_hold" | "completed" | "archived";
 
 export type Project = {
   id: string;
@@ -18,6 +31,9 @@ export type Project = {
   percentage: number;
   tasks_total: number;
   tasks_done: number;
+  target_date: string | null;
+  ai_meta: Record<string, unknown>;
+  last_activity_at: string | null;
   created_at: string;
 };
 
@@ -27,14 +43,51 @@ export type ProjectTask = {
   project_id: string;
   title: string;
   done: boolean;
+  position: number;
   created_at: string;
 };
+
+export type ProjectNote = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectRelationship = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  target_type: string;
+  target_id: string | null;
+  rel_type: string;
+  created_at: string;
+};
+
+export type IdeaStatus = "new" | "active" | "in_progress" | "implemented" | "archived";
 
 export type Idea = {
   id: string;
   user_id: string;
   content: string;
   tag: string | null;
+  status: IdeaStatus;
+  favorite: boolean;
+  pinned: boolean;
+  category: string | null;
+  ai_meta: Record<string, unknown>;
+  created_at: string;
+};
+
+export type IdeaRelationship = {
+  id: string;
+  user_id: string;
+  idea_id: string;
+  target_type: string;
+  target_id: string | null;
+  rel_type: string;
   created_at: string;
 };
 
@@ -53,6 +106,13 @@ export type FocusSession = {
   user_id: string;
   label: string;
   duration_seconds: number;
+  goal_id: string | null;
+  project_id: string | null;
+  note: string | null;
+  pauses: number;
+  completed: boolean;
+  started_at: string | null;
+  ended_at: string | null;
   created_at: string;
 };
 
@@ -102,12 +162,21 @@ export type WeeklyReview = {
   created_at: string;
 };
 
+export type HabitFrequency = "daily" | "weekdays" | "x_per_week" | "x_per_month";
+
 export type Habit = {
   id: string;
   user_id: string;
   name: string;
   icon: string | null;
-  is_active: boolean;
+  is_active: boolean; // false = archived
+  category: string;
+  target_value: number | null;
+  target_unit: string | null; // null = simple checkbox habit
+  frequency_type: HabitFrequency;
+  frequency_config: { days?: number[]; count?: number };
+  notes: string | null;
+  goal_id: string | null;
   created_at: string;
 };
 
@@ -117,6 +186,7 @@ export type HabitLog = {
   user_id: string;
   date: string;
   completed: boolean;
+  value: number | null;
 };
 
 export type MoodLog = {
@@ -128,12 +198,18 @@ export type MoodLog = {
   created_at: string;
 };
 
+export type TaskPriority = "low" | "normal" | "high";
+
 export type Todo = {
   id: string;
   user_id: string;
   title: string;
   done: boolean;
   date: string;
+  priority: TaskPriority;
+  deadline: string | null;
+  notes: string | null;
+  goal_id: string | null;
   created_at: string;
 };
 
@@ -208,6 +284,7 @@ export type Transaction = {
   category: string;
   note: string | null;
   date: string;
+  goal_id: string | null;
   created_at: string;
 };
 

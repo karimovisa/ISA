@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { Reorder } from "framer-motion";
+import { Bell, BellOff, Check, GripVertical, Sparkles, Shield, Globe, Info, Trash2, RotateCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useEntitlements } from "@/components/EntitlementProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
@@ -13,6 +16,7 @@ import { NAV } from "@/components/layout/Sidebar";
 import { useT } from "@/lib/i18n";
 import { DataExport } from "@/components/sections/DataExport";
 import { ReminderOverview } from "@/components/sections/ReminderOverview";
+import { SubscriptionSection } from "@/components/sections/SubscriptionSection";
 
 const THEMES: { id: Theme; label: string; bg: string; accent: string; text: string }[] = [
   { id: "boys", label: "Boys", bg: "#101820", accent: "#D97B3F", text: "#F5F0E8" },
@@ -22,7 +26,9 @@ const THEMES: { id: Theme; label: string; bg: string; accent: string; text: stri
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { order: navOrder, setOrder: setNavOrder } = useNavOrder();
-  const { t: tr } = useT();
+  const { t: tr, lang, setLang } = useT();
+  const { canUse } = useEntitlements();
+  const { signOut } = useAuth();
   const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,22 +82,34 @@ export default function SettingsPage() {
     setNote("Test notification sent — check your device.");
   };
 
-  const moveNavItem = (index: number, dir: -1 | 1) => {
-    const next = [...navOrder];
-    const swapWith = index + dir;
-    if (swapWith < 0 || swapWith >= next.length) return;
-    [next[index], next[swapWith]] = [next[swapWith], next[index]];
-    setNavOrder(next);
+  const clearCache = () => {
+    if (!confirm("Clear cached data and reload? Your data is safe on the server.")) return;
+    try { localStorage.clear(); } catch {}
+    location.reload();
+  };
+  const deleteAccount = () => {
+    if (!confirm("Delete your account? This signs you out. For full data erasure, contact support.")) return;
+    signOut();
   };
 
+  const AI_ITEMS: [string, string][] = [
+    ["AI Coach", "ai_coach"], ["Weekly Reviews", "weekly_review"], ["Monthly Reviews", "monthly_review"],
+    ["Yearly Reviews", "yearly_review"], ["Predictions", "ai_predictions"], ["Pattern Detection", "pattern_detection"],
+    ["Memory Engine", "memory_engine"], ["Behavior Analysis", "deep_analytics"], ["Smart Suggestions", "ai_coach"],
+  ];
+
   return (
-    <div>
+    <div className="mx-auto max-w-2xl">
       <PageHeader title="Settings" subtitle="Your space, your rules." />
 
-      <GlassCard className="mb-6 max-w-xl p-6">
-        <h3 className="mb-1 font-medium">{tr("Theme")}</h3>
+      <div className="mb-6">
+        <SubscriptionSection />
+      </div>
+
+      <GlassCard className="mb-6 p-6">
+        <h3 className="mb-1 font-medium">{tr("Appearance")}</h3>
         <p className="mb-4 text-sm text-muted">
-          {tr("Pick the palette for your space.")}
+          {tr("Themes and accent. Wallpapers coming soon.")}
         </p>
         <div className="grid grid-cols-2 gap-4">
           {THEMES.map((t) => (
@@ -121,48 +139,53 @@ export default function SettingsPage() {
         </div>
       </GlassCard>
 
-      <GlassCard className="mb-6 max-w-xl p-6">
+      <GlassCard className="mb-6 p-6">
         <h3 className="mb-1 font-medium">{tr("Bottom menu order")}</h3>
         <p className="mb-4 text-sm text-muted">
           {tr("Reorder the icons in your mobile bottom bar.")}
         </p>
-        <div className="space-y-2">
-          {navOrder.map((href, i) => {
+        <Reorder.Group axis="y" values={navOrder} onReorder={setNavOrder} className="space-y-2">
+          {navOrder.map((href) => {
             const item = NAV.find((n) => n.href === href);
             if (!item) return null;
             const Icon = item.icon;
             return (
-              <div
+              <Reorder.Item
                 key={href}
-                className="flex items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2.5"
+                value={href}
+                className="flex cursor-grab items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2.5 active:cursor-grabbing"
               >
+                <GripVertical size={16} className="shrink-0 text-muted" />
                 <Icon size={18} className="shrink-0 text-muted" />
-                <span className="flex-1 text-sm font-medium">
-                  {tr(item.label)}
-                </span>
-                <button
-                  onClick={() => moveNavItem(i, -1)}
-                  disabled={i === 0}
-                  aria-label={`Move ${item.label} up`}
-                  className="rounded-lg p-1.5 text-muted transition hover:text-fg disabled:opacity-30"
-                >
-                  <ChevronUp size={16} />
-                </button>
-                <button
-                  onClick={() => moveNavItem(i, 1)}
-                  disabled={i === navOrder.length - 1}
-                  aria-label={`Move ${item.label} down`}
-                  className="rounded-lg p-1.5 text-muted transition hover:text-fg disabled:opacity-30"
-                >
-                  <ChevronDown size={16} />
-                </button>
+                <span className="flex-1 text-sm font-medium">{tr(item.label)}</span>
+              </Reorder.Item>
+            );
+          })}
+        </Reorder.Group>
+      </GlassCard>
+
+      {/* 4 — AI */}
+      <GlassCard className="mb-6 p-6">
+        <div className="mb-1 flex items-center gap-2">
+          <Sparkles size={16} className="text-accent" />
+          <h3 className="font-medium">{tr("AI")}</h3>
+        </div>
+        <p className="mb-4 text-sm text-muted">{tr("Control how ISA helps you.")}</p>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {AI_ITEMS.map(([label, key], n) => {
+            const on = canUse(key);
+            return (
+              <div key={`${key}-${n}`} className="flex items-center gap-2 text-sm">
+                {on ? <Check size={15} className="shrink-0 text-emerald-400" /> : <Sparkles size={13} className="shrink-0 text-accent/70" />}
+                <span className={on ? "text-fg/90" : "text-muted"}>{tr(label)}</span>
+                <span className={`ml-auto text-[10px] font-medium ${on ? "text-emerald-400" : "text-accent"}`}>{on ? tr("Enabled") : tr("Ready")}</span>
               </div>
             );
           })}
         </div>
       </GlassCard>
 
-      <GlassCard className="max-w-xl p-6">
+      <GlassCard className="p-6">
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.06]">
             {enabled ? (
@@ -275,7 +298,42 @@ export default function SettingsPage() {
 
       <ReminderOverview />
 
+      {/* 7 — Privacy */}
+      <GlassCard className="mb-6 p-6">
+        <div className="mb-1 flex items-center gap-2"><Shield size={16} className="text-accent" /><h3 className="font-medium">{tr("Privacy")}</h3></div>
+        <p className="mb-4 text-sm text-muted">{tr("Your data stays yours — always.")}</p>
+        <div className="space-y-2">
+          <button onClick={clearCache} className="flex w-full items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2.5 text-sm transition hover:bg-white/[0.07]"><RotateCcw size={16} className="text-muted" />{tr("Clear cache")}</button>
+          <button onClick={deleteAccount} className="flex w-full items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2.5 text-sm text-red-300 transition hover:bg-red-500/10"><Trash2 size={16} />{tr("Delete account")}</button>
+        </div>
+        <p className="mt-3 text-xs text-muted">{tr("ISA never sends your data to an external AI model without your explicit consent. Full privacy policy coming soon.")}</p>
+      </GlassCard>
+
+      {/* 8 — Backup & Restore */}
       <DataExport />
+
+      {/* 9 — Language */}
+      <GlassCard className="mb-6 mt-6 p-6">
+        <div className="mb-1 flex items-center gap-2"><Globe size={16} className="text-accent" /><h3 className="font-medium">{tr("Language")}</h3></div>
+        <p className="mb-4 text-sm text-muted">{tr("Changes instantly.")}</p>
+        <div className="flex flex-wrap gap-2">
+          {(["en", "uz"] as const).map((l) => (
+            <button key={l} onClick={() => setLang(l)} className={`rounded-xl px-4 py-2 text-sm font-medium transition ${lang === l ? "bg-accent text-white" : "bg-white/5 text-muted hover:text-fg"}`}>{l === "en" ? "English" : "O'zbek"}</button>
+          ))}
+          <span className="rounded-xl bg-white/5 px-4 py-2 text-sm text-muted/50">Русский · soon</span>
+        </div>
+      </GlassCard>
+
+      {/* 10 — About ISA */}
+      <GlassCard className="mb-6 p-6">
+        <div className="mb-1 flex items-center gap-2"><Info size={16} className="text-accent" /><h3 className="font-medium">{tr("About ISA")}</h3></div>
+        <p className="mt-1 text-sm text-muted">ISA OS · v1.0</p>
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-accent">
+          <a href="mailto:karimov.islom7@icloud.com" className="hover:underline">{tr("Support")}</a>
+          <a href="https://islom-os.vercel.app" className="hover:underline">{tr("Website")}</a>
+        </div>
+        <p className="mt-3 text-xs text-muted">Run. Process. Aim.</p>
+      </GlassCard>
     </div>
   );
 }

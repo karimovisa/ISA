@@ -15,8 +15,9 @@ import {
   primaryBtnClass,
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
-import { formatSom, goalEta } from "@/lib/money";
+import { formatSom, financeGoalStatus } from "@/lib/money";
 import { useT } from "@/lib/i18n";
+import { captureLifeEvent } from "@/lib/life-events";
 import type { FinanceGoal } from "@/lib/types";
 
 type Draft = {
@@ -70,8 +71,22 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
       is_active: true,
     };
     if (!payload.name || payload.target_amount <= 0) return;
-    if (editing) await update(editing.id, payload);
-    else await add(payload);
+    if (editing) {
+      await update(editing.id, payload);
+      if (payload.current_amount > editing.current_amount) {
+        const reached = payload.current_amount >= payload.target_amount;
+        void captureLifeEvent({
+          type: "SavingGoalProgress",
+          payload: {
+            name: payload.name,
+            added: payload.current_amount - editing.current_amount,
+            reached,
+          },
+          links: { financeGoalIds: [editing.id] },
+          context: { linkedToActiveGoal: true, outcome: reached ? "achievement" : "progress" },
+        });
+      }
+    } else await add(payload);
     setOpen(false);
   };
 
@@ -99,10 +114,9 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {active.map((g, i) => {
-            const pct = Math.min(
-              100,
-              Math.round((g.current_amount / Math.max(1, g.target_amount)) * 100)
-            );
+            const s = financeGoalStatus(g, monthlyNet);
+            const pct = s.pct;
+            const tone = s.status === "ahead" ? "text-emerald-300 bg-emerald-300/10" : s.status === "behind" ? "text-amber-300 bg-amber-300/10" : "text-muted bg-white/10";
             return (
               <motion.div
                 key={g.id}
@@ -136,9 +150,13 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
                   <div className="mt-3">
                     <AscentProgress value={pct} />
                   </div>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    {goalEta(g, monthlyNet).text}
-                  </p>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}>{t(s.label)}</span>
+                    {s.requiredMonthly != null && s.status !== "done" && (
+                      <span className="text-[10px] text-muted">{formatSom(s.requiredMonthly)}/mo</span>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted">{s.prediction}</p>
                 </GlassCard>
               </motion.div>
             );
