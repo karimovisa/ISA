@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -24,7 +24,17 @@ export const metadata: Metadata = {
   title: "ISA — Run. Process. Aim.",
   description: "ISA — a personal operating system. Focus. Process. Peak.",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, title: "ISA", statusBarStyle: "black" },
+  // black-translucent lets the app paint under the status bar; combined with
+  // viewportFit "cover" below this removes the letterbox bars on iOS.
+  appleWebApp: { capable: true, title: "ISA", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#050505",
+  viewportFit: "cover", // edge-to-edge: draw into the notch / home-indicator area
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

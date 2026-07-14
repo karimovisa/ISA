@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Sun, Moon, SunMoon, HelpCircle } from "lucide-react";
+import { Sun, Moon, SunMoon } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme, type GirlsMode } from "@/components/ThemeProvider";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -58,20 +58,6 @@ function DayNightToggle() {
   );
 }
 
-// Re-opens the nav walkthrough on demand. Sits left of the EN/UZ toggle.
-function HelpButton() {
-  return (
-    <button
-      onClick={() => window.dispatchEvent(new CustomEvent("isa:start-tour"))}
-      aria-label="Help — take the tour"
-      title="Take the tour"
-      className="glass fixed right-[104px] z-40 flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:text-fg"
-      style={{ top: "calc(0.6rem + env(safe-area-inset-top))" }}
-    >
-      <HelpCircle size={16} />
-    </button>
-  );
-}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -92,13 +78,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-[38vh] opacity-[0.07]">
         <MountainBackdrop className="h-full w-full" />
       </div>
-      <main className="mx-auto w-full max-w-6xl px-5 pb-28 pt-8 sm:px-8 md:pb-12 md:pt-12">
+      {/* Top padding clears the fixed EN/UZ toggle (and the notch) so a page's
+          own header controls are never hidden underneath it. */}
+      <main className="mx-auto w-full max-w-6xl px-5 pb-28 pt-[calc(3.75rem+env(safe-area-inset-top))] sm:px-8 md:pb-12 md:pt-12">
         {children}
       </main>
       <Sidebar />
       <CommandPalette />
       <DayNightToggle />
-      <HelpButton />
       <OnboardingPrayerModal />
       <OnboardingGate />
     </div>

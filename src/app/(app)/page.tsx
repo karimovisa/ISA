@@ -110,6 +110,12 @@ export default function DashboardPage() {
   const toneColor = (tone: BriefLine["tone"]) =>
     tone === "positive" ? "text-emerald-400" : tone === "negative" ? "text-amber-400" : "text-fg/50";
 
+  // Insight text can carry a raw event type from the engine ("GoalCompleted").
+  // Never show internal names to the user — split them into plain words.
+  const humanize = (s: string) =>
+    s.replace(/\b([A-Z][a-z]+)([A-Z][a-z]+)+\b/g, (m) => m.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase())
+      .replace(/^./, (c) => c.toUpperCase());
+
   return (
     <div>
       <WeeklyReviewModal />
@@ -157,7 +163,7 @@ export default function DashboardPage() {
             <div className="mt-4 border-t border-line pt-3">
               <p className="text-xs leading-relaxed text-muted">
                 <span className="font-medium text-fg/80">{t("Insight")} · </span>
-                {insight.detail || insight.title}
+                {humanize(insight.detail || insight.title)}
               </p>
             </div>
           )}
