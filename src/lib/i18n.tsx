@@ -372,6 +372,18 @@ const UZ: Record<string, string> = {
   "Cross-domain correlations (sleep↔focus, mood↔productivity), predictions, and monthly/yearly reviews are a Pro feature.":
     "Sohalararo bog'liqliklar (uyqu↔diqqat, kayfiyat↔samaradorlik), bashoratlar va oylik/yillik hisobotlar — Pro imkoniyati.",
 
+  // ── Habits: menu, archive, destructive confirm ──
+  Archived: "Arxivlangan",
+  "Archived.": "Arxivlandi.",
+  "Restored.": "Tiklandi.",
+  Confirm: "Tasdiqlash",
+  Duplicate: "Nusxalash",
+  Archive: "Arxivlash",
+  "Edit habit": "Odatni tahrirlash",
+  'Delete "{name}"?': '"{name}" o\'chirilsinmi?',
+  "This removes the habit and its whole history. It can't be undone.":
+    "Bu odat va uning butun tarixini o'chiradi. Qaytarib bo'lmaydi.",
+
   // Weekday short labels (chart axis)
   Sun: "Yak",
   Mon: "Dush",
@@ -563,6 +575,22 @@ const RU: Record<string, string> = {
     "Пока мало данных — ещё пара недель, и закономерности проявятся.",
   "Cross-domain correlations (sleep↔focus, mood↔productivity), predictions, and monthly/yearly reviews are a Pro feature.":
     "Связи между сферами (сон↔фокус, настроение↔продуктивность), прогнозы и месячные/годовые отчёты — функция Pro.",
+
+  // ── Habits: menu, archive, destructive confirm ──
+  Archived: "В архиве",
+  "Archived.": "Перенесено в архив.",
+  Restore: "Восстановить",
+  "Restored.": "Восстановлено.",
+  Delete: "Удалить",
+  Confirm: "Подтвердить",
+  Edit: "Изменить",
+  Duplicate: "Дублировать",
+  Archive: "В архив",
+  "Edit habit": "Изменить привычку",
+  "New habit": "Новая привычка",
+  'Delete "{name}"?': 'Удалить «{name}»?',
+  "This removes the habit and its whole history. It can't be undone.":
+    "Это удалит привычку и всю её историю. Отменить будет нельзя.",
 
   // Weekday short labels (chart axis)
   Sun: "Вс",

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Sun, Moon, SunMoon } from "lucide-react";
+import { Sun, Moon, SunMoon, MessageCircle } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme, type GirlsMode } from "@/components/ThemeProvider";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -59,6 +60,23 @@ function DayNightToggle() {
 }
 
 
+/** Ask ISA — always one tap away, like Messages. Sits opposite the theme toggle
+ *  on phones and above it on desktop, so the two never collide. */
+function AskIsaButton() {
+  const pathname = usePathname();
+  if (pathname === "/ask") return null;
+  return (
+    <Link
+      href="/ask"
+      aria-label="Ask ISA"
+      title="Ask ISA"
+      className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-[0_10px_30px_-8px_rgba(0,0,0,0.6)] transition hover:brightness-110 active:scale-95 md:bottom-[9.5rem]"
+    >
+      <MessageCircle size={21} strokeWidth={2.2} />
+    </Link>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   const router = useRouter();
@@ -86,6 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <CommandPalette />
       <DayNightToggle />
+      <AskIsaButton />
       <OnboardingPrayerModal />
       <OnboardingGate />
     </div>

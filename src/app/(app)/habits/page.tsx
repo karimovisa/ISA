@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Pencil, Copy, Archive, Trash2, Repeat, Check,
+  Pencil, Copy, Archive, Trash2, Repeat, Check, ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
@@ -14,8 +14,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
 import { PopMenu } from "@/components/ui/PopMenu";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { TodoList } from "@/components/sections/TodoList";
 import { ReminderFields, ReminderToggle, ALL_DAYS } from "@/components/ui/ReminderFields";
+import { useT } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { captureLifeEvent } from "@/lib/life-events";
 import type { Habit, HabitLog, Reminder, HabitFrequency, Goal } from "@/lib/types";
@@ -44,6 +46,7 @@ function isDueToday(h: Habit): boolean {
 }
 
 export default function HabitsPage() {
+  const { t } = useT();
   const habits = useCollection<Habit>("habits", { orderBy: "created_at", ascending: true });
   const goalsCol = useCollection<Goal>("goals");
   const activeGoals = goalsCol.data.filter((g) => !g.archived);
@@ -52,6 +55,8 @@ export default function HabitsPage() {
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
+  const [showArchive, setShowArchive] = useState(false);
 
   // form
   const [name, setName] = useState("");
@@ -86,6 +91,7 @@ export default function HabitsPage() {
   useEffect(() => { loadLogs(); loadStreaks(); loadTotals(); }, [loadLogs, loadStreaks, loadTotals, habits.data.length]);
 
   const active = habits.data.filter((h) => h.is_active);
+  const archived = habits.data.filter((h) => !h.is_active);
   const dueToday = active.filter(isDueToday);
   const doneToday = (id: string) => logs.some((l) => l.habit_id === id && l.date === days[6] && l.completed);
   // completed sink to the bottom
@@ -93,7 +99,7 @@ export default function HabitsPage() {
 
   const complete = async (h: Habit) => {
     if (doneToday(h.id)) return;
-    if (!window.confirm(`Complete "${h.name}" for today?`)) return;
+    // Completing is the primary action — it must be instant, never a confirm box.
     setLogs((prev) => [...prev.filter((l) => !(l.habit_id === h.id && l.date === days[6])),
       { id: `tmp-${h.id}`, habit_id: h.id, user_id: h.user_id, date: days[6], completed: true, value: h.target_value } as HabitLog]);
     await supabase.from("habit_logs").upsert(
@@ -167,8 +173,16 @@ export default function HabitsPage() {
       notes: h.notes, is_active: true, user_id: user.id });
     habits.refresh();
   };
-  const archive = (h: Habit) => { habits.update(h.id, { is_active: false }); };
-  const del = (h: Habit) => { if (confirm(`Delete "${h.name}"? This removes its history.`)) habits.remove(h.id); };
+  const archive = (h: Habit) => { habits.update(h.id, { is_active: false }); toast(t("Archived."), "success"); };
+  const restore = (h: Habit) => { habits.update(h.id, { is_active: true }); toast(t("Restored."), "success"); };
+  const del = (h: Habit) =>
+    setConfirmReq({
+      title: t("Delete \"{name}\"?", { name: h.name }),
+      body: t("This removes the habit and its whole history. It can't be undone."),
+      confirmLabel: t("Delete"),
+      danger: true,
+      onConfirm: () => habits.remove(h.id),
+    });
 
   return (
     <div>
@@ -237,7 +251,48 @@ export default function HabitsPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Edit habit" : "New habit"}>
+      {/* Archived habits — archiving now has somewhere to go, and a way back. */}
+      {archived.length > 0 && (
+        <div className="mt-8">
+          <button
+            onClick={() => setShowArchive((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted transition hover:text-fg"
+          >
+            <Archive size={13} />
+            {t("Archived")} ({archived.length})
+            <ChevronDown size={14} className={`transition ${showArchive ? "rotate-180" : ""}`} />
+          </button>
+          {showArchive && (
+            <div className="mt-3 space-y-2">
+              {archived.map((h) => (
+                <GlassCard key={h.id} className="flex items-center gap-3 p-3 opacity-70">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">{h.name}</p>
+                    <p className="text-xs text-muted">{h.category}</p>
+                  </div>
+                  <button
+                    onClick={() => restore(h)}
+                    className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs text-fg transition hover:bg-white/5"
+                  >
+                    {t("Restore")}
+                  </button>
+                  <button
+                    onClick={() => del(h)}
+                    aria-label={t("Delete")}
+                    className="shrink-0 rounded-lg p-1.5 text-muted transition hover:text-red-400"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </GlassCard>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
+
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t("Edit habit") : t("New habit")}>
         <form onSubmit={save} className="space-y-4">
           <div>
             <label className={labelClass}>Name</label>
