@@ -4,30 +4,32 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, ArrowLeft, ArrowRight } from "lucide-react";
 import { PressButton } from "@/components/ui/PressButton";
-import { HELP, HELP_FINAL, type HelpStep } from "@/lib/help";
+import { helpFor, helpFinal, hasHelp } from "@/lib/help";
 import { useT } from "@/lib/i18n";
 
 /** Global contextual help. Any page opens it via
  *  window.dispatchEvent(new CustomEvent("isa:open-help", { detail: pageKey })). */
 export function HelpModal() {
-  const { t } = useT();
-  const [steps, setSteps] = useState<HelpStep[] | null>(null);
+  const { t, lang } = useT();
+  // Store the KEY, not the resolved steps — so switching language re-renders the
+  // guide in the new language instead of leaving stale English text on screen.
+  const [helpKey, setHelpKey] = useState<string | null>(null);
   const [i, setI] = useState(0);
 
   useEffect(() => {
     const onOpen = (e: Event) => {
       const key = (e as CustomEvent<string>).detail;
-      const s = HELP[key];
-      if (s) { setSteps([...s, HELP_FINAL]); setI(0); }
+      if (hasHelp(key)) { setHelpKey(key); setI(0); }
     };
     window.addEventListener("isa:open-help", onOpen);
     return () => window.removeEventListener("isa:open-help", onOpen);
   }, []);
 
-  if (!steps) return null;
+  if (!helpKey) return null;
+  const steps = [...helpFor(helpKey, lang), helpFinal(lang)];
   const step = steps[i];
   const last = i === steps.length - 1;
-  const close = () => setSteps(null);
+  const close = () => setHelpKey(null);
 
   return (
     <AnimatePresence>
@@ -49,8 +51,8 @@ export function HelpModal() {
 
             <AnimatePresence mode="wait">
               <motion.div key={i} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }} className="min-h-[120px]">
-                <h3 className={`font-semibold ${last ? "text-lg" : "text-base"}`}>{t(step.title)}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{t(step.body)}</p>
+                <h3 className={`font-semibold ${last ? "text-lg" : "text-base"}`}>{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
               </motion.div>
             </AnimatePresence>
 

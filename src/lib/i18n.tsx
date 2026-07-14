@@ -8,7 +8,8 @@ import {
   type ReactNode,
 } from "react";
 
-export type Lang = "en" | "uz";
+export type Lang = "en" | "uz" | "ru";
+export const LANGS: Lang[] = ["en", "uz", "ru"];
 
 /**
  * English text IS the key. This map holds Uzbek overrides; anything missing
@@ -288,7 +289,195 @@ const UZ: Record<string, string> = {
     "Telefonda Pul, Namoz, Sozlamalar va boshqalar shu Menyudan ochiladi.",
   "No projects yet — add one on the Projects page to track progress here.":
     "Hali loyiha yo'q — Loyihalar sahifasida qo'shsangiz, natijasi shu yerda ko'rinadi.",
+
+  // ── Dashboard / daily brief (these were falling back to English) ──
+  "Today's Focus": "Bugungi diqqat",
+  Insight: "Tahlil",
+  Completed: "Bajarilgan",
+  Tomorrow: "Ertaga",
+  Upcoming: "Kelayotgan",
+  Overdue: "Muddati o'tgan",
+  Recent: "So'nggi",
+  "Journal not written yet": "Kundalik hali yozilmagan",
+  "Journal pending": "Kundalik kutilmoqda",
+  "Journaled ✓": "Kundalik yozildi ✓",
+  "Journaled today": "Bugun kundalik yozildi",
+  "Spending is over income this month": "Bu oy xarajat daromaddan oshdi",
+  "Budget is on track": "Byudjet rejada",
+  "{title} due in {n} days": "{title} — {n} kundan keyin muddati tugaydi",
+  "All of today's tasks are done": "Bugungi barcha vazifalar bajarildi",
+  "Add a task or two to start your day.": "Kuningizni boshlash uchun bir-ikki vazifa qo'shing.",
+  "tasks remaining": "vazifa qoldi",
+  "on track": "rejada",
+  "over budget": "byudjetdan oshgan",
+  "{n}% overall": "umumiy {n}%",
+
+  // ── Ask ISA ──
+  "Ask ISA": "ISA'dan so'rang",
+  "Ask your life a question — or add something in a sentence.":
+    "Hayotingiz haqida so'rang — yoki bir jumlada qo'shing.",
+
+  // ── Common actions / states ──
+  "Load more": "Ko'proq yuklash",
+  Generate: "Yaratish",
+  Undo: "Qaytarish",
+  Yes: "Ha",
+  "Got it": "Tushundim",
+  Help: "Yordam",
+  Reviews: "Hisobotlar",
+  Health: "Salomatlik",
+  Month: "Oy",
+  Year: "Yil",
+  "This year": "Shu yil",
+  "min read": "daqiqa o'qish",
+  "No matches": "Topilmadi",
+  "No entries match your search.": "Qidiruvingizga mos yozuv topilmadi.",
+  Learned: "O'rgandim",
 };
+
+/** Russian overrides. Anything missing falls back to English, exactly like UZ. */
+const RU: Record<string, string> = {
+  // ── Navigation ──
+  Dashboard: "Главная",
+  Goals: "Цели",
+  Money: "Деньги",
+  Projects: "Проекты",
+  Ideas: "Идеи",
+  Progress: "Прогресс",
+  Journal: "Дневник",
+  Focus: "Фокус",
+  Habits: "Привычки",
+  Calendar: "Календарь",
+  Pray: "Намаз",
+  Prayer: "Намаз",
+  Settings: "Настройки",
+  Menu: "Меню",
+  "Sign out": "Выйти",
+  "Sign in": "Войти",
+  Search: "Поиск",
+  "Ask ISA": "Спросить ISA",
+
+  // ── Greetings ──
+  "Good morning": "Доброе утро",
+  "Good afternoon": "Добрый день",
+  "Good evening": "Добрый вечер",
+  "Good night": "Доброй ночи",
+  Welcome: "Добро пожаловать",
+  "Welcome to ISA": "Добро пожаловать в ISA",
+  "Welcome back. Sign in to your space.": "С возвращением. Войдите в своё пространство.",
+  "Your personal operating system.": "Ваша личная операционная система.",
+  "Create your personal operating system.": "Создайте свою личную операционную систему.",
+
+  // ── Dashboard / daily brief ──
+  "Today's Focus": "Фокус дня",
+  "Today's to-do": "Задачи на сегодня",
+  Insight: "Инсайт",
+  Completed: "Выполнено",
+  Today: "Сегодня",
+  Tomorrow: "Завтра",
+  Upcoming: "Предстоящее",
+  Overdue: "Просрочено",
+  Recent: "Недавнее",
+  "Journal not written yet": "Дневник ещё не заполнен",
+  "Journal pending": "Дневник ожидает",
+  "Journaled ✓": "Дневник записан ✓",
+  "Journaled today": "Дневник записан сегодня",
+  "Spending is over income this month": "В этом месяце расходы превысили доход",
+  "Budget is on track": "Бюджет в норме",
+  "{title} due in {n} days": "{title} — срок через {n} дн.",
+  "All of today's tasks are done": "Все задачи на сегодня выполнены",
+  "Add a task or two to start your day.": "Добавьте пару задач, чтобы начать день.",
+  "Add a task…": "Добавить задачу…",
+  "tasks remaining": "задач осталось",
+  "on track": "в графике",
+  "over budget": "перерасход",
+  "{n}% overall": "всего {n}%",
+  "this month": "в этом месяце",
+  "due today": "сегодня",
+  "in {n}d": "через {n} дн.",
+
+  // ── Common ──
+  Cancel: "Отмена",
+  Save: "Сохранить",
+  Saved: "Сохранено",
+  "Saving…": "Сохранение…",
+  "Save entry": "Сохранить запись",
+  "Save changes": "Сохранить изменения",
+  "Please wait…": "Подождите…",
+  "Load more": "Показать ещё",
+  Generate: "Сгенерировать",
+  Undo: "Отменить",
+  Yes: "Да",
+  No: "Нет",
+  "Got it": "Понятно",
+  Next: "Далее",
+  Back: "Назад",
+  Skip: "Пропустить",
+  Done: "Готово",
+  Help: "Помощь",
+  Reviews: "Отчёты",
+  Health: "Здоровье",
+  Month: "Месяц",
+  Year: "Год",
+  "This year": "Этот год",
+  "No matches": "Ничего не найдено",
+  "Email": "Эл. почта",
+  Password: "Пароль",
+  "Create account": "Создать аккаунт",
+  "Already have an account?": "Уже есть аккаунт?",
+  "No account yet?": "Ещё нет аккаунта?",
+  "Create one": "Создать",
+
+  // ── Money ──
+  Balance: "Баланс",
+  Amount: "Сумма",
+  Category: "Категория",
+  Date: "Дата",
+  "Note (optional)": "Заметка (необязательно)",
+  Transactions: "Транзакции",
+  "Add Expense": "Добавить расход",
+  "Add transaction": "Добавить транзакцию",
+  "Quick add": "Быстрое добавление",
+  "Saved so far": "Накоплено",
+  "Target amount": "Целевая сумма",
+  "Target date (optional)": "Целевая дата (необязательно)",
+  "Create goal": "Создать цель",
+  "Recurring payments": "Регулярные платежи",
+  "Search transactions…": "Поиск транзакций…",
+  Coffee: "Кофе",
+  Food: "Еда",
+  Fuel: "Топливо",
+  Taxi: "Такси",
+  Shopping: "Покупки",
+  Education: "Образование",
+
+  // ── Journal ──
+  Learned: "Чему научился",
+  "What did I learn? (optional)": "Чему я научился? (необязательно)",
+  "What will I do tomorrow? (optional)": "Что я сделаю завтра? (необязательно)",
+  "Write about your day — what happened, what's on your mind, anything…":
+    "Напишите о своём дне — что случилось, о чём думаете, что угодно…",
+  "Write freely…": "Пишите свободно…",
+  "Journal entry saved ✓": "Запись сохранена ✓",
+  "Search entries, dates, words…": "Поиск по записям, датам, словам…",
+  "No entries match your search.": "По вашему запросу записей не найдено.",
+
+  // ── Focus ──
+  "Focus hours": "Часы фокуса",
+  "min this week": "мин на этой неделе",
+  "Too short to count as a focus session.": "Слишком коротко, чтобы засчитать сессию.",
+  "Saved as an interrupted session.": "Сохранено как прерванная сессия.",
+  "Couldn't save your focus session.": "Не удалось сохранить сессию фокуса.",
+
+  // ── Errors ──
+  "Couldn't save — please try again.": "Не удалось сохранить — попробуйте снова.",
+  "Couldn't save.": "Не удалось сохранить.",
+  "Couldn't delete — please try again.": "Не удалось удалить — попробуйте снова.",
+  "Couldn't update — please try again.": "Не удалось обновить — попробуйте снова.",
+  "Couldn't save your entry — please try again.": "Не удалось сохранить запись — попробуйте снова.",
+};
+
+const DICTS: Record<Lang, Record<string, string>> = { en: {}, uz: UZ, ru: RU };
 
 const Ctx = createContext<{
   lang: Lang;
@@ -302,7 +491,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("isa_lang");
-      if (saved === "uz" || saved === "en") setLangState(saved);
+      if (saved && (LANGS as string[]).includes(saved)) setLangState(saved as Lang);
     } catch {}
   }, []);
 
@@ -315,7 +504,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (key: string, vars?: Record<string, string | number>) => {
-    let s = lang === "uz" ? UZ[key] ?? key : key;
+    let s = DICTS[lang]?.[key] ?? key;
     if (vars)
       for (const k of Object.keys(vars))
         s = s.replace(new RegExp(`\\{${k}\\}`, "g"), String(vars[k]));
