@@ -6,44 +6,54 @@ import { todayISO } from "@/lib/datetime";
 import type { ExtractedEntities } from "./types";
 import type { IntelModule } from "@/lib/intelligence";
 
+// Both languages — the app is used in Uzbek, so the engine must understand it.
 const MODULE_WORDS: [IntelModule, RegExp][] = [
-  ["money", /\b(money|spend|spending|expense|budget|saving|income|finance)\b/i],
-  ["goals", /\bgoals?\b/i],
-  ["projects", /\bprojects?\b/i],
-  ["habits", /\bhabits?\b/i],
-  ["focus", /\b(focus|deep work|concentrat)\b/i],
-  ["journal", /\b(journal|reflect|diary)\b/i],
-  ["prayer", /\b(prayer|pray|salah|namoz)\b/i],
-  ["running", /\b(run|running|jog|km|kilomet)\b/i],
-  ["calendar", /\b(calendar|schedule|events?)\b/i],
-  ["ideas", /\b(idea|ideas|note|notes)\b/i],
-  ["progress", /\b(progress|ascent|overview)\b/i],
-  ["energy", /\b(energy|sleep|mood|rest|recover)\b/i],
+  ["money", /\b(money|spend|spending|expense|budget|saving|income|finance|pul|xarajat|sarf|byudjet|daromad|jamg)/i],
+  ["goals", /\b(goals?|maqsad)/i],
+  ["projects", /\b(projects?|loyiha)/i],
+  ["habits", /\b(habits?|odat)/i],
+  ["focus", /\b(focus|deep work|concentrat|fokus|diqqat)/i],
+  ["journal", /\b(journal|reflect|diary|kundalik|jurnal)/i],
+  ["prayer", /\b(prayer|pray|salah|namoz|ibodat)/i],
+  ["running", /\b(run|running|jog|km|kilomet|yugur|chaqirim)/i],
+  ["calendar", /\b(calendar|schedule|events?|kalendar|jadval)/i],
+  ["ideas", /\b(idea|ideas|note|notes|g'oya|goya|fikr)/i],
+  ["progress", /\b(progress|ascent|overview|taraqqiyot|natija)/i],
+  ["energy", /\b(energy|sleep|mood|rest|recover|uyqu|kayfiyat|dam|energiya)/i],
 ];
 
 /** Parse a money amount, honoring k/m suffixes and thousands separators. */
 function parseAmount(text: string): number | undefined {
-  const m = text.match(/(\d[\d\s.,]*)\s*(k|m|mln|million|thousand|so'?m|som)?/i);
+  const m = text.match(/(\d[\d\s.,]*)\s*(k|m|mln|million|thousand|ming|million|so'?m|som)?/i);
   if (!m) return undefined;
-  // Only treat as an amount when the message is money-flavored.
-  if (!/\b(spent|spend|paid|cost|save|saved|income|earn|expense|budget|so'?m|som|money|\$)\b/i.test(text))
+  // Only treat as an amount when the message is money-flavored (en + uz).
+  if (
+    !/(spent|spend|paid|cost|save|saved|income|earn|expense|budget|money|\$|so'?m|som|sarfla|to'?la|xarajat|pul|daromad|oldim|sotib)/i.test(
+      text
+    )
+  )
     return undefined;
   const raw = Number(m[1].replace(/[\s,]/g, ""));
   if (Number.isNaN(raw)) return undefined;
   const suffix = (m[2] ?? "").toLowerCase();
-  if (suffix === "k" || suffix === "thousand") return raw * 1_000;
+  if (suffix === "k" || suffix === "thousand" || suffix === "ming") return raw * 1_000;
   if (suffix === "m" || suffix === "mln" || suffix === "million") return raw * 1_000_000;
   return raw;
 }
 
 function parseDistanceKm(text: string): number | undefined {
-  const m = text.match(/(\d+(?:\.\d+)?)\s*(km|kilomet\w*)\b/i);
+  const m = text.match(/(\d+(?:\.\d+)?)\s*(km|kilomet\w*|chaqirim)\b/i);
   if (m) return Number(m[1]);
-  if (/\bran\b|\brun\b|\bjog/i.test(text)) {
+  if (/\b(ran|run|jog|yugur)/i.test(text)) {
     const bare = text.match(/(\d+(?:\.\d+)?)\s*(?:k)\b/i);
     if (bare) return Number(bare[1]);
   }
   return undefined;
+}
+
+/** Is this a PLAN rather than something already done? "ertaga", "tomorrow". */
+function parseFuture(text: string): boolean {
+  return /\b(ertaga|tomorrow|keyin|kelasi|next week|haftaga|rejalashtir|qilaman|yuguraman|boraman)\b/i.test(text);
 }
 
 function parseTime(text: string): string | undefined {
@@ -107,8 +117,16 @@ export function extractEntities(message: string): ExtractedEntities {
   if (cat) e.category = cat;
   const title = parseTitle(text);
   if (title) e.title = title;
-  if (/\bevery ?day\b|\bdaily\b|\beach day\b/i.test(text)) e.everyDay = true;
-  if (/\btoday\b/i.test(text)) e.date = todayISO();
+  if (/\bevery ?day\b|\bdaily\b|\beach day\b|har kuni|kunda/i.test(text)) e.everyDay = true;
+  if (/\btoday\b|bugun/i.test(text)) e.date = todayISO();
+  if (parseFuture(text)) {
+    e.future = true;
+    if (/\b(ertaga|tomorrow)\b/i.test(text)) {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      e.date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+  }
 
   // A topic for search/reflection: the noun-ish tail after a wh-word or "about".
   const about = text.match(/\babout\s+([a-z0-9 ]{3,40})/i);

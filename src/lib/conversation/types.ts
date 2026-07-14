@@ -40,6 +40,7 @@ export type ExtractedEntities = {
   category?: string; // money / habit category
   title?: string; // goal / habit / project title
   everyDay?: boolean; // recurrence hint
+  future?: boolean; // "ertaga" / "tomorrow" — a PLAN, not something already done
   topic?: string; // free-text subject for search/reflection
 };
 
@@ -86,7 +87,8 @@ export type ActionKind =
   | "create_goal"
   | "create_habit"
   | "set_reminder"
-  | "log_run";
+  | "log_run"
+  | "create_task"; // a PLAN ("ertaga yuguraman") — becomes a to-do, not a logged run
 
 /** A proposed write, awaiting explicit user confirmation (never auto-executed). */
 export type ActionProposal = {

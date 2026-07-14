@@ -22,6 +22,7 @@ import {
   deepLink,
 } from "@/lib/intelligence";
 import type { EvidenceRef } from "@/lib/intelligence";
+import { canUse } from "@/lib/entitlements";
 import { detectAction } from "./actions";
 import { resolveNavigation } from "./navigation";
 import type { AnswerSection, IntentResult, IsaAnswer } from "./types";
@@ -187,7 +188,18 @@ function summarizeAnswer(ctx: IntelligenceContext, intent: IntentResult): IsaAns
   );
 }
 
+/** Pro-only answers must not leak through the chat surface. */
+function upgradeAnswer(intent: IntentResult, what: string): IsaAnswer {
+  return shell(
+    intent,
+    `${what} — ISA Pro'da.`,
+    [sec("", [`Bu javob kelajakka qaraydi, shuning uchun u Pro'da. Bugungi holatingizni bepul ko'rishda davom etasiz.`])],
+    { claim: "fact", confidence: 1 }
+  );
+}
+
 function forecastAnswer(ctx: IntelligenceContext, intent: IntentResult): IsaAnswer {
+  if (!canUse(ctx.entitlements, "ai_predictions")) return upgradeAnswer(intent, "Bashoratlar");
   const mod = intent.entities.module;
   const preds = (mod ? predictionsByModule(ctx, mod) : confidentPredictions(ctx)).slice(0, 5);
   if (!preds.length) {
@@ -233,6 +245,7 @@ function decisionAnswer(ctx: IntelligenceContext, intent: IntentResult, message:
 }
 
 function coachAnswer(ctx: IntelligenceContext, intent: IntentResult): IsaAnswer {
+  if (!canUse(ctx.entitlements, "ai_coach")) return upgradeAnswer(intent, "AI Coach");
   const coach = dailyCoach(ctx);
   const lines = [coach.message, coach.suggestion ?? ""].filter(Boolean);
   return shell(

@@ -10,36 +10,38 @@ import type { IntentKind, IntentResult } from "./types";
 type Rule = { kind: IntentKind; re: RegExp; weight: number };
 
 // Order matters only for readability; precedence is applied explicitly below.
+// Every rule covers BOTH English and Uzbek — the app's users write in Uzbek.
 const RULES: Rule[] = [
   // Actions (create/write) — highest intent to DO something.
-  { kind: "create", re: /\b(create|add|make|new|log|record)\b/i, weight: 3 },
+  { kind: "create", re: /\b(create|add|make|new|log|record)\b|\b(qo'?sh|yarat|yoz)\b/i, weight: 3 },
   { kind: "create", re: /\bi (spent|paid|ran|saved|earned|jogged)\b/i, weight: 4 },
-  { kind: "create", re: /\bremind me\b/i, weight: 4 },
-  { kind: "complete", re: /\b(mark|complete|finish|done)\b/i, weight: 3 },
-  { kind: "update", re: /\b(update|change|edit|rename|set)\b/i, weight: 2 },
-  { kind: "delete", re: /\b(delete|remove)\b/i, weight: 3 },
-  { kind: "archive", re: /\barchive\b/i, weight: 3 },
+  { kind: "create", re: /\b(sarfladim|to'?ladim|yugurdim|oldim|sotib oldim|jamg'?ardim)\b/i, weight: 4 },
+  { kind: "create", re: /\bremind me\b|\beslat/i, weight: 4 },
+  { kind: "complete", re: /\b(mark|complete|finish|done)\b|\b(bajardim|tugatdim|tayyor)\b/i, weight: 3 },
+  { kind: "update", re: /\b(update|change|edit|rename|set)\b|\b(o'?zgartir|tahrirla)\b/i, weight: 2 },
+  { kind: "delete", re: /\b(delete|remove)\b|\b(o'?chir)\b/i, weight: 3 },
+  { kind: "archive", re: /\barchive\b|\barxiv/i, weight: 3 },
   // Navigation.
-  { kind: "navigate", re: /\b(open|go to|show me|take me to|navigate)\b/i, weight: 3 },
+  { kind: "navigate", re: /\b(open|go to|show me|take me to|navigate)\b|\b(och|ochib ber|ko'?rsat)\b/i, weight: 3 },
   // Reflection / review / summary.
-  { kind: "reflection", re: /\b(how (have|did) i (grow|change|do)|this year|proud of|looking back)\b/i, weight: 3 },
-  { kind: "review", re: /\b(review|recap)\b/i, weight: 2 },
-  { kind: "summarize", re: /\b(summar(y|ize|ise)|tl;?dr|overview of)\b/i, weight: 2 },
-  { kind: "compare", re: /\b(compare|versus|vs\.?|better than|difference between)\b/i, weight: 2 },
+  { kind: "reflection", re: /\b(how (have|did) i (grow|change|do)|this year|proud of|looking back)\b|\b(qanday o'?sdim|shu yil|faxrlan)\b/i, weight: 3 },
+  { kind: "review", re: /\b(review|recap)\b|\b(hisobot|sharh)\b/i, weight: 2 },
+  { kind: "summarize", re: /\b(summar(y|ize|ise)|tl;?dr|overview of)\b|\b(xulosa|umumiy)\b/i, weight: 2 },
+  { kind: "compare", re: /\b(compare|versus|vs\.?|better than|difference between)\b|\b(taqqosla|farq)\b/i, weight: 2 },
   // Foresight.
-  { kind: "forecast", re: /\b(will i|am i going to|forecast|predict|on track|reach my|by the deadline)\b/i, weight: 3 },
+  { kind: "forecast", re: /\b(will i|am i going to|forecast|predict|on track|reach my|by the deadline)\b|\b(bashorat|ulguraman|yetib bora)\b/i, weight: 3 },
   // Decisions.
-  { kind: "decision", re: /\bshould i\b|\b(is it worth|better to|or should)\b/i, weight: 3 },
+  { kind: "decision", re: /\bshould i\b|\b(is it worth|better to|or should)\b|\b(kerakmi|olsam bo'?ladimi|arziydimi|yaxshimi)\b/i, weight: 3 },
   // Coaching / emotional.
-  { kind: "coach", re: /\bi (feel|am feeling|'m feeling)\b|\b(lazy|stressed|unmotivated|burned out|tired|overwhelmed|stuck|anxious)\b/i, weight: 3 },
+  { kind: "coach", re: /\bi (feel|am feeling|'m feeling)\b|\b(lazy|stressed|unmotivated|burned out|tired|overwhelmed|stuck|anxious)\b|\b(charchadim|dangasa|stress|motivatsiya|toliqdim|zerikdim|qiynalyap)\b/i, weight: 3 },
   // Search.
-  { kind: "search", re: /\b(find|search|show all|list all|every|when did i|when was i)\b/i, weight: 2 },
+  { kind: "search", re: /\b(find|search|show all|list all|every|when did i|when was i)\b|\b(top|qidir|qachon)\b/i, weight: 2 },
   // Planning.
-  { kind: "planning", re: /\b(help me (plan|prepare)|plan my|prepare (my|for)|routine|in \d+ days)\b/i, weight: 3 },
+  { kind: "planning", re: /\b(help me (plan|prepare)|plan my|prepare (my|for)|routine|in \d+ days)\b|\b(reja|tayyorla|rejalashtir)\b/i, weight: 3 },
   // Small talk.
-  { kind: "smalltalk", re: /^(hi|hey|hello|thanks|thank you|good (morning|evening|night)|salom)\b/i, weight: 2 },
+  { kind: "smalltalk", re: /^(hi|hey|hello|thanks|thank you|good (morning|evening|night)|salom|rahmat|assalom)\b/i, weight: 2 },
   // Generic question (lowest — the fallback).
-  { kind: "question", re: /\b(how|what|why|when|where|who|which|do i|can you|tell me)\b|\?$/i, weight: 1 },
+  { kind: "question", re: /\b(how|what|why|when|where|who|which|do i|can you|tell me)\b|\b(qanday|nima|nega|qachon|qayer|kim)\b|\?$/i, weight: 1 },
 ];
 
 // Higher = wins when scores tie. Doing/going somewhere beats asking.

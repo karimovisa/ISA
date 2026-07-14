@@ -155,6 +155,9 @@ export default function MoneyPage() {
         <Stat icon={PiggyBank} label="Saving rate" value={`${Math.round(summary.savingRate)}%`} tone={summary.savingRate >= 0 ? "text-fg" : "text-red-300"} />
       </div>
 
+      {/* Savings goals — high up: this is what the money is FOR. */}
+      <div className="mb-6"><MoneyGoals monthlyNet={summary.balance} /></div>
+
       {/* ONE AI insight + health why */}
       <GlassCard className="mb-6 p-5">
         <div className="flex items-center gap-2"><Sparkles size={15} className="text-accent" /><h3 className="text-sm font-medium">{t("Insight")}</h3></div>
@@ -187,7 +190,6 @@ export default function MoneyPage() {
         </div>
       </GlassCard>
 
-      <div className="mb-6"><MoneyGoals monthlyNet={summary.balance} /></div>
       <div className="mb-6"><MoneyRecurring /></div>
 
       {/* Transactions + search/filter */}

@@ -30,14 +30,31 @@ export function detectAction(message: string, intent: IntentResult): ActionPropo
     return expenseProposal(e, "income");
   }
 
-  // Running.
+  // A PLAN, not a log. "Ertaga 5 km yuguraman" is a to-do for tomorrow — it must
+  // NOT be recorded as a run that already happened.
+  if (e.future && (e.distanceKm != null || intent.primary === "create" || intent.primary === "planning")) {
+    const title =
+      e.title ?? (e.distanceKm != null ? `${e.distanceKm} km yugurish` : message.trim().replace(/[?.!]+$/, ""));
+    if (title) {
+      return {
+        kind: "create_task",
+        summary: `"${title}" — ${e.date ?? todayISO()} uchun vazifa qo'shaymi?`,
+        fields: { title, date: e.date ?? todayISO() },
+        module: "tasks",
+        confirmLabel: "Vazifa qo'shish",
+        warnings: [],
+      };
+    }
+  }
+
+  // Running (already done).
   if (e.distanceKm != null) {
     return {
       kind: "log_run",
-      summary: `Log a ${e.distanceKm} km run for ${e.date ?? "today"}?`,
+      summary: `${e.distanceKm} km yugurishni yozib qo'yaymi?`,
       fields: { distanceKm: e.distanceKm, date: e.date ?? todayISO() },
       module: "running",
-      confirmLabel: "Log run",
+      confirmLabel: "Yozish",
       warnings: [],
     };
   }
@@ -120,6 +137,8 @@ export async function executeAction(p: ActionProposal): Promise<ActionResult> {
         return await writeTransaction(userId, p);
       case "log_run":
         return await writeRun(p);
+      case "create_task":
+        return await writeTask(userId, p);
       case "create_goal":
         return await writeGoal(userId, p);
       case "create_habit":
@@ -161,6 +180,34 @@ async function writeTransaction(userId: string, p: ActionProposal): Promise<Acti
     ok: true,
     kind: p.kind,
     message: `Logged ${formatSom(amount)} ${type === "expense" ? "spent on" : "received as"} ${category}.`,
+    createdId: String(data.id),
+    eventCaptured: event != null,
+    error: null,
+  };
+}
+
+/** A planned action becomes a real to-do in the Tasks module. */
+async function writeTask(userId: string, p: ActionProposal): Promise<ActionResult> {
+  const title = String(p.fields.title);
+  const date = String(p.fields.date);
+  const { data, error } = await supabase
+    .from("todos")
+    .insert({ user_id: userId, title, date, done: false, priority: "normal" })
+    .select("id")
+    .single();
+  if (error || !data) return fail(p, "Vazifa qo'shilmadi.");
+
+  const event = await captureLifeEvent({
+    type: "TaskCreated",
+    payload: { title, date },
+    context: { outcome: "informational" },
+    provenance: "conversation",
+  });
+  invalidateContext();
+  return {
+    ok: true,
+    kind: p.kind,
+    message: `"${title}" vazifa qo'shildi (${date}).`,
     createdId: String(data.id),
     eventCaptured: event != null,
     error: null,
