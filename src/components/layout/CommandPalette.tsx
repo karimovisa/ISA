@@ -6,17 +6,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Search, ArrowRight, LayoutDashboard, Target, FolderKanban,
   Lightbulb, BarChart3, BookOpen, Timer, Repeat, CalendarDays, Settings,
-  LogOut, Wallet, Star, Clock, PenLine, Sparkles, Lock, Brain, ListTodo,
+  LogOut, Wallet, Star, Clock, PenLine, Sparkles, Brain, ListTodo,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ROUTE_MODULE, accountAgeDays, isUnlocked, readUnlockOverrides } from "@/lib/unlock";
-import { useEntitlements } from "@/components/EntitlementProvider";
 import { useT } from "@/lib/i18n";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
 import { todayISO } from "@/lib/datetime";
 import { nearestDeadline } from "@/lib/stats";
-import { toast } from "@/lib/toast";
 import type { Goal, Todo, Project, Habit, Idea, JournalEntry, Transaction, FocusSession } from "@/lib/types";
 
 type NavItem = { id: string; label: string; href: string; icon: React.ComponentType<{ size?: number; className?: string }>; keywords?: string };
@@ -60,8 +58,6 @@ const QUICK_NAV = [
   { id: "qn-focus", label: "Focus", href: "/focus", icon: Timer },
 ];
 
-const AI_ACTIONS = ["Review Today", "Plan Tomorrow", "Analyze Spending", "Weekly Summary", "Monthly Reflection"];
-
 type Bundle = {
   goals: Goal[]; todos: Todo[]; projects: Project[]; habits: Habit[]; ideas: Idea[];
   journal: JournalEntry[]; txns: Transaction[]; focus: FocusSession[]; habitDoneToday: number;
@@ -70,7 +66,6 @@ type Bundle = {
 export function CommandPalette() {
   const router = useRouter();
   const { signOut, user } = useAuth();
-  const { canUse } = useEntitlements();
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -166,8 +161,6 @@ export function CommandPalette() {
     if (e.key === "Enter" && hits[0]) { e.preventDefault(); goTo(hits[0].href, hits[0].type === "Go to" ? hits[0].id : undefined); }
   };
 
-  const aiAction = () => toast(canUse("ai_coach") ? "ISA is preparing this…" : "Ask ISA is a Pro feature.", "info");
-
   // ── Today card values ──
   const today = todayISO();
   const tasksLeft = bundle?.todos.filter((x) => x.date === today && !x.done).length ?? 0;
@@ -258,17 +251,6 @@ export function CommandPalette() {
                       {grp.items.map((n) => <NavRow key={n.id} n={n} t={t} onGo={() => goTo(n.href, n.id)} starred={favs.includes(n.id)} onStar={() => toggleFav(n.id)} />)}
                     </Section>
                   ))}
-
-                  {/* AI quick actions (Pro) */}
-                  <Section label={t("Ask ISA")} icon={Sparkles}>
-                    <div className="flex flex-wrap gap-1.5">
-                      {AI_ACTIONS.map((a) => (
-                        <button key={a} onClick={aiAction} className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs text-fg/80 transition hover:bg-white/5">
-                          {t(a)}{!canUse("ai_coach") && <Lock size={11} className="text-muted" />}
-                        </button>
-                      ))}
-                    </div>
-                  </Section>
                 </div>
               )}
             </motion.div>

@@ -141,7 +141,14 @@ const UZ: Record<string, string> = {
   Enabled: "Yoqilgan",
   "Send test": "Sinov yuborish",
   "Backup & restore": "Zaxira va tiklash",
+  "A readable report of your progress — download it any time.":
+    "Natijalaringizning o'qiladigan hisoboti — istagan payt yuklab oling.",
+  "Download PDF report": "PDF hisobotni yuklab olish",
+  "Report opened — choose \"Save as PDF\" in the print dialog.":
+    "Hisobot ochildi — chop etish oynasida \"PDF sifatida saqlash\"ni tanlang.",
   "Download JSON": "JSON yuklab olish",
+  Advanced: "Qo'shimcha",
+  "Working…": "Bajarilmoqda…",
   Restore: "Tiklash",
   Reminders: "Eslatmalar",
 
@@ -392,6 +399,11 @@ const UZ: Record<string, string> = {
   // ── Dashboard: Today's Mission ──
   "Today's Mission": "Bugungi vazifa",
   "{done} of {total} done": "{total} tadan {done} tasi bajarildi",
+  "Daily rhythm": "Kunlik ritm",
+  "One small step. ISA tracks the rest.": "Bitta kichik qadam. Qolganini ISA kuzatadi.",
+  "You're on top of today. Nicely done.": "Bugun hammasi joyida. Barakalla.",
+  "ISA knows you {n}% — the more you add, the smarter it gets.":
+    "ISA sizni {n}% biladi — qancha ko'p qo'shsangiz, shuncha aqlliroq bo'ladi.",
   "Complete today's habits": "Bugungi odatlarni bajaring",
   "Focus for 25 minutes": "25 daqiqa diqqat qiling",
   "Write today's journal": "Bugungi kundalikni yozing",
@@ -454,6 +466,8 @@ const UZ: Record<string, string> = {
   "What got in the way?": "Nima xalaqit berdi?",
   "One tap — ISA uses it to explain your patterns later.":
     "Bir bosish — ISA keyinchalik naqshlaringizni shu bilan tushuntiradi.",
+  "How many hours did you sleep?": "Necha soat uxladingiz?",
+  "Last night — a rough number is fine.": "Kecha — taxminiy raqam ham bo'ladi.",
   Busy: "Bandlik",
   Tired: "Charchoq",
   Distracted: "Diqqat bo'lindi",
@@ -550,6 +564,9 @@ const UZ: Record<string, string> = {
   Idea: "G'oya",
   Project: "Loyiha",
   Run: "Yugurish",
+  "Name it…": "Nomlang…",
+  "Added ✓": "Qo'shildi ✓",
+  "Couldn't save.": "Saqlanmadi.",
 
   // Weekday short labels (chart axis)
   Sun: "Yak",
@@ -661,6 +678,15 @@ const RU: Record<string, string> = {
   Date: "Дата",
   "Note (optional)": "Заметка (необязательно)",
   Transactions: "Транзакции",
+  "Backup & restore": "Резервная копия и восстановление",
+  "A readable report of your progress — download it any time.":
+    "Понятный отчёт о вашем прогрессе — скачивайте в любое время.",
+  "Download PDF report": "Скачать PDF-отчёт",
+  "Report opened — choose \"Save as PDF\" in the print dialog.":
+    "Отчёт открыт — выберите «Сохранить как PDF» в окне печати.",
+  "Download JSON": "Скачать JSON",
+  Advanced: "Дополнительно",
+  "Working…": "Обработка…",
   "Add Expense": "Добавить расход",
   "Add transaction": "Добавить транзакцию",
   "Quick add": "Быстрое добавление",
@@ -767,6 +793,11 @@ const RU: Record<string, string> = {
   // ── Dashboard: Today's Mission ──
   "Today's Mission": "Миссия дня",
   "{done} of {total} done": "{done} из {total} выполнено",
+  "Daily rhythm": "Ритм дня",
+  "One small step. ISA tracks the rest.": "Один маленький шаг. Остальное отследит ISA.",
+  "You're on top of today. Nicely done.": "Сегодня всё под контролем. Отлично.",
+  "ISA knows you {n}% — the more you add, the smarter it gets.":
+    "ISA знает вас на {n}% — чем больше добавите, тем умнее.",
   "Complete today's habits": "Выполните привычки на сегодня",
   "Focus for 25 minutes": "Сфокусируйтесь 25 минут",
   "Write today's journal": "Запишите дневник за сегодня",
@@ -829,6 +860,8 @@ const RU: Record<string, string> = {
   "What got in the way?": "Что помешало?",
   "One tap — ISA uses it to explain your patterns later.":
     "Одно касание — ISA потом объяснит этим ваши закономерности.",
+  "How many hours did you sleep?": "Сколько часов вы спали?",
+  "Last night — a rough number is fine.": "Прошлой ночью — примерного числа достаточно.",
   Busy: "Занятость",
   Tired: "Усталость",
   Distracted: "Отвлекался",
@@ -927,6 +960,9 @@ const RU: Record<string, string> = {
   Idea: "Идея",
   Project: "Проект",
   Run: "Пробежка",
+  Add: "Добавить",
+  "Name it…": "Назовите…",
+  "Added ✓": "Добавлено ✓",
 
   // Weekday short labels (chart axis)
   Sun: "Вс",

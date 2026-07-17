@@ -97,12 +97,14 @@ export default function KnowsPage() {
         confidence: 0.6,
       });
 
-    for (const s of computeAllScores(ctx).filter((x) => x.confidence >= 0.4).slice(0, 3))
+    for (const s of computeAllScores(ctx).filter((x) => x.confidence >= 0.4).slice(0, 2))
       facts.push({ text: `${t(s.label)}: ${s.value}/100 — ${s.reason}`, confidence: s.confidence });
 
-    for (const l of crossModuleLinks(ctx).slice(0, 3))
+    for (const l of crossModuleLinks(ctx).slice(0, 1))
       facts.push({ text: l.detail, confidence: l.strength });
   }
+  // Keep it simple — a few strong facts, not an exhaustive dump.
+  const topFacts = facts.slice(0, 4);
 
   return (
     <div>
@@ -126,21 +128,6 @@ export default function KnowsPage() {
           />
         </div>
         <p className="text-xs leading-relaxed text-muted">{t(coverageVerdict(coverage.pct))}</p>
-
-        <div className="mt-4 grid gap-1.5 sm:grid-cols-2">
-          {coverage.areas.map((a) => (
-            <div key={a.key} className="flex items-center gap-2 text-sm">
-              <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
-                  a.covered ? "bg-accent/20 text-accent" : "bg-white/[0.06] text-muted"
-                }`}
-              >
-                {a.covered ? <Check size={10} strokeWidth={3.5} /> : <Plus size={10} strokeWidth={3} />}
-              </span>
-              <span className={a.covered ? "text-fg/85" : "text-muted"}>{t(a.label)}</span>
-            </div>
-          ))}
-        </div>
       </GlassCard>
 
       {/* What's missing, and what it would unlock */}
@@ -151,7 +138,7 @@ export default function KnowsPage() {
             {t("Each one you add makes ISA's insights real rather than generic.")}
           </p>
           <div className="space-y-2">
-            {coverage.missing.map((a) => (
+            {coverage.missing.slice(0, 2).map((a) => (
               <Link key={a.key} href={a.href}>
                 <div className="flex items-start gap-3 rounded-2xl border border-line bg-white/[0.02] p-3 transition hover:bg-white/[0.05]">
                   <Plus size={14} className="mt-0.5 shrink-0 text-accent" />
@@ -177,13 +164,13 @@ export default function KnowsPage() {
           <p className="flex items-center gap-2 text-xs text-muted">
             <Clock size={12} /> {t("Reading your history…")}
           </p>
-        ) : facts.length === 0 ? (
+        ) : topFacts.length === 0 ? (
           <p className="text-sm leading-relaxed text-muted">
             {t("Nothing solid yet — ISA won't invent a pattern it hasn't seen. Keep using it for a week and real findings appear here.")}
           </p>
         ) : (
           <ul className="space-y-3">
-            {facts.map((f, i) => (
+            {topFacts.map((f, i) => (
               <li key={i} className="flex gap-2.5">
                 <Check size={14} className="mt-0.5 shrink-0 text-accent" />
                 <div className="min-w-0">

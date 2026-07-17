@@ -50,10 +50,12 @@ export default function JournalPage() {
     setEntries(list);
     setMoods(Object.fromEntries(((ms as Pick<MoodLog, "date" | "mood_score">[]) ?? []).map((m) => [m.date, m.mood_score])));
     if (editingDate === null) {
-      const todays = list.find((e) => e.entry_date === today);
+      // Only restore an in-progress draft the user was typing — never re-hydrate a
+      // saved entry back into the editor. Doing so made a saved journal reappear
+      // after navigating away and back. Editing a saved entry goes through the
+      // pencil in the history list below (which sets editingDate explicitly).
       const cached = typeof window !== "undefined" ? localStorage.getItem(draftKey) : null;
-      if (todays) setDraft({ did_today: todays.did_today ?? "", learned: todays.learned ?? "", tomorrow: todays.tomorrow ?? "" });
-      else if (cached) setDraft(JSON.parse(cached));
+      if (cached) setDraft(JSON.parse(cached));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today]);

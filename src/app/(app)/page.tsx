@@ -10,7 +10,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Target, Wallet, Timer, Repeat, Quote, CalendarClock, Sparkles,
-  ArrowUpRight, HelpCircle, Check, Compass,
+  ArrowUpRight, HelpCircle, Compass, Brain,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
@@ -28,7 +28,7 @@ import { useT } from "@/lib/i18n";
 import { quoteOfTheDay } from "@/lib/quotes";
 import { nearestDeadline, focusMinutesThisWeek } from "@/lib/stats";
 import { summarizeMonth, currentMonthKey, overallBalance, formatSom } from "@/lib/money";
-import { computeCoverage, coverageVerdict } from "@/lib/coverage";
+import { computeCoverage } from "@/lib/coverage";
 import { retrieveTopInsights, type Insight } from "@/lib/insights";
 import type { Goal, JournalEntry, FocusSession, Todo, Transaction, Habit } from "@/lib/types";
 
@@ -123,6 +123,9 @@ export default function DashboardPage() {
 
   const doneCount = mission.filter((m) => m.done).length;
   const missionPct = mission.length ? Math.round((doneCount / mission.length) * 100) : 0;
+  // "Less work, more meaning" — surface ONE thing worth doing next, and let the
+  // rest of the day's rhythm sit quietly as progress rather than a chore-wall.
+  const primary = mission.find((m) => !m.done) ?? null;
 
   // ── Life Coverage ──
   const coverage = computeCoverage({
@@ -185,47 +188,44 @@ export default function DashboardPage() {
       {/* Evening only, once a day — the one thing ISA can't derive: why. */}
       <DailyCheckin />
 
-      {/* 2 — Today's Mission: the answer to "what should I do today?" */}
+      {/* 2 — Today: one thing worth doing, then the day's rhythm as quiet progress */}
       <motion.div {...rise(0.05)} className="mb-4">
         <GlassCard className="bg-gradient-to-br from-accent/10 via-transparent to-transparent p-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Compass size={16} className="text-accent" />
-              <h2 className="text-sm font-semibold">{t("Today's Mission")}</h2>
+          <div className="mb-2 flex items-center gap-2">
+            <Compass size={16} className="text-accent" />
+            <h2 className="text-sm font-semibold">{t("Today")}</h2>
+          </div>
+
+          {primary ? (
+            <Link
+              href={primary.href}
+              className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]"
+            >
+              <span className="min-w-0">
+                <span className="block text-base font-medium text-fg">{primary.label}</span>
+                <span className="mt-0.5 block text-xs text-muted">{t("One small step. ISA tracks the rest.")}</span>
+              </span>
+              <ArrowUpRight size={17} className="shrink-0 text-muted" />
+            </Link>
+          ) : (
+            <p className="py-1 text-sm text-fg/90">{t("You're on top of today. Nicely done.")}</p>
+          )}
+
+          {/* The old chore-list, reframed as passive progress — not a to-do wall. */}
+          <div className="mt-4 border-t border-line pt-3">
+            <div className="mb-2 flex items-center justify-between text-xs text-muted">
+              <span>{t("Daily rhythm")}</span>
+              <span className="tabular-nums">{doneCount}/{mission.length}</span>
             </div>
-            <span className="shrink-0 text-xs font-medium tabular-nums text-muted">
-              {t("{done} of {total} done", { done: doneCount, total: mission.length })}
-            </span>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+              <motion.div
+                className="h-full rounded-full bg-accent"
+                initial={{ width: 0 }}
+                animate={{ width: `${missionPct}%` }}
+                transition={{ duration: 0.7, ease }}
+              />
+            </div>
           </div>
-
-          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
-            <motion.div
-              className="h-full rounded-full bg-accent"
-              initial={{ width: 0 }}
-              animate={{ width: `${missionPct}%` }}
-              transition={{ duration: 0.7, ease }}
-            />
-          </div>
-
-          <ul className="space-y-1">
-            {mission.map((m) => (
-              <li key={m.key}>
-                <Link
-                  href={m.href}
-                  className="-mx-2 flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition hover:bg-white/[0.04]"
-                >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border transition ${
-                      m.done ? "border-accent bg-accent text-white" : "border-white/25"
-                    }`}
-                  >
-                    {m.done && <Check size={11} strokeWidth={3.5} />}
-                  </span>
-                  <span className={`text-sm ${m.done ? "text-muted line-through" : "text-fg/90"}`}>{m.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
 
           {/* AI speaks only when it has something real to say. */}
           {insight && (
@@ -246,31 +246,17 @@ export default function DashboardPage() {
         <TodoList />
       </motion.div>
 
-      {/* 4 — Life Coverage: how much of your life ISA can actually see */}
+      {/* 4 — How much of your life ISA can see — a quiet hint, not a dashboard card */}
       <motion.div {...rise(0.14)} className="mb-4">
-        <Link href="/knows" className="block">
-          <GlassCard hover className="p-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold">{t("Life Coverage")}</h2>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <span className="text-2xl font-bold tabular-nums">{coverage.pct}%</span>
-                <ArrowUpRight size={15} className="text-muted" />
-              </div>
-            </div>
-            <div className="mb-3 flex flex-wrap gap-1.5">
-              {coverage.areas.map((a) => (
-                <span
-                  key={a.key}
-                  className={`rounded-full px-2 py-0.5 text-[11px] ${
-                    a.covered ? "bg-accent/15 text-accent" : "bg-white/[0.05] text-muted line-through"
-                  }`}
-                >
-                  {t(a.label)}
-                </span>
-              ))}
-            </div>
-            <p className="text-xs leading-relaxed text-muted">{t(coverageVerdict(coverage.pct))}</p>
-          </GlassCard>
+        <Link
+          href="/knows"
+          className="group flex items-center gap-2 px-1 text-xs text-muted transition hover:text-fg"
+        >
+          <Brain size={13} className="shrink-0 text-accent" />
+          <span className="min-w-0 flex-1">
+            {t("ISA knows you {n}% — the more you add, the smarter it gets.", { n: coverage.pct })}
+          </span>
+          <ArrowUpRight size={13} className="shrink-0 opacity-60 transition group-hover:opacity-100" />
         </Link>
       </motion.div>
 
