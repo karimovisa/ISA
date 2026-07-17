@@ -219,17 +219,21 @@ export default function ProgressPage() {
     <div>
       <PageHeader title="Progress" subtitle="Am I becoming a better version of myself?" />
 
-      {/* 1 — The weekly report card: the whole story in one glance */}
+      {/* 1 — The weekly report card. Life Coverage is the product's one score
+          (Dashboard / What ISA knows); this page shows how the week actually WENT,
+          so it reports movement and areas — never a second competing number. */}
       <GlassCard className="mb-4 p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wider text-muted">{t("Productivity Score")}</p>
+            <p className="text-xs uppercase tracking-wider text-muted">{t("This week")}</p>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-5xl font-bold tabular-nums">{score}</span>
-              <span className={`flex items-center gap-0.5 text-sm font-semibold ${trendTone}`}>
-                <TrendIcon size={15} />
-                {delta > 0 ? "+" : ""}
-                {delta}
+              <span className={`flex items-center gap-1 text-2xl font-bold ${trendTone}`}>
+                <TrendIcon size={20} />
+                {delta > 0
+                  ? t("Improving")
+                  : delta < 0
+                    ? t("Softening")
+                    : t("Steady")}
               </span>
             </div>
             <p className="mt-1 text-xs text-muted">{t("vs last week")}</p>

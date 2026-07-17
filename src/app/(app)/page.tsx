@@ -1,24 +1,20 @@
 "use client";
 
+// ISA — Dashboard. A control center, not a stats wall. It answers one question:
+// "what should I do today?" — with a real mission list built from live data.
+// Below it, Life Coverage says honestly how much of your life ISA can actually
+// see. AI speaks only when it has something worth saying.
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  Target,
-  Wallet,
-  Timer,
-  Repeat,
-  Quote,
-  CalendarClock,
-  Sparkles,
-  ListTodo,
-  PenLine,
-  Lightbulb,
-  ArrowUpRight,
-  HelpCircle,
+  Target, Wallet, Timer, Repeat, Quote, CalendarClock, Sparkles,
+  ArrowUpRight, HelpCircle, Check, Compass,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
+import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { SleepCard } from "@/components/sections/SleepCard";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
@@ -31,17 +27,11 @@ import { useT } from "@/lib/i18n";
 import { quoteOfTheDay } from "@/lib/quotes";
 import { nearestDeadline, focusMinutesThisWeek } from "@/lib/stats";
 import { summarizeMonth, currentMonthKey, overallBalance, formatSom } from "@/lib/money";
+import { computeCoverage, coverageVerdict } from "@/lib/coverage";
 import { retrieveTopInsights, type Insight } from "@/lib/insights";
-import type {
-  Goal,
-  JournalEntry,
-  FocusSession,
-  Todo,
-  Transaction,
-  Habit,
-} from "@/lib/types";
+import type { Goal, JournalEntry, FocusSession, Todo, Transaction, Habit } from "@/lib/types";
 
-type BriefLine = { text: string; tone: "positive" | "neutral" | "negative" };
+type Mission = { key: string; label: string; done: boolean; href: string };
 
 export default function DashboardPage() {
   const { displayName } = useAuth();
@@ -49,10 +39,8 @@ export default function DashboardPage() {
   const reduce = useReducedMotion();
   const [dateNow, setDateNow] = useState<Date | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
-  useEffect(() => {
-    setDateNow(new Date());
-    retrieveTopInsights(1).then((r) => setInsight(r[0] ?? null));
-  }, []);
+  const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleep: false, mood: false });
+  const [counts, setCounts] = useState({ sleepLogs: 0, moodLogs: 0, runs: 0 });
 
   const goals = useCollection<Goal>("goals");
   const journal = useCollection<JournalEntry>("journal_entries");
@@ -62,38 +50,83 @@ export default function DashboardPage() {
   const habits = useCollection<Habit>("habits");
 
   const today = todayISO();
+
+  useEffect(() => {
+    setDateNow(new Date());
+    void retrieveTopInsights(1).then((r) => setInsight(r[0] ?? null));
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: hl }, { data: sl }, { data: ml }, { data: rl }] = await Promise.all([
+        supabase.from("habit_logs").select("habit_id,completed,date").eq("date", today),
+        supabase.from("sleep_logs").select("id,date"),
+        supabase.from("mood_logs").select("id,date"),
+        supabase.from("runs").select("id"),
+      ]);
+      const logs = (hl as { completed: boolean }[]) ?? [];
+      const sleeps = (sl as { date: string }[]) ?? [];
+      const moods = (ml as { date: string }[]) ?? [];
+      setToday2({
+        habitsDone: logs.filter((x) => x.completed).length,
+        habitsDue: habits.data.filter((h) => h.is_active).length,
+        sleep: sleeps.some((x) => x.date === today),
+        mood: moods.some((x) => x.date === today),
+      });
+      setCounts({ sleepLogs: sleeps.length, moodLogs: moods.length, runs: ((rl as unknown[]) ?? []).length });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habits.data.length, today]);
+
   const todaysTodos = todos.data.filter((x) => x.date === today);
   const openTodos = todaysTodos.filter((x) => !x.done);
   const journaledToday = journal.data.some((j) => j.entry_date === today);
+  const focusMinToday = Math.round(
+    focus.data
+      .filter((s) => new Date(s.created_at).toDateString() === new Date().toDateString())
+      .reduce((s, x) => s + x.duration_seconds, 0) / 60
+  );
+  const spentToday = txns.data.some((x) => x.date === today);
   const deadline = nearestDeadline(goals.data);
   const month = summarizeMonth(txns.data, currentMonthKey());
   const balance = overallBalance(txns.data);
-  const overall =
-    goals.data.length > 0
-      ? Math.round(goals.data.reduce((s, g) => s + (g.percentage ?? 0), 0) / goals.data.length)
-      : 0;
+  const overall = goals.data.length
+    ? Math.round(goals.data.reduce((s, g) => s + (g.percentage ?? 0), 0) / goals.data.length)
+    : 0;
   const weeklyMin = focusMinutesThisWeek(focus.data);
   const activeHabits = habits.data.filter((h) => h.is_active).length;
 
-  // ── The Daily Brief — rule-based, from the user's own live data ──
-  const brief: BriefLine[] = [];
-  if (openTodos.length > 0)
-    brief.push({ text: `${openTodos[0].title}${openTodos.length > 1 ? ` +${openTodos.length - 1} more` : ""}`, tone: "neutral" });
-  else if (todaysTodos.length > 0)
-    brief.push({ text: t("All of today's tasks are done"), tone: "positive" });
-  brief.push(
-    journaledToday
-      ? { text: t("Journaled today"), tone: "positive" }
-      : { text: t("Journal not written yet"), tone: "negative" }
-  );
-  if (txns.data.some((x) => x.date.slice(0, 7) === currentMonthKey()))
-    brief.push(
-      month.savingRate >= 0
-        ? { text: t("Budget is on track"), tone: "positive" }
-        : { text: t("Spending is over income this month"), tone: "negative" }
-    );
-  if (deadline)
-    brief.push({ text: t("{title} due in {n} days", { title: deadline.title, n: deadline.daysLeft }), tone: deadline.daysLeft <= 3 ? "negative" : "neutral" });
+  // ── Today's Mission — real, checkable, from live data ──
+  const mission: Mission[] = [];
+  if (activeHabits > 0)
+    mission.push({
+      key: "habits",
+      label: t("Complete today's habits"),
+      done: today2.habitsDue > 0 && today2.habitsDone >= today2.habitsDue,
+      href: "/habits",
+    });
+  mission.push({ key: "focus", label: t("Focus for 25 minutes"), done: focusMinToday >= 25, href: "/focus" });
+  mission.push({ key: "journal", label: t("Write today's journal"), done: journaledToday, href: "/journal" });
+  if (todaysTodos.length > 0)
+    mission.push({ key: "todos", label: t("Clear today's tasks"), done: openTodos.length === 0, href: "/" });
+  mission.push({ key: "money", label: t("Log today's expenses"), done: spentToday, href: "/money" });
+  mission.push({ key: "sleep", label: t("Log your sleep"), done: today2.sleep, href: "/" });
+  mission.push({ key: "mood", label: t("Record your mood"), done: today2.mood, href: "/journal" });
+
+  const doneCount = mission.filter((m) => m.done).length;
+  const missionPct = mission.length ? Math.round((doneCount / mission.length) * 100) : 0;
+
+  // ── Life Coverage ──
+  const coverage = computeCoverage({
+    goals: goals.data.length,
+    habits: habits.data.length,
+    focusSessions: focus.data.length,
+    journalEntries: journal.data.length,
+    transactions: txns.data.length,
+    sleepLogs: counts.sleepLogs,
+    moodLogs: counts.moodLogs,
+    runs: counts.runs,
+  });
 
   const anyLoading = goals.loading || journal.loading || focus.loading || todos.loading;
   const freshAccount =
@@ -107,13 +140,10 @@ export default function DashboardPage() {
     transition: { duration: 0.45, delay, ease },
   });
 
-  const toneColor = (tone: BriefLine["tone"]) =>
-    tone === "positive" ? "text-emerald-400" : tone === "negative" ? "text-amber-400" : "text-fg/50";
-
-  // Insight text can carry a raw event type from the engine ("GoalCompleted").
-  // Never show internal names to the user — split them into plain words.
+  // Internal engine names must never reach the user ("GoalCompleted").
   const humanize = (s: string) =>
-    s.replace(/\b([A-Z][a-z]+)([A-Z][a-z]+)+\b/g, (m) => m.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase())
+    s
+      .replace(/\b([A-Z][a-z]+)([A-Z][a-z]+)+\b/g, (m) => m.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase())
       .replace(/^./, (c) => c.toUpperCase());
 
   return (
@@ -121,13 +151,11 @@ export default function DashboardPage() {
       <WeeklyReviewModal />
       <Onboarding name={displayName} show={freshAccount} />
 
-      {/* 1 — Greeting (compact) */}
+      {/* 1 — Greeting */}
       <motion.section {...rise(0)} className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-muted">
-            {dateNow ? formatDate(dateNow) : " "}
-          </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
+          <h1 className="mt-1 truncate text-3xl font-bold tracking-tight sm:text-4xl">
             {dateNow ? t(greetingFor(dateNow)) : t("Welcome")}, {displayName}.
           </h1>
         </div>
@@ -140,29 +168,55 @@ export default function DashboardPage() {
         </button>
       </motion.section>
 
-      {/* 2 — AI Daily Brief (the heart) */}
+      {/* 2 — Today's Mission: the answer to "what should I do today?" */}
       <motion.div {...rise(0.05)} className="mb-4">
-        <GlassCard className="bg-gradient-to-br from-accent/10 via-transparent to-transparent p-5 sm:p-6">
-          <div className="mb-3 flex items-center gap-2">
-            <Sparkles size={16} className="text-accent" />
-            <h2 className="text-sm font-semibold">{t("Today's Focus")}</h2>
+        <GlassCard className="bg-gradient-to-br from-accent/10 via-transparent to-transparent p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Compass size={16} className="text-accent" />
+              <h2 className="text-sm font-semibold">{t("Today's Mission")}</h2>
+            </div>
+            <span className="shrink-0 text-xs font-medium tabular-nums text-muted">
+              {t("{done} of {total} done", { done: doneCount, total: mission.length })}
+            </span>
           </div>
-          {brief.length === 0 ? (
-            <p className="text-sm text-muted">{t("Add a task or two to start your day.")}</p>
-          ) : (
-            <ul className="space-y-2">
-              {brief.map((line, i) => (
-                <li key={i} className="flex items-center gap-2.5 text-sm">
-                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${toneColor(line.tone).replace("text-", "bg-")}`} />
-                  <span className="text-fg/90">{line.text}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+
+          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+            <motion.div
+              className="h-full rounded-full bg-accent"
+              initial={{ width: 0 }}
+              animate={{ width: `${missionPct}%` }}
+              transition={{ duration: 0.7, ease }}
+            />
+          </div>
+
+          <ul className="space-y-1">
+            {mission.map((m) => (
+              <li key={m.key}>
+                <Link
+                  href={m.href}
+                  className="-mx-2 flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition hover:bg-white/[0.04]"
+                >
+                  <span
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border transition ${
+                      m.done ? "border-accent bg-accent text-white" : "border-white/25"
+                    }`}
+                  >
+                    {m.done && <Check size={11} strokeWidth={3.5} />}
+                  </span>
+                  <span className={`text-sm ${m.done ? "text-muted line-through" : "text-fg/90"}`}>{m.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          {/* AI speaks only when it has something real to say. */}
           {insight && (
             <div className="mt-4 border-t border-line pt-3">
               <p className="text-xs leading-relaxed text-muted">
-                <span className="font-medium text-fg/80">{t("Insight")} · </span>
+                <span className="inline-flex items-center gap-1 font-medium text-fg/80">
+                  <Sparkles size={11} className="text-accent" /> {t("Insight")} ·{" "}
+                </span>
                 {humanize(insight.detail || insight.title)}
               </p>
             </div>
@@ -175,15 +229,35 @@ export default function DashboardPage() {
         <TodoList />
       </motion.div>
 
-      {/* 5 — Quick Capture (2×2, thumb-reachable) */}
-      <motion.div {...rise(0.14)} className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <QuickCapture href="/habits" Icon={ListTodo} label={t("Add Task")} />
-        <QuickCapture href="/money" Icon={Wallet} label={t("Add Expense")} />
-        <QuickCapture href="/ideas" Icon={Lightbulb} label={t("Add Note")} />
-        <QuickCapture href="/journal" Icon={PenLine} label={t("Journal")} />
+      {/* 4 — Life Coverage: how much of your life ISA can actually see */}
+      <motion.div {...rise(0.14)} className="mb-4">
+        <Link href="/knows" className="block">
+          <GlassCard hover className="p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">{t("Life Coverage")}</h2>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="text-2xl font-bold tabular-nums">{coverage.pct}%</span>
+                <ArrowUpRight size={15} className="text-muted" />
+              </div>
+            </div>
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {coverage.areas.map((a) => (
+                <span
+                  key={a.key}
+                  className={`rounded-full px-2 py-0.5 text-[11px] ${
+                    a.covered ? "bg-accent/15 text-accent" : "bg-white/[0.05] text-muted line-through"
+                  }`}
+                >
+                  {t(a.label)}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs leading-relaxed text-muted">{t(coverageVerdict(coverage.pct))}</p>
+          </GlassCard>
+        </Link>
       </motion.div>
 
-      {/* 6 — Overview (2-col compact) */}
+      {/* 5 — Overview */}
       <div className="grid grid-cols-2 gap-3">
         <Overview {...rise(0.18)} href="/goals" Icon={Target} label={t("Goals")}
           value={<AnimatedNumber value={goals.data.length} />} sub={t("{n}% overall", { n: overall })} />
@@ -196,7 +270,7 @@ export default function DashboardPage() {
           value={<AnimatedNumber value={activeHabits} />} sub={t("active")} />
       </div>
 
-      {/* 7 — Below the fold: next deadline, sleep, quote, ascent */}
+      {/* 6 — Below the fold */}
       {deadline && (
         <motion.div {...rise(0.3)} className="mt-4">
           <Link href="/goals">
@@ -240,28 +314,10 @@ export default function DashboardPage() {
   );
 }
 
-// stable quote for the render
 const quote = quoteOfTheDay;
 
-function QuickCapture({ href, Icon, label }: { href: string; Icon: typeof Wallet; label: string }) {
-  return (
-    <Link href={href}>
-      <GlassCard hover className="flex flex-col items-center gap-2 p-4 text-center">
-        <Icon size={20} className="text-accent" />
-        <span className="text-xs font-medium text-fg/90">{label}</span>
-      </GlassCard>
-    </Link>
-  );
-}
-
 function Overview({
-  href,
-  Icon,
-  label,
-  value,
-  sub,
-  small,
-  ...motionProps
+  href, Icon, label, value, sub, small, ...motionProps
 }: {
   href: string;
   Icon: typeof Target;

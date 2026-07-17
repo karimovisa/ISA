@@ -17,6 +17,7 @@ import {
   Command,
   Wallet,
   Sparkles,
+  Brain,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
@@ -29,6 +30,7 @@ import { useNavOrder } from "@/components/NavOrderProvider";
 export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/ask", label: "Ask ISA", icon: Sparkles },
+  { href: "/knows", label: "What ISA knows", icon: Brain },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/money", label: "Money", icon: Wallet },
   { href: "/projects", label: "Projects", icon: FolderKanban },

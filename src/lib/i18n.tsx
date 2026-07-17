@@ -384,6 +384,67 @@ const UZ: Record<string, string> = {
   "This removes the habit and its whole history. It can't be undone.":
     "Bu odat va uning butun tarixini o'chiradi. Qaytarib bo'lmaydi.",
 
+  "This week": "Bu hafta",
+  Improving: "Yaxshilanmoqda",
+  Softening: "Pasaymoqda",
+  Steady: "Barqaror",
+
+  // ── Dashboard: Today's Mission ──
+  "Today's Mission": "Bugungi vazifa",
+  "{done} of {total} done": "{total} tadan {done} tasi bajarildi",
+  "Complete today's habits": "Bugungi odatlarni bajaring",
+  "Focus for 25 minutes": "25 daqiqa diqqat qiling",
+  "Write today's journal": "Bugungi kundalikni yozing",
+  "Clear today's tasks": "Bugungi vazifalarni yoping",
+  "Log today's expenses": "Bugungi xarajatni yozing",
+  "Log your sleep": "Uyqungizni yozing",
+  "Record your mood": "Kayfiyatingizni belgilang",
+
+  // ── Life Coverage / What ISA knows ──
+  "Life Coverage": "Hayot qamrovi",
+  "What ISA knows": "ISA nimani biladi",
+  "Everything here comes from your own data — with its confidence shown.":
+    "Bu yerdagi hamma narsa sizning ma'lumotingizdan — ishonch darajasi bilan.",
+  "What ISA is still missing": "ISA'ga hali nima yetishmayapti",
+  "Each one you add makes ISA's insights real rather than generic.":
+    "Har birini qo'shsangiz, ISA tahlili umumiy emas, haqiqiy bo'ladi.",
+  "What ISA has learned": "ISA nimani o'rgandi",
+  "Reading your history…": "Tarixingiz o'qilmoqda…",
+  "Nothing solid yet — ISA won't invent a pattern it hasn't seen. Keep using it for a week and real findings appear here.":
+    "Hozircha aniq narsa yo'q — ISA ko'rmagan naqshni o'ylab topmaydi. Bir hafta foydalaning, haqiqiy natijalar shu yerda chiqadi.",
+  "{n}% confidence": "{n}% ishonch",
+  "Moderate confidence": "O'rtacha ishonch",
+  "Low confidence — needs more data": "Past ishonch — ko'proq ma'lumot kerak",
+  Sleep: "Uyqu",
+  Running: "Yugurish",
+  "ISA sees the whole picture — its patterns and predictions are at their strongest.":
+    "ISA to'liq manzarani ko'ryapti — naqsh va bashoratlari eng kuchli holatda.",
+  "ISA understands most of your life. Filling the gaps sharpens its insights.":
+    "ISA hayotingizning ko'p qismini tushunadi. Bo'shliqlarni to'ldirsangiz, tahlili o'tkirlashadi.",
+  "ISA is still learning you. More areas mean fewer guesses.":
+    "ISA hali sizni o'rganyapti. Qancha soha ko'p bo'lsa, taxmin shuncha kam.",
+  "ISA barely knows you yet. Each area you add makes its insights real rather than generic.":
+    "ISA sizni deyarli bilmaydi. Har bir qo'shgan sohangiz tahlilni umumiy emas, haqiqiy qiladi.",
+  "You're most active around {h}:00 — your {part}.": "Siz {h}:00 atrofida eng faolsiz — bu sizning {part}ingiz.",
+  "You lean on {module} more than anything else.": "Siz eng ko'p {module} bo'limiga tayanasiz.",
+  "You act early — mornings are when you move.": "Siz erta harakat qilasiz — tonglar sizning vaqtingiz.",
+  "You act late — evenings are when you move.": "Siz kech harakat qilasiz — kechqurunlar sizning vaqtingiz.",
+  "Your activity is spread through the day, not clustered.":
+    "Faolligingiz kun bo'ylab tarqalgan, bir joyga to'planmagan.",
+  morning: "tong",
+  afternoon: "kunduz",
+  evening: "kech",
+
+  // ── Quick capture ──
+  "What would you like to add?": "Nima qo'shmoqchisiz?",
+  "Just say it — ISA fills in the rest.": "Shunchaki ayting — qolganini ISA to'ldiradi.",
+  Task: "Vazifa",
+  Habit: "Odat",
+  Goal: "Maqsad",
+  Idea: "G'oya",
+  Project: "Loyiha",
+  Run: "Yugurish",
+
   // Weekday short labels (chart axis)
   Sun: "Yak",
   Mon: "Dush",
@@ -591,6 +652,68 @@ const RU: Record<string, string> = {
   'Delete "{name}"?': 'Удалить «{name}»?',
   "This removes the habit and its whole history. It can't be undone.":
     "Это удалит привычку и всю её историю. Отменить будет нельзя.",
+
+  "This week": "На этой неделе",
+  Improving: "Улучшается",
+  Softening: "Ослабевает",
+  Steady: "Стабильно",
+
+  // ── Dashboard: Today's Mission ──
+  "Today's Mission": "Миссия дня",
+  "{done} of {total} done": "{done} из {total} выполнено",
+  "Complete today's habits": "Выполните привычки на сегодня",
+  "Focus for 25 minutes": "Сфокусируйтесь 25 минут",
+  "Write today's journal": "Запишите дневник за сегодня",
+  "Clear today's tasks": "Закройте задачи на сегодня",
+  "Log today's expenses": "Запишите расходы за сегодня",
+  "Log your sleep": "Отметьте сон",
+  "Record your mood": "Отметьте настроение",
+
+  // ── Life Coverage / What ISA knows ──
+  "Life Coverage": "Охват жизни",
+  "What ISA knows": "Что ISA знает",
+  "Everything here comes from your own data — with its confidence shown.":
+    "Всё здесь — из ваших данных, с указанием уверенности.",
+  "What ISA is still missing": "Чего ISA пока не хватает",
+  "Each one you add makes ISA's insights real rather than generic.":
+    "Каждая добавленная область делает выводы ISA реальными, а не общими.",
+  "What ISA has learned": "Что ISA узнала",
+  "Reading your history…": "Читаю вашу историю…",
+  "Nothing solid yet — ISA won't invent a pattern it hasn't seen. Keep using it for a week and real findings appear here.":
+    "Пока ничего определённого — ISA не выдумывает закономерности. Попользуйтесь неделю, и здесь появятся реальные выводы.",
+  "{n}% confidence": "уверенность {n}%",
+  "Moderate confidence": "Средняя уверенность",
+  "Low confidence — needs more data": "Низкая уверенность — нужно больше данных",
+  Sleep: "Сон",
+  Running: "Бег",
+  "ISA sees the whole picture — its patterns and predictions are at their strongest.":
+    "ISA видит всю картину — её закономерности и прогнозы максимально надёжны.",
+  "ISA understands most of your life. Filling the gaps sharpens its insights.":
+    "ISA понимает большую часть вашей жизни. Заполнение пробелов усилит выводы.",
+  "ISA is still learning you. More areas mean fewer guesses.":
+    "ISA ещё изучает вас. Чем больше областей, тем меньше догадок.",
+  "ISA barely knows you yet. Each area you add makes its insights real rather than generic.":
+    "ISA пока почти не знает вас. Каждая новая область делает выводы реальными, а не общими.",
+  "You're most active around {h}:00 — your {part}.": "Вы активнее всего около {h}:00 — это ваше {part}.",
+  "You lean on {module} more than anything else.": "Больше всего вы опираетесь на раздел «{module}».",
+  "You act early — mornings are when you move.": "Вы действуете рано — утро ваше время.",
+  "You act late — evenings are when you move.": "Вы действуете поздно — вечер ваше время.",
+  "Your activity is spread through the day, not clustered.":
+    "Ваша активность распределена по дню, а не сосредоточена.",
+  morning: "утро",
+  afternoon: "день",
+  evening: "вечер",
+
+  // ── Quick capture ──
+  "What would you like to add?": "Что хотите добавить?",
+  "Just say it — ISA fills in the rest.": "Просто скажите — остальное заполнит ISA.",
+  Task: "Задача",
+  Habit: "Привычка",
+  Goal: "Цель",
+  Expense: "Расход",
+  Idea: "Идея",
+  Project: "Проект",
+  Run: "Пробежка",
 
   // Weekday short labels (chart axis)
   Sun: "Вс",
