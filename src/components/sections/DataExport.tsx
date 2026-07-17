@@ -11,16 +11,24 @@ import { useT } from "@/lib/i18n";
 
 // Every table holding the user's own content. RLS scopes each select to them.
 // Credential tables (strava_connections, push_subscriptions) are intentionally
-// excluded — they hold OAuth/push secrets, not personal data.
+// excluded — they hold OAuth/push secrets, not personal data. Engine-derived
+// tables (life_events, ai_*) are excluded too — they rebuild from this content.
+//
+// Order matters for RESTORE: a table whose rows reference another (FK) must come
+// AFTER its parent so the upsert doesn't hit a missing reference — hence
+// goal_milestones after goals, transactions after finance_goals, etc.
 const TABLES = [
   "goals",
+  "goal_milestones",
   "projects",
   "project_tasks",
+  "project_notes",
   "ideas",
   "journal_entries",
   "focus_sessions",
   "sleep_logs",
   "daily_energy_scores",
+  "daily_checkins",
   "weekly_reviews",
   "habits",
   "habit_logs",
@@ -28,6 +36,9 @@ const TABLES = [
   "todos",
   "runs",
   "strava_activities",
+  "finance_goals",
+  "transactions",
+  "recurring_payments",
   "reminders",
   "prayer_preferences",
   "prayer_logs",
@@ -36,13 +47,16 @@ const TABLES = [
 // Human labels for the readable report — no raw table names ever reach the page.
 const DATASET_LABELS: Record<string, string> = {
   goals: "Goals",
+  goal_milestones: "Goal milestones",
   projects: "Projects",
   project_tasks: "Project steps",
+  project_notes: "Project notes",
   ideas: "Ideas",
   journal_entries: "Journal entries",
   focus_sessions: "Focus sessions",
   sleep_logs: "Sleep logs",
   daily_energy_scores: "Energy scores",
+  daily_checkins: "Daily check-ins",
   weekly_reviews: "Weekly reviews",
   habits: "Habits",
   habit_logs: "Habit check-ins",
@@ -50,6 +64,9 @@ const DATASET_LABELS: Record<string, string> = {
   todos: "Tasks",
   runs: "Runs (manual)",
   strava_activities: "Runs (Strava)",
+  finance_goals: "Savings goals",
+  transactions: "Transactions",
+  recurring_payments: "Recurring payments",
   reminders: "Reminders",
   prayer_preferences: "Prayer settings",
   prayer_logs: "Prayer logs",
