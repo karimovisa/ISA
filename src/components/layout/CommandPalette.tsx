@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { ROUTE_MODULE, accountAgeDays, isUnlocked, readUnlockOverrides } from "@/lib/unlock";
 import { useEntitlements } from "@/components/EntitlementProvider";
 import { useT } from "@/lib/i18n";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
@@ -73,7 +74,7 @@ type Bundle = {
 
 export function CommandPalette() {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { canUse } = useEntitlements();
   const { t } = useT();
   const [open, setOpen] = useState(false);
@@ -86,6 +87,18 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const close = useCallback(() => { setOpen(false); setQuery(""); setCompose(null); setSaving(false); }, []);
+
+  // Don't list a module the account hasn't reached yet. (A search hit still
+  // resolves — ModuleGate then offers to open it early, so nothing dead-ends.)
+  const [unlockOverrides] = useState<string[]>(() => readUnlockOverrides());
+  const accountAge = accountAgeDays(user?.created_at);
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((i) => {
+      const m = ROUTE_MODULE[i.href];
+      return !m || isUnlocked(m, accountAge, unlockOverrides);
+    }),
+  })).filter((g) => g.items.length > 0);
 
   useEffect(() => {
     try { setFavs(JSON.parse(localStorage.getItem("isa_favs") || "[]")); setRecent(JSON.parse(localStorage.getItem("isa_recent") || "[]")); } catch {}
@@ -268,7 +281,7 @@ export function CommandPalette() {
                   )}
 
                   {/* Grouped nav */}
-                  {GROUPS.map((grp) => (
+                  {groups.map((grp) => (
                     <Section key={grp.title} label={t(grp.title)}>
                       {grp.items.map((n) => <NavRow key={n.id} n={n} t={t} onGo={() => goTo(n.href, n.id)} starred={favs.includes(n.id)} onStar={() => toggleFav(n.id)} />)}
                     </Section>

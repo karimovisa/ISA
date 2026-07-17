@@ -435,6 +435,32 @@ const UZ: Record<string, string> = {
   afternoon: "kunduz",
   evening: "kech",
 
+  // ── Progressive unlock ──
+  "Opens in {n} days": "{n} kundan keyin ochiladi",
+  "Open it anyway": "Baribir hozir ochish",
+  "Back to dashboard": "Boshqaruvga qaytish",
+  "ISA introduces itself a piece at a time so nothing feels overwhelming — but this is your life, not a game. Open it whenever you want.":
+    "ISA o'zini bo'lak-bo'lak tanishtiradi — cho'kib ketmasligingiz uchun. Lekin bu sizning hayotingiz, o'yin emas. Xohlagan payt oching.",
+  "Set the direction — everything else measures against it.":
+    "Yo'nalishni belgilang — qolgan hamma narsa shunga qarab o'lchanadi.",
+  "The small daily actions that compound into the goals.":
+    "Maqsadga aylanadigan kichik kundalik harakatlar.",
+  "Deep work is where the goals actually move.": "Maqsad aslida chuqur ish bilan siljiydi.",
+  "ISA now has a few days of actions — your words explain the why behind them.":
+    "ISA'da endi bir necha kunlik harakat bor — sizning so'zlaringiz ularning sababini tushuntiradi.",
+  "Somewhere to catch a thought before it fades.": "Fikr o'chib ketmasdan ilib olish uchun joy.",
+  "ISA can now start connecting movement to your energy and mood.":
+    "ISA endi harakatni energiya va kayfiyatingizga bog'lay boshlaydi.",
+  "Your day already has a shape — this anchors it.": "Kuningiz allaqachon shaklga ega — bu uni mustahkamlaydi.",
+  "ISA now knows your rhythm, so it can begin understanding your spending.":
+    "ISA endi ritmingizni biladi, shuning uchun xarajatingizni tushuna boshlaydi.",
+  "With habits and goals in place, ISA can see how your time collides with them.":
+    "Odat va maqsadlar joyida — endi ISA vaqtingiz ular bilan qanday to'qnashishini ko'radi.",
+  "Bigger than a goal? Projects hold the steps, notes and links.":
+    "Maqsaddan kattami? Loyihalar qadamlar, izohlar va bog'lanishlarni saqlaydi.",
+  "There's finally enough history to show how you're actually changing.":
+    "Nihoyat qanday o'zgarayotganingizni ko'rsatish uchun yetarli tarix to'plandi.",
+
   // ── Ask ISA: detected templates ──
   "Task detected": "Vazifa aniqlandi",
   "Expense detected": "Xarajat aniqlandi",
@@ -743,6 +769,32 @@ const RU: Record<string, string> = {
   morning: "утро",
   afternoon: "день",
   evening: "вечер",
+
+  // ── Progressive unlock ──
+  "Opens in {n} days": "Откроется через {n} дн.",
+  "Open it anyway": "Всё равно открыть",
+  "Back to dashboard": "На главную",
+  "ISA introduces itself a piece at a time so nothing feels overwhelming — but this is your life, not a game. Open it whenever you want.":
+    "ISA открывается постепенно, чтобы не перегружать вас. Но это ваша жизнь, а не игра — открывайте когда захотите.",
+  "Set the direction — everything else measures against it.":
+    "Задайте направление — всё остальное измеряется относительно него.",
+  "The small daily actions that compound into the goals.":
+    "Маленькие ежедневные действия, которые складываются в цели.",
+  "Deep work is where the goals actually move.": "Цели двигаются именно за счёт глубокой работы.",
+  "ISA now has a few days of actions — your words explain the why behind them.":
+    "У ISA уже есть несколько дней ваших действий — ваши слова объяснят их причину.",
+  "Somewhere to catch a thought before it fades.": "Место, чтобы поймать мысль, пока она не угасла.",
+  "ISA can now start connecting movement to your energy and mood.":
+    "ISA сможет связать движение с вашей энергией и настроением.",
+  "Your day already has a shape — this anchors it.": "У вашего дня уже есть форма — это его закрепит.",
+  "ISA now knows your rhythm, so it can begin understanding your spending.":
+    "ISA знает ваш ритм и теперь может начать понимать ваши траты.",
+  "With habits and goals in place, ISA can see how your time collides with them.":
+    "Привычки и цели на месте — теперь ISA видит, как с ними сталкивается ваше время.",
+  "Bigger than a goal? Projects hold the steps, notes and links.":
+    "Больше цели? Проекты хранят шаги, заметки и связи.",
+  "There's finally enough history to show how you're actually changing.":
+    "Наконец накопилось достаточно истории, чтобы показать, как вы меняетесь.",
 
   // ── Ask ISA: detected templates ──
   "Task detected": "Обнаружена задача",

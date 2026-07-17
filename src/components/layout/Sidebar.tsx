@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -26,6 +27,7 @@ import { useT } from "@/lib/i18n";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
 import { useNavOrder } from "@/components/NavOrderProvider";
+import { ROUTE_MODULE, accountAgeDays, isUnlocked, readUnlockOverrides } from "@/lib/unlock";
 
 export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -91,13 +93,24 @@ function NavLink({
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { t } = useT();
   const { order } = useNavOrder();
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // Progressive disclosure: a module the account hasn't reached yet stays out of
+  // the nav. Existing accounts are past the last unlock day, so nothing hides.
+  const [overrides] = useState<string[]>(() => readUnlockOverrides());
+  const age = accountAgeDays(user?.created_at);
+  const visible = (href: string) => {
+    const mod = ROUTE_MODULE[href];
+    return !mod || isUnlocked(mod, age, overrides);
+  };
+
+  const nav = NAV.filter((n) => visible(n.href));
   const mobileMain = order
-    .filter((href) => PRIMARY.includes(href))
+    .filter((href) => PRIMARY.includes(href) && visible(href))
     .map((href) => NAV_BY_HREF[href])
     .filter(Boolean);
 
@@ -116,7 +129,7 @@ export function Sidebar() {
           data-tour="nav-bar"
           className="glass flex flex-col items-center gap-1 rounded-3xl p-2"
         >
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <NavLink
               key={item.href}
               href={item.href}

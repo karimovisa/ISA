@@ -13,6 +13,7 @@ import { OnboardingPrayerModal } from "@/components/sections/OnboardingPrayerMod
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { SetupNotice } from "@/components/layout/SetupNotice";
 import { QuickCapture } from "@/components/QuickCapture";
+import { ModuleGate } from "@/components/ModuleGate";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MountainBackdrop } from "@/components/brand/MountainBackdrop";
 
@@ -82,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Top padding clears the fixed EN/UZ toggle (and the notch) so a page's
           own header controls are never hidden underneath it. */}
       <main className="mx-auto w-full max-w-6xl px-5 pb-28 pt-[calc(3.75rem+env(safe-area-inset-top))] sm:px-8 md:pb-12 md:pt-12">
-        {children}
+        <ModuleGate>{children}</ModuleGate>
       </main>
       <Sidebar />
       <CommandPalette />
