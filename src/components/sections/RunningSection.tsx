@@ -19,6 +19,7 @@ import { PressButton } from "@/components/ui/PressButton";
 import { fieldClass } from "@/components/ui/Modal";
 import { connectStrava, syncStrava } from "@/lib/stravaClient";
 import { toast } from "@/lib/toast";
+import { useT } from "@/lib/i18n";
 import {
   insightsOf,
   last7Of,
@@ -38,11 +39,14 @@ const tooltipStyle = {
 };
 
 export function RunningSection() {
+  const { t } = useT();
   // Manual runs (always available).
   const manual = useCollection<RunLog>("runs", {
     orderBy: "log_date",
     ascending: false,
   });
+  // Recent list stays short by default — the last two runs, expandable.
+  const [showAll, setShowAll] = useState(false);
 
   // Strava state.
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -121,6 +125,11 @@ export function RunningSection() {
 
   const ins = insightsOf(runs);
   const chart = last7Of(runs);
+
+  // Live pace so the user sees the result before saving — no mental math.
+  const previewSecs = Number(min || 0) * 60 + Number(sec || 0);
+  const previewPace =
+    Number(km) > 0 && previewSecs > 0 ? paceFromDuration(Number(km), previewSecs) : null;
 
   const logManual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,11 +245,12 @@ export function RunningSection() {
           <Field label="Distance (km)">
             <input
               type="number"
-              step="0.1"
+              step="any"
               min="0"
+              inputMode="decimal"
               value={km}
               onChange={(e) => setKm(e.target.value)}
-              placeholder="5.0"
+              placeholder="5.05"
               className={`${fieldClass} h-10 w-24 py-1`}
             />
           </Field>
@@ -266,6 +276,14 @@ export function RunningSection() {
               />
             </div>
           </Field>
+          {previewPace && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs uppercase tracking-wider text-muted">Pace</span>
+              <span className="flex h-10 items-center text-sm font-semibold tabular-nums text-fg/90">
+                {previewPace} /km
+              </span>
+            </div>
+          )}
           <PressButton
             type="submit"
             className="flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-black transition hover:bg-white/90"
@@ -275,10 +293,10 @@ export function RunningSection() {
           </PressButton>
         </form>
 
-        {/* Recent */}
+        {/* Recent — last two by default, expandable */}
         {runs.length > 0 && (
           <ul className="mt-5 space-y-2">
-            {runs.slice(0, 6).map((r) => (
+            {runs.slice(0, showAll ? 12 : 2).map((r) => (
               <li
                 key={r.id}
                 className="group flex items-center justify-between border-t border-line pt-2 text-sm first:border-0 first:pt-0"
@@ -317,6 +335,15 @@ export function RunningSection() {
               </li>
             ))}
           </ul>
+        )}
+
+        {runs.length > 2 && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="mt-3 w-full rounded-xl border border-line py-2 text-xs text-muted transition hover:text-fg"
+          >
+            {showAll ? t("Hide") : t("Show {n} more", { n: runs.length - 2 })}
+          </button>
         )}
 
         {note && <p className="mt-4 text-xs text-muted">{note}</p>}

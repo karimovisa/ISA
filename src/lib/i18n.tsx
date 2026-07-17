@@ -392,6 +392,8 @@ const UZ: Record<string, string> = {
     "Bu odat va uning butun tarixini o'chiradi. Qaytarib bo'lmaydi.",
 
   "This week": "Bu hafta",
+  Hide: "Yashirish",
+  "Show {n} more": "Yana {n} ta",
   Improving: "Yaxshilanmoqda",
   Softening: "Pasaymoqda",
   Steady: "Barqaror",
@@ -786,6 +788,8 @@ const RU: Record<string, string> = {
     "Это удалит привычку и всю её историю. Отменить будет нельзя.",
 
   "This week": "На этой неделе",
+  Hide: "Скрыть",
+  "Show {n} more": "Ещё {n}",
   Improving: "Улучшается",
   Softening: "Ослабевает",
   Steady: "Стабильно",
