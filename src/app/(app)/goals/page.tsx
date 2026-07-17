@@ -111,6 +111,7 @@ export default function GoalsPage() {
       ) : active.length === 0 ? (
         <EmptyState icon={Target} title="No goals yet"
           description="Name a summit, set a deadline, then add milestones — ISA tracks the rest."
+          learns="Goals give ISA a direction to measure against. Without one, every other number is just activity — with one, ISA can tell you whether you're actually getting closer."
           actionLabel="Add your first goal" onAction={openNew} />
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

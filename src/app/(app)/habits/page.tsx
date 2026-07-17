@@ -196,6 +196,7 @@ export default function HabitsPage() {
       ) : dueToday.length === 0 ? (
         <EmptyState icon={Repeat} title={active.length ? "Nothing due today" : "No habits yet"}
           description={active.length ? "Enjoy the breather — no habits are scheduled for today." : "Pick one small thing to repeat and let ISA track it."}
+          learns={active.length ? undefined : "ISA will begin learning your consistency — which days you hold, which days you slip, and what your streaks depend on."}
           actionLabel="Add your first habit" onAction={openNew} />
       ) : (
         <div className="space-y-3">

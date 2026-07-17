@@ -435,6 +435,20 @@ const UZ: Record<string, string> = {
   afternoon: "kunduz",
   evening: "kech",
 
+  // ── Smart empty states: what ISA starts to understand ──
+  "ISA will begin learning your consistency — which days you hold, which days you slip, and what your streaks depend on.":
+    "ISA barqarorligingizni o'rgana boshlaydi — qaysi kunlar ushlab turasiz, qaysi kunlar qoldirasiz va ketma-ketligingiz nimaga bog'liq.",
+  "ISA will begin learning where your money goes, what a normal week costs you, and how spending affects your goals.":
+    "ISA pulingiz qayerga ketishini, oddiy hafta qanchaga tushishini va xarajat maqsadlaringizga qanday ta'sir qilishini o'rgana boshlaydi.",
+  "Goals give ISA a direction to measure against. Without one, every other number is just activity — with one, ISA can tell you whether you're actually getting closer.":
+    "Maqsad ISA'ga o'lchash uchun yo'nalish beradi. Usiz har qanday raqam — shunchaki faollik. U bilan esa ISA haqiqatan yaqinlashayotganingizni ayta oladi.",
+  "Saving for a phone or a trip? ISA works out the pace you're on and when you'll actually get there.":
+    "Telefon yoki sayohatga yig'yapsizmi? ISA sur'atingizni hisoblab, qachon yetib borishingizni aytadi.",
+  "ISA will start noticing the themes you keep returning to — and can offer to turn a recurring one into a goal.":
+    "ISA qayta-qayta qaytayotgan mavzularingizni sezishni boshlaydi — va takrorlanganini maqsadga aylantirishni taklif qiladi.",
+  "ISA will track each project's pace against its deadline and tell you which one is quietly stalling.":
+    "ISA har bir loyiha sur'atini muddatiga solishtiradi va qaysi biri sekin to'xtayotganini aytadi.",
+
   // ── Progressive unlock ──
   "Opens in {n} days": "{n} kundan keyin ochiladi",
   "Open it anyway": "Baribir hozir ochish",
@@ -769,6 +783,20 @@ const RU: Record<string, string> = {
   morning: "утро",
   afternoon: "день",
   evening: "вечер",
+
+  // ── Smart empty states: what ISA starts to understand ──
+  "ISA will begin learning your consistency — which days you hold, which days you slip, and what your streaks depend on.":
+    "ISA начнёт изучать вашу регулярность — в какие дни вы держитесь, в какие срываетесь и от чего зависят ваши серии.",
+  "ISA will begin learning where your money goes, what a normal week costs you, and how spending affects your goals.":
+    "ISA начнёт понимать, куда уходят деньги, сколько стоит обычная неделя и как траты влияют на ваши цели.",
+  "Goals give ISA a direction to measure against. Without one, every other number is just activity — with one, ISA can tell you whether you're actually getting closer.":
+    "Цель даёт ISA направление для измерения. Без неё любые цифры — просто активность. С ней ISA скажет, приближаетесь ли вы на самом деле.",
+  "Saving for a phone or a trip? ISA works out the pace you're on and when you'll actually get there.":
+    "Копите на телефон или поездку? ISA рассчитает ваш темп и когда вы реально дойдёте до цели.",
+  "ISA will start noticing the themes you keep returning to — and can offer to turn a recurring one into a goal.":
+    "ISA начнёт замечать темы, к которым вы возвращаетесь, и предложит превратить повторяющуюся в цель.",
+  "ISA will track each project's pace against its deadline and tell you which one is quietly stalling.":
+    "ISA сравнит темп каждого проекта со сроком и скажет, какой из них тихо застывает.",
 
   // ── Progressive unlock ──
   "Opens in {n} days": "Откроется через {n} дн.",

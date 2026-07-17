@@ -207,7 +207,9 @@ export default function MoneyPage() {
           </div>
         </div>
         {txns.loading ? <div className="glass h-40 animate-pulse rounded-3xl" /> : filtered.length === 0 ? (
-          <EmptyState icon={Wallet} title="No transactions" description="Add your first income or expense — or tap a Quick add above." actionLabel="Add a transaction" onAction={() => openNew("expense")} />
+          <EmptyState icon={Wallet} title="No transactions" description="Add your first income or expense — or tap a Quick add above."
+            learns="ISA will begin learning where your money goes, what a normal week costs you, and how spending affects your goals."
+            actionLabel="Add a transaction" onAction={() => openNew("expense")} />
         ) : (
           <GlassCard className="divide-y divide-white/5 p-0">
             {filtered.slice(0, 30).map((tx) => {

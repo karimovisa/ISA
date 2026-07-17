@@ -160,7 +160,9 @@ export default function ProjectsPage() {
       {projects.loading ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="glass h-48 animate-pulse rounded-3xl" />)}</div>
       ) : visible.length === 0 ? (
-        <EmptyState icon={FolderKanban} title="No projects" description="Break a goal into a project you can actually ship." actionLabel="Add your first project" onAction={openNew} />
+        <EmptyState icon={FolderKanban} title="No projects" description="Break a goal into a project you can actually ship."
+          learns="ISA will track each project's pace against its deadline and tell you which one is quietly stalling."
+          actionLabel="Add your first project" onAction={openNew} />
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {visible.map((p) => {

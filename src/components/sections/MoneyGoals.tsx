@@ -108,6 +108,7 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
           icon={Wallet}
           title="No savings goals yet"
           description="Name what you're saving for and track it here."
+          learns="Saving for a phone or a trip? ISA works out the pace you're on and when you'll actually get there."
           actionLabel="Add your first goal"
           onAction={openNew}
         />

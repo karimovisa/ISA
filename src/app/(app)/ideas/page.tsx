@@ -120,7 +120,9 @@ export default function IdeasPage() {
       {ideas.loading ? (
         <div className="columns-1 gap-5 sm:columns-2 lg:columns-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="glass mb-5 h-32 animate-pulse rounded-3xl" />)}</div>
       ) : visible.length === 0 ? (
-        <EmptyState icon={Lightbulb} title={query || filter !== "all" ? "No matching ideas" : "Your vault is empty"} description="Drop the next thought before it slips away." actionLabel="Capture your first idea" onAction={() => setOpen(true)} />
+        <EmptyState icon={Lightbulb} title={query || filter !== "all" ? "No matching ideas" : "Your vault is empty"} description="Drop the next thought before it slips away."
+          learns={query || filter !== "all" ? undefined : "ISA will start noticing the themes you keep returning to — and can offer to turn a recurring one into a goal."}
+          actionLabel="Capture your first idea" onAction={() => setOpen(true)} />
       ) : (
         <div className="columns-1 gap-5 sm:columns-2 lg:columns-3">
           {visible.map((idea, i) => {
