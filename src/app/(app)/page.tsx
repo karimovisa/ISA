@@ -20,6 +20,7 @@ import { SleepCard } from "@/components/sections/SleepCard";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { Onboarding } from "@/components/sections/Onboarding";
 import { TodoList } from "@/components/sections/TodoList";
+import { DailyCheckin } from "@/components/sections/DailyCheckin";
 import { AscentProgress } from "@/components/ui/AscentProgress";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatDate, todayISO } from "@/lib/datetime";
@@ -167,6 +168,9 @@ export default function DashboardPage() {
           <HelpCircle size={17} />
         </button>
       </motion.section>
+
+      {/* Evening only, once a day — the one thing ISA can't derive: why. */}
+      <DailyCheckin />
 
       {/* 2 — Today's Mission: the answer to "what should I do today?" */}
       <motion.div {...rise(0.05)} className="mb-4">

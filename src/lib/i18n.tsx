@@ -435,6 +435,22 @@ const UZ: Record<string, string> = {
   afternoon: "kunduz",
   evening: "kech",
 
+  // ── Daily check-in ──
+  "How did today go?": "Bugun qanday o'tdi?",
+  "Takes five seconds.": "Besh soniya oladi.",
+  "Good day": "Yaxshi kun",
+  "It was okay": "O'rtacha",
+  "Not my best": "Unchalik emas",
+  "What got in the way?": "Nima xalaqit berdi?",
+  "One tap — ISA uses it to explain your patterns later.":
+    "Bir bosish — ISA keyinchalik naqshlaringizni shu bilan tushuntiradi.",
+  Busy: "Bandlik",
+  Tired: "Charchoq",
+  Distracted: "Diqqat bo'lindi",
+  Unwell: "Sog'lik",
+  Other: "Boshqa",
+  "Skip the reason": "Sababni o'tkazib yuborish",
+
   // ── Smart empty states: what ISA starts to understand ──
   "ISA will begin learning your consistency — which days you hold, which days you slip, and what your streaks depend on.":
     "ISA barqarorligingizni o'rgana boshlaydi — qaysi kunlar ushlab turasiz, qaysi kunlar qoldirasiz va ketma-ketligingiz nimaga bog'liq.",
@@ -783,6 +799,22 @@ const RU: Record<string, string> = {
   morning: "утро",
   afternoon: "день",
   evening: "вечер",
+
+  // ── Daily check-in ──
+  "How did today go?": "Как прошёл день?",
+  "Takes five seconds.": "Займёт пять секунд.",
+  "Good day": "Хороший день",
+  "It was okay": "Нормально",
+  "Not my best": "Не лучший",
+  "What got in the way?": "Что помешало?",
+  "One tap — ISA uses it to explain your patterns later.":
+    "Одно касание — ISA потом объяснит этим ваши закономерности.",
+  Busy: "Занятость",
+  Tired: "Усталость",
+  Distracted: "Отвлекался",
+  Unwell: "Самочувствие",
+  Other: "Другое",
+  "Skip the reason": "Пропустить причину",
 
   // ── Smart empty states: what ISA starts to understand ──
   "ISA will begin learning your consistency — which days you hold, which days you slip, and what your streaks depend on.":
