@@ -24,9 +24,9 @@ export function PageHeader({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="mb-8 flex flex-wrap items-end justify-between gap-4"
+      className="mb-8 flex flex-wrap items-start justify-between gap-4"
     >
-      <div>
+      <div className="min-w-0">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
           {t(title)}
         </h1>
@@ -36,7 +36,8 @@ export function PageHeader({
           </p>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      {/* Aligned with the TITLE line (mt-1), not dropped to the subtitle. */}
+      <div className="mt-1 flex shrink-0 items-center gap-2">
         {hasHelp && (
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("isa:open-help", { detail: helpKey }))}
