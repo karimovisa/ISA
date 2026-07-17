@@ -435,6 +435,16 @@ const UZ: Record<string, string> = {
   afternoon: "kunduz",
   evening: "kech",
 
+  // ── Navigation editor / palette ──
+  "Navigation order": "Navigatsiya tartibi",
+  "Drag to reorder every page. The first {n} appear in your mobile bottom bar; the rest stay one search (⌘K) away.":
+    "Har bir sahifani sudrab tartiblang. Birinchi {n} tasi pastki panelda chiqadi; qolgani qidiruvda (⌘K) qoladi.",
+  "Bottom bar": "Pastki panel",
+  "Jump to": "O'tish",
+  "This removes the project and its steps. It can't be undone.":
+    "Bu loyiha va uning qadamlarini o'chiradi. Qaytarib bo'lmaydi.",
+  "Delete this idea?": "Bu g'oya o'chirilsinmi?",
+
   // ── Daily check-in ──
   "How did today go?": "Bugun qanday o'tdi?",
   "Takes five seconds.": "Besh soniya oladi.",
@@ -799,6 +809,16 @@ const RU: Record<string, string> = {
   morning: "утро",
   afternoon: "день",
   evening: "вечер",
+
+  // ── Navigation editor / palette ──
+  "Navigation order": "Порядок навигации",
+  "Drag to reorder every page. The first {n} appear in your mobile bottom bar; the rest stay one search (⌘K) away.":
+    "Перетащите, чтобы упорядочить все страницы. Первые {n} появятся в нижней панели; остальные — в поиске (⌘K).",
+  "Bottom bar": "Нижняя панель",
+  "Jump to": "Перейти",
+  "This removes the project and its steps. It can't be undone.":
+    "Это удалит проект и его шаги. Отменить будет нельзя.",
+  "Delete this idea?": "Удалить эту идею?",
 
   // ── Daily check-in ──
   "How did today go?": "Как прошёл день?",

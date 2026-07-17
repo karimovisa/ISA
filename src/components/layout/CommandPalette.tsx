@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Search, ArrowRight, CornerDownLeft, LayoutDashboard, Target, FolderKanban,
-  Lightbulb, BarChart3, BookOpen, Timer, Repeat, CalendarDays, Settings, Plus,
-  LogOut, Wallet, Star, Clock, PenLine, Sparkles, TrendingUp, TrendingDown, Lock,
+  Search, ArrowRight, LayoutDashboard, Target, FolderKanban,
+  Lightbulb, BarChart3, BookOpen, Timer, Repeat, CalendarDays, Settings,
+  LogOut, Wallet, Star, Clock, PenLine, Sparkles, Lock, Brain, ListTodo,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -17,11 +17,9 @@ import { MosqueIcon } from "@/components/ui/MosqueIcon";
 import { todayISO } from "@/lib/datetime";
 import { nearestDeadline } from "@/lib/stats";
 import { toast } from "@/lib/toast";
-import { cn } from "@/lib/cn";
 import type { Goal, Todo, Project, Habit, Idea, JournalEntry, Transaction, FocusSession } from "@/lib/types";
 
 type NavItem = { id: string; label: string; href: string; icon: React.ComponentType<{ size?: number; className?: string }>; keywords?: string };
-type AddItem = { id: string; label: string; entity: string; table: string; placeholder: string; icon: React.ComponentType<{ size?: number; className?: string }>; build: (v: string) => Record<string, unknown> };
 type SearchHit = { id: string; type: string; label: string; href: string; icon: React.ComponentType<{ size?: number; className?: string }> };
 
 const GROUPS: { title: string; items: NavItem[] }[] = [
@@ -42,6 +40,8 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
     { id: "nav-money", label: "Money", href: "/money", icon: Wallet, keywords: "budget expense income" },
   ]},
   { title: "Insights", items: [
+    { id: "nav-ask", label: "Ask ISA", href: "/ask", icon: Sparkles, keywords: "chat ai assistant so'rash" },
+    { id: "nav-knows", label: "What ISA knows", href: "/knows", icon: Brain, keywords: "coverage facts confidence biladi" },
     { id: "nav-progress", label: "Progress", href: "/progress", icon: BarChart3, keywords: "charts analytics" },
   ]},
   { title: "System", items: [
@@ -52,14 +52,9 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
 const ALL_NAV = GROUPS.flatMap((g) => g.items);
 const navById = (id: string) => ALL_NAV.find((n) => n.id === id);
 
-const QUICK_ADD: AddItem[] = [
-  { id: "add-goal", label: "Goal", entity: "goal", table: "goals", placeholder: "Goal title…", icon: Target, build: (v) => ({ title: v, deadline: null, motivation: null }) },
-  { id: "add-todo", label: "Task", entity: "task", table: "todos", placeholder: "Task for today…", icon: Plus, build: (v) => ({ title: v, date: todayISO(), done: false, priority: "normal" }) },
-  { id: "add-habit", label: "Habit", entity: "habit", table: "habits", placeholder: "Habit name…", icon: Repeat, build: (v) => ({ name: v, icon: null, is_active: true }) },
-  { id: "add-idea", label: "Idea", entity: "idea", table: "ideas", placeholder: "Capture an idea…", icon: Lightbulb, build: (v) => ({ content: v, tag: null }) },
-  { id: "add-expense", label: "Expense", entity: "expense", table: "transactions", placeholder: "Amount, e.g. 50000…", icon: TrendingDown, build: (v) => ({ type: "expense", amount: Number(v.replace(/[^\d.]/g, "")) || 0, category: "Other", note: null, date: todayISO() }) },
-  { id: "add-income", label: "Income", entity: "income", table: "transactions", placeholder: "Amount, e.g. 2000000…", icon: TrendingUp, build: (v) => ({ type: "income", amount: Number(v.replace(/[^\d.]/g, "")) || 0, category: "Salary", note: null, date: todayISO() }) },
-];
+// Creating lives in exactly one place — the global "+" (QuickCapture). The
+// palette searches and navigates; it no longer offers a second, divergent way to
+// add things.
 const QUICK_NAV = [
   { id: "qn-journal", label: "Journal", href: "/journal", icon: PenLine },
   { id: "qn-focus", label: "Focus", href: "/focus", icon: Timer },
@@ -79,14 +74,12 @@ export function CommandPalette() {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [compose, setCompose] = useState<AddItem | null>(null);
-  const [saving, setSaving] = useState(false);
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const close = useCallback(() => { setOpen(false); setQuery(""); setCompose(null); setSaving(false); }, []);
+  const close = useCallback(() => { setOpen(false); setQuery(""); }, []);
 
   // Don't list a module the account hasn't reached yet. (A search hit still
   // resolves — ModuleGate then offers to open it early, so nothing dead-ends.)
@@ -108,7 +101,7 @@ export function CommandPalette() {
     return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("isa:open-palette", onOpen); };
   }, []);
 
-  useEffect(() => { if (open) requestAnimationFrame(() => inputRef.current?.focus()); }, [open, compose]);
+  useEffect(() => { if (open) requestAnimationFrame(() => inputRef.current?.focus()); }, [open]);
 
   // Load searchable bundle when the palette opens.
   useEffect(() => {
@@ -144,7 +137,7 @@ export function CommandPalette() {
       for (const x of arr) { if (text(x as never).toLowerCase().includes(q)) out.push({ id: `${type}-${x.id}`, type, label: text(x as never), href, icon }); if (out.length > 40) break; }
     };
     push(bundle.goals, (x: Goal) => x.title, "Goal", "/goals", Target);
-    push(bundle.todos, (x: Todo) => x.title, "Task", "/habits", Plus);
+    push(bundle.todos, (x: Todo) => x.title, "Task", "/habits", ListTodo);
     push(bundle.projects, (x: Project) => x.title, "Project", "/projects", FolderKanban);
     push(bundle.habits, (x: Habit) => x.name, "Habit", "/habits", Repeat);
     push(bundle.ideas, (x: Idea) => x.content, "Idea", "/ideas", Lightbulb);
@@ -168,21 +161,9 @@ export function CommandPalette() {
     setFavs(next); localStorage.setItem("isa_favs", JSON.stringify(next));
   };
 
-  const save = useCallback(async () => {
-    if (!compose) return;
-    const value = query.trim(); if (!value || saving) return;
-    setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
-    const { error } = await supabase.from(compose.table).insert({ ...compose.build(value), user_id: user.id } as never);
-    if (error) toast(`Couldn't save ${compose.entity}`, "error"); else toast(`${compose.label} added`, "success");
-    close();
-  }, [compose, query, saving, close]);
-
   const onInputKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") { e.preventDefault(); if (compose) { setCompose(null); setQuery(""); } else close(); return; }
-    if (compose && e.key === "Enter") { e.preventDefault(); void save(); return; }
-    if (!compose && e.key === "Enter" && hits[0]) { e.preventDefault(); goTo(hits[0].href, hits[0].type === "Go to" ? hits[0].id : undefined); }
+    if (e.key === "Escape") { e.preventDefault(); close(); return; }
+    if (e.key === "Enter" && hits[0]) { e.preventDefault(); goTo(hits[0].href, hits[0].type === "Go to" ? hits[0].id : undefined); }
   };
 
   const aiAction = () => toast(canUse("ai_coach") ? "ISA is preparing this…" : "Ask ISA is a Pro feature.", "info");
@@ -212,17 +193,13 @@ export function CommandPalette() {
 
               {/* Input */}
               <div className="flex items-center gap-3 border-b border-line px-4 py-3.5">
-                {compose ? <compose.icon size={18} className="shrink-0 text-accent" /> : <Search size={18} className="shrink-0 text-muted" />}
-                {compose && <span className="shrink-0 text-sm font-medium text-fg">{t(`New ${compose.label.toLowerCase()}`)}</span>}
+                <Search size={18} className="shrink-0 text-muted" />
                 <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onInputKey}
-                  placeholder={compose ? t(compose.placeholder) : t("Search anything, or jump to…")}
+                  placeholder={t("Search anything, or jump to…")}
                   className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted/60" />
-                {compose && <span className="hidden items-center gap-1 text-[10px] text-muted sm:flex"><CornerDownLeft size={12} /> save</span>}
               </div>
 
-              {compose ? (
-                <div className="px-4 py-3 text-xs text-muted"><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-fg">Esc</kbd> back · <span className="text-fg/80">Enter</span> to save</div>
-              ) : query.trim() ? (
+              {query.trim() ? (
                 /* ── Search results ── */
                 <ul className="max-h-[60vh] overflow-y-auto p-2">
                   {hits.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">{t("No matches")}</li>}
@@ -250,14 +227,9 @@ export function CommandPalette() {
                     </div>
                   </div>
 
-                  {/* Quick Add */}
-                  <Section label={t("Quick add")}>
+                  {/* Jump to — creating lives in the global "+" only. */}
+                  <Section label={t("Jump to")}>
                     <div className="grid grid-cols-4 gap-1.5">
-                      {QUICK_ADD.map((a) => (
-                        <button key={a.id} onClick={() => { setCompose(a); setQuery(""); }} className="flex flex-col items-center gap-1 rounded-xl p-2.5 text-[11px] text-fg/80 transition hover:bg-white/5">
-                          <a.icon size={16} className="text-accent" />{t(a.label)}
-                        </button>
-                      ))}
                       {QUICK_NAV.map((a) => (
                         <button key={a.id} onClick={() => goTo(a.href)} className="flex flex-col items-center gap-1 rounded-xl p-2.5 text-[11px] text-fg/80 transition hover:bg-white/5">
                           <a.icon size={16} className="text-accent" />{t(a.label)}

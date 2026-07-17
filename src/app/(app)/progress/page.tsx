@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
+import { useRuns } from "@/hooks/useRuns";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RunningSection } from "@/components/sections/RunningSection";
@@ -61,7 +62,8 @@ export default function ProgressPage() {
   const goals = useCollection<Goal>("goals");
   const journal = useCollection<JournalEntry>("journal_entries");
   const habits = useCollection<Habit>("habits");
-  const runs = useCollection<RunLog>("runs");
+  // Manual entries AND Strava — reading only `runs` is what hid 33 synced activities.
+  const { runs } = useRuns();
 
   const [habitRate, setHabitRate] = useState(0);
   const [prevHabitRate, setPrevHabitRate] = useState(0);
@@ -142,10 +144,10 @@ export default function ProgressPage() {
     journal.data.filter((e) => e.entry_date >= pwk && e.entry_date < wk).map((e) => e.entry_date)
   ).size;
 
-  const runWeekKm = runs.data.filter((r) => r.log_date >= wk).reduce((s, r) => s + r.distance_km, 0);
-  const prevRunKm = runs.data
-    .filter((r) => r.log_date >= pwk && r.log_date < wk)
-    .reduce((s, r) => s + r.distance_km, 0);
+  const runWeekKm = runs.filter((r) => r.date >= wk).reduce((s, r) => s + r.km, 0);
+  const prevRunKm = runs
+    .filter((r) => r.date >= pwk && r.date < wk)
+    .reduce((s, r) => s + r.km, 0);
 
   const activeGoals = goals.data.filter((g) => !g.archived);
   const goalAvg = activeGoals.length ? activeGoals.reduce((s, g) => s + g.percentage, 0) / activeGoals.length : 0;

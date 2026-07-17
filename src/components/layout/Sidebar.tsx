@@ -26,7 +26,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useT } from "@/lib/i18n";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
-import { useNavOrder } from "@/components/NavOrderProvider";
+import { useNavOrder, MOBILE_SLOTS } from "@/components/NavOrderProvider";
 import { ROUTE_MODULE, accountAgeDays, isUnlocked, readUnlockOverrides } from "@/lib/unlock";
 
 export const NAV = [
@@ -45,9 +45,8 @@ export const NAV = [
   { href: "/pray", label: "Pray", icon: MosqueIcon },
 ];
 
-// Mobile: 6 primary items in the bar (user-orderable in Settings).
-// Everything else lives in the ⌘K palette.
-const PRIMARY = ["/", "/goals", "/habits", "/journal", "/focus", "/progress"];
+// Both surfaces read the SAME order (Settings → Navigation). The sidebar shows
+// all of it; the bottom bar takes the first MOBILE_SLOTS and ⌘K holds the rest.
 const NAV_BY_HREF = Object.fromEntries(NAV.map((n) => [n.href, n]));
 
 function NavLink({
@@ -108,11 +107,14 @@ export function Sidebar() {
     return !mod || isUnlocked(mod, age, overrides);
   };
 
-  const nav = NAV.filter((n) => visible(n.href));
-  const mobileMain = order
-    .filter((href) => PRIMARY.includes(href) && visible(href))
-    .map((href) => NAV_BY_HREF[href])
-    .filter(Boolean);
+  // The user's order drives both surfaces; anything the order doesn't mention
+  // (a newly shipped page) still appears, appended, so nothing goes missing.
+  const ordered = [
+    ...order.map((href) => NAV_BY_HREF[href]).filter(Boolean),
+    ...NAV.filter((n) => !order.includes(n.href)),
+  ];
+  const nav = ordered.filter((n) => visible(n.href));
+  const mobileMain = nav.slice(0, MOBILE_SLOTS);
 
   return (
     <>

@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
 import { enablePush, sendTestPush, pushSupported } from "@/lib/push";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
-import { useNavOrder } from "@/components/NavOrderProvider";
+import { useNavOrder, MOBILE_SLOTS } from "@/components/NavOrderProvider";
 import { NAV } from "@/components/layout/Sidebar";
 import { useT } from "@/lib/i18n";
 import { DataExport } from "@/components/sections/DataExport";
@@ -141,15 +141,16 @@ export default function SettingsPage() {
       </GlassCard>
 
       <GlassCard className="mb-6 p-6">
-        <h3 className="mb-1 font-medium">{tr("Bottom menu order")}</h3>
+        <h3 className="mb-1 font-medium">{tr("Navigation order")}</h3>
         <p className="mb-4 text-sm text-muted">
-          {tr("Reorder the icons in your mobile bottom bar.")}
+          {tr("Drag to reorder every page. The first {n} appear in your mobile bottom bar; the rest stay one search (⌘K) away.", { n: MOBILE_SLOTS })}
         </p>
         <Reorder.Group axis="y" values={navOrder} onReorder={setNavOrder} className="space-y-2">
-          {navOrder.map((href) => {
+          {navOrder.map((href, i) => {
             const item = NAV.find((n) => n.href === href);
             if (!item) return null;
             const Icon = item.icon;
+            const inBar = i < MOBILE_SLOTS;
             return (
               <Reorder.Item
                 key={href}
@@ -157,8 +158,13 @@ export default function SettingsPage() {
                 className="flex cursor-grab items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2.5 active:cursor-grabbing"
               >
                 <GripVertical size={16} className="shrink-0 text-muted" />
-                <Icon size={18} className="shrink-0 text-muted" />
+                <Icon size={18} className={`shrink-0 ${inBar ? "text-accent" : "text-muted"}`} />
                 <span className="flex-1 text-sm font-medium">{tr(item.label)}</span>
+                {inBar && (
+                  <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium text-accent">
+                    {tr("Bottom bar")}
+                  </span>
+                )}
               </Reorder.Item>
             );
           })}

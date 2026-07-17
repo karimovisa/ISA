@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  MoreVertical, Pencil, Archive, Trash2, FolderKanban, Search, Target, X, StickyNote, Activity,
+  Pencil, Archive, Trash2, FolderKanban, Search, Target, X, StickyNote, Activity,
 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
@@ -13,7 +13,10 @@ import { PageHeader, AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
+import { PopMenu } from "@/components/ui/PopMenu";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { ProjectTasks } from "@/components/sections/ProjectTasks";
+import { useT } from "@/lib/i18n";
 import { captureLifeEvent } from "@/lib/life-events";
 import { PROJECT_STATUSES, statusMeta, projectHealth, HEALTH_META, prepareProjectMeta, normalizeStatus } from "@/lib/projects";
 import { formatDeadline } from "@/lib/datetime";
@@ -24,6 +27,7 @@ const empty: Draft = { title: "", status: "active", target_date: "" };
 type SortKey = "newest" | "oldest" | "progress_desc" | "progress_asc" | "updated" | "alpha";
 
 export default function ProjectsPage() {
+  const { t } = useT();
   const projects = useCollection<Project>("projects");
   const tasksCol = useCollection<ProjectTask>("project_tasks", { orderBy: "position", ascending: true });
   const rels = useCollection<ProjectRelationship>("project_relationships");
@@ -33,7 +37,7 @@ export default function ProjectsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | ProjectStatus | "updated">("all");
   const [sort, setSort] = useState<SortKey>("newest");
@@ -50,7 +54,7 @@ export default function ProjectsPage() {
   const touch = (pid: string) => supabase.from("projects").update({ last_activity_at: new Date().toISOString() }).eq("id", pid);
 
   const openNew = () => { setEditing(null); setDraft(empty); setOpen(true); };
-  const openEdit = (p: Project) => { setEditing(p); setDraft({ title: p.title, status: normalizeStatus(p.status), target_date: p.target_date ?? "" }); setOpen(true); setMenuFor(null); };
+  const openEdit = (p: Project) => { setEditing(p); setDraft({ title: p.title, status: normalizeStatus(p.status), target_date: p.target_date ?? "" }); setOpen(true); };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,8 +109,15 @@ export default function ProjectsPage() {
     void captureLifeEvent({ type: "ProjectNoteAdded", payload: {}, links: { taskIds: [p.id] } });
     setNoteDraft(""); touch(p.id);
   };
-  const archive = (p: Project) => { projects.update(p.id, { status: "archived" }); void captureLifeEvent({ type: "ProjectArchived", payload: { title: p.title }, links: { taskIds: [p.id] } }); setMenuFor(null); };
-  const del = (p: Project) => { if (confirm(`Delete project "${p.title}"?`)) projects.remove(p.id); setMenuFor(null); };
+  const archive = (p: Project) => { projects.update(p.id, { status: "archived" }); void captureLifeEvent({ type: "ProjectArchived", payload: { title: p.title }, links: { taskIds: [p.id] } }); };
+  const del = (p: Project) =>
+    setConfirmReq({
+      title: t("Delete \"{name}\"?", { name: p.title }),
+      body: t("This removes the project and its steps. It can't be undone."),
+      confirmLabel: t("Delete"),
+      danger: true,
+      onConfirm: () => projects.remove(p.id),
+    });
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -135,7 +146,8 @@ export default function ProjectsPage() {
   }, [projects.data, tasksCol.data, query, filter, sort]);
 
   return (
-    <div onClick={() => menuFor && setMenuFor(null)}>
+    <div>
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
       <PageHeader title="Projects" subtitle="Your execution hub — steps, goals, and notes in one place."
         action={<AddButton onClick={openNew} label="New project" />} />
 
@@ -183,19 +195,19 @@ export default function ProjectsPage() {
                         <span className={`flex items-center gap-1 text-xs ${health.tone}`}><Activity size={11} />{health.label}</span>
                       </div>
                     </div>
-                    <div className="relative shrink-0">
-                      <button onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === p.id ? null : p.id); }} className="rounded-lg p-1.5 text-muted transition hover:bg-white/5 hover:text-fg" aria-label="Project menu"><MoreVertical size={18} /></button>
-                      <AnimatePresence>
-                        {menuFor === p.id && (
-                          <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.15 }} onClick={(e) => e.stopPropagation()} className="glass absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-xl p-1 shadow-xl">
-                            <MI Icon={Pencil} label="Edit" onClick={() => openEdit(p)} />
-                            <MI Icon={Target} label="Link goal" onClick={() => { setMenuFor(null); setLinkFor(p); }} />
-                            <MI Icon={StickyNote} label="Notes" onClick={() => { setMenuFor(null); setNoteFor(p); }} />
-                            <MI Icon={Archive} label="Archive" onClick={() => archive(p)} />
-                            <MI Icon={Trash2} label="Delete" danger onClick={() => del(p)} />
-                          </motion.div>
+                    {/* Portaled — never clipped by the card (.reflect sets overflow:hidden). */}
+                    <div className="shrink-0">
+                      <PopMenu ariaLabel="Project menu">
+                        {(closeMenu) => (
+                          <>
+                            <MI Icon={Pencil} label="Edit" onClick={() => { closeMenu(); openEdit(p); }} />
+                            <MI Icon={Target} label="Link goal" onClick={() => { closeMenu(); setLinkFor(p); }} />
+                            <MI Icon={StickyNote} label="Notes" onClick={() => { closeMenu(); setNoteFor(p); }} />
+                            <MI Icon={Archive} label="Archive" onClick={() => { closeMenu(); archive(p); }} />
+                            <MI Icon={Trash2} label="Delete" danger onClick={() => { closeMenu(); del(p); }} />
+                          </>
                         )}
-                      </AnimatePresence>
+                      </PopMenu>
                     </div>
                   </div>
 

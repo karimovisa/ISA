@@ -3,15 +3,32 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
-/** The 6 items that live in the mobile bottom bar, in the app's default order. */
+/**
+ * ONE order for every page ISA has. The sidebar renders it in full; the mobile
+ * bottom bar takes the first MOBILE_SLOTS of it and the rest live in ⌘K — so
+ * desktop and mobile can never disagree, and reordering here moves both.
+ *
+ * Previously this held only the 6 bottom-bar items, which is why the Settings
+ * editor couldn't list (or reorder) anything else.
+ */
 export const DEFAULT_NAV_ORDER = [
   "/",
+  "/ask",
   "/goals",
   "/habits",
   "/journal",
   "/focus",
   "/progress",
+  "/knows",
+  "/money",
+  "/projects",
+  "/ideas",
+  "/calendar",
+  "/pray",
 ];
+
+/** How many of the ordered pages fit in the mobile bottom bar (+ the Menu key). */
+export const MOBILE_SLOTS = 5;
 
 const STORAGE_KEY = "isa_nav_order";
 

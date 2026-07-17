@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Trash2, Lightbulb, MoreVertical, Star, Pin, Target, FolderKanban, ListTodo,
+  Trash2, Lightbulb, Star, Pin, Target, FolderKanban, ListTodo,
   Link2, Archive, RotateCcw, Search,
 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
@@ -13,6 +13,9 @@ import { PageHeader, AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
+import { PopMenu } from "@/components/ui/PopMenu";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
+import { useT } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { todayISO } from "@/lib/datetime";
 import { captureLifeEvent } from "@/lib/life-events";
@@ -23,13 +26,14 @@ const CYCLE: IdeaStatus[] = ["new", "active", "in_progress", "implemented"];
 const TINTS = ["from-amber-300/[0.12]", "from-accent/[0.12]", "from-emerald-300/[0.12]", "from-fuchsia-300/[0.12]", "from-rose-300/[0.12]"];
 
 export default function IdeasPage() {
+  const { t } = useT();
   const ideas = useCollection<Idea>("ideas");
   const goals = useCollection<Goal>("goals");
   const projects = useCollection<Project>("projects");
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
   const [tag, setTag] = useState("");
-  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<IdeaStatus | "all" | "favorite">("all");
   const [linkMode, setLinkMode] = useState<{ idea: Idea; type: "goal" | "project" } | null>(null);
@@ -56,13 +60,19 @@ export default function IdeasPage() {
     ideas.update(idea.id, { favorite: !idea.favorite });
     if (!idea.favorite) void captureLifeEvent({ type: "IdeaFavorited", payload: {}, links: { noteIds: [idea.id] }, context: { outcome: "consistency" } });
   };
-  const togglePin = (idea: Idea) => { ideas.update(idea.id, { pinned: !idea.pinned }); setMenuFor(null); };
-  const archive = (idea: Idea) => { ideas.update(idea.id, { status: "archived" }); void captureLifeEvent({ type: "IdeaArchived", payload: {}, links: { noteIds: [idea.id] } }); setMenuFor(null); };
-  const restore = (idea: Idea) => { ideas.update(idea.id, { status: "active" }); void captureLifeEvent({ type: "IdeaRestored", payload: {}, links: { noteIds: [idea.id] } }); setMenuFor(null); };
-  const del = (idea: Idea) => { if (confirm("Delete this idea?")) ideas.remove(idea.id); setMenuFor(null); };
+  const togglePin = (idea: Idea) => ideas.update(idea.id, { pinned: !idea.pinned });
+  const archive = (idea: Idea) => { ideas.update(idea.id, { status: "archived" }); void captureLifeEvent({ type: "IdeaArchived", payload: {}, links: { noteIds: [idea.id] } }); };
+  const restore = (idea: Idea) => { ideas.update(idea.id, { status: "active" }); void captureLifeEvent({ type: "IdeaRestored", payload: {}, links: { noteIds: [idea.id] } }); };
+  const del = (idea: Idea) =>
+    setConfirmReq({
+      title: t("Delete this idea?"),
+      body: idea.content.slice(0, 90),
+      confirmLabel: t("Delete"),
+      danger: true,
+      onConfirm: () => ideas.remove(idea.id),
+    });
 
   const convert = async (idea: Idea, kind: "goal" | "project" | "task") => {
-    setMenuFor(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const title = idea.content.slice(0, 80);
@@ -98,7 +108,8 @@ export default function IdeasPage() {
   }, [ideas.data, query, filter]);
 
   return (
-    <div onClick={() => menuFor && setMenuFor(null)}>
+    <div>
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
       <PageHeader title="Idea Vault" subtitle="Catch sparks — then grow them into goals, projects, and tasks."
         action={<AddButton onClick={() => setOpen(true)} label="New idea" />} />
 
@@ -138,24 +149,23 @@ export default function IdeasPage() {
                     </div>
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => toggleFav(idea)} aria-label="Favorite" className="rounded-lg p-1 text-muted transition hover:text-amber-300"><Star size={14} className={idea.favorite ? "fill-amber-300 text-amber-300" : ""} /></button>
-                      <div className="relative">
-                        <button onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === idea.id ? null : idea.id); }} aria-label="Idea menu" className="rounded-lg p-1 text-muted transition hover:text-fg"><MoreVertical size={16} /></button>
-                        <AnimatePresence>
-                          {menuFor === idea.id && (
-                            <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.15 }} onClick={(e) => e.stopPropagation()}
-                              className="glass absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl p-1 shadow-xl">
-                              <MI Icon={Pin} label={idea.pinned ? "Unpin" : "Pin"} onClick={() => togglePin(idea)} />
-                              <MI Icon={Target} label="Convert to Goal" onClick={() => convert(idea, "goal")} />
-                              <MI Icon={FolderKanban} label="Convert to Project" onClick={() => convert(idea, "project")} />
-                              <MI Icon={ListTodo} label="Convert to Task" onClick={() => convert(idea, "task")} />
-                              <MI Icon={Link2} label="Link to Goal" onClick={() => { setMenuFor(null); setLinkMode({ idea, type: "goal" }); }} />
-                              <MI Icon={Link2} label="Link to Project" onClick={() => { setMenuFor(null); setLinkMode({ idea, type: "project" }); }} />
-                              {idea.status === "archived" ? <MI Icon={RotateCcw} label="Restore" onClick={() => restore(idea)} /> : <MI Icon={Archive} label="Archive" onClick={() => archive(idea)} />}
-                              <MI Icon={Trash2} label="Delete" danger onClick={() => del(idea)} />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                      {/* Portaled — a masonry card clips its own dropdown otherwise. */}
+                      <PopMenu ariaLabel="Idea menu" width={176}>
+                        {(closeMenu) => (
+                          <>
+                            <MI Icon={Pin} label={idea.pinned ? "Unpin" : "Pin"} onClick={() => { closeMenu(); togglePin(idea); }} />
+                            <MI Icon={Target} label="Convert to Goal" onClick={() => { closeMenu(); convert(idea, "goal"); }} />
+                            <MI Icon={FolderKanban} label="Convert to Project" onClick={() => { closeMenu(); convert(idea, "project"); }} />
+                            <MI Icon={ListTodo} label="Convert to Task" onClick={() => { closeMenu(); convert(idea, "task"); }} />
+                            <MI Icon={Link2} label="Link to Goal" onClick={() => { closeMenu(); setLinkMode({ idea, type: "goal" }); }} />
+                            <MI Icon={Link2} label="Link to Project" onClick={() => { closeMenu(); setLinkMode({ idea, type: "project" }); }} />
+                            {idea.status === "archived"
+                              ? <MI Icon={RotateCcw} label="Restore" onClick={() => { closeMenu(); restore(idea); }} />
+                              : <MI Icon={Archive} label="Archive" onClick={() => { closeMenu(); archive(idea); }} />}
+                            <MI Icon={Trash2} label="Delete" danger onClick={() => { closeMenu(); del(idea); }} />
+                          </>
+                        )}
+                      </PopMenu>
                     </div>
                   </div>
                   <p className="text-[15px] leading-relaxed text-fg/90">{idea.content}</p>

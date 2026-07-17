@@ -44,15 +44,16 @@ export default function KnowsPage() {
   useEffect(() => {
     void loadIntelligenceContext().then(setCtx);
     (async () => {
-      const [{ data: sl }, { data: ml }, { data: rl }] = await Promise.all([
+      const [{ data: sl }, { data: ml }, { data: rl }, { data: sa }] = await Promise.all([
         supabase.from("sleep_logs").select("id"),
         supabase.from("mood_logs").select("id"),
         supabase.from("runs").select("id"),
+        supabase.from("strava_activities").select("id"), // Strava is running data too
       ]);
       setCounts({
         sleepLogs: ((sl as unknown[]) ?? []).length,
         moodLogs: ((ml as unknown[]) ?? []).length,
-        runs: ((rl as unknown[]) ?? []).length,
+        runs: ((rl as unknown[]) ?? []).length + ((sa as unknown[]) ?? []).length,
       });
     })();
   }, []);

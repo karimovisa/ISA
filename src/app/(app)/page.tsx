@@ -59,11 +59,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     (async () => {
-      const [{ data: hl }, { data: sl }, { data: ml }, { data: rl }] = await Promise.all([
+      const [{ data: hl }, { data: sl }, { data: ml }, { data: rl }, { data: sa }] = await Promise.all([
         supabase.from("habit_logs").select("habit_id,completed,date").eq("date", today),
         supabase.from("sleep_logs").select("id,date"),
         supabase.from("mood_logs").select("id,date"),
         supabase.from("runs").select("id"),
+        // Strava counts as running data too — coverage read only `runs` and so
+        // claimed "no running" while 33 synced activities sat in the database.
+        supabase.from("strava_activities").select("id"),
       ]);
       const logs = (hl as { completed: boolean }[]) ?? [];
       const sleeps = (sl as { date: string }[]) ?? [];
@@ -74,7 +77,11 @@ export default function DashboardPage() {
         sleep: sleeps.some((x) => x.date === today),
         mood: moods.some((x) => x.date === today),
       });
-      setCounts({ sleepLogs: sleeps.length, moodLogs: moods.length, runs: ((rl as unknown[]) ?? []).length });
+      setCounts({
+        sleepLogs: sleeps.length,
+        moodLogs: moods.length,
+        runs: ((rl as unknown[]) ?? []).length + ((sa as unknown[]) ?? []).length,
+      });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [habits.data.length, today]);
@@ -156,7 +163,13 @@ export default function DashboardPage() {
       <motion.section {...rise(0)} className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wider text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
-          <h1 className="mt-1 truncate text-3xl font-bold tracking-tight sm:text-4xl">
+          {/* A name is never truncated — it wraps, and long ones step the type
+              down instead of turning into "Isl…". */}
+          <h1
+            className={`mt-1 font-bold tracking-tight break-words text-balance ${
+              displayName.length > 14 ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"
+            }`}
+          >
             {dateNow ? t(greetingFor(dateNow)) : t("Welcome")}, {displayName}.
           </h1>
         </div>
