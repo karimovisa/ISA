@@ -7,10 +7,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Sparkles, Check, X } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PressButton } from "@/components/ui/PressButton";
+import { ActionForm } from "@/components/conversation/ActionForm";
 import { useAskIsa } from "@/lib/conversation";
 import { cn } from "@/lib/cn";
 
@@ -96,30 +96,15 @@ export default function AskPage() {
           </div>
         )}
 
-        {/* A write always needs an explicit yes. */}
+        {/* A detected intent becomes a filled template — confirm, don't build. */}
         {pendingAction && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <GlassCard className="border border-accent/40 p-4">
-              <p className="text-sm text-fg">{pendingAction.summary}</p>
-              {pendingAction.warnings.map((w) => (
-                <p key={w} className="mt-1 text-xs text-amber-400">{w}</p>
-              ))}
-              <div className="mt-3 flex gap-2">
-                <PressButton
-                  onClick={() => void confirmAction()}
-                  disabled={busy}
-                  className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
-                >
-                  <Check size={15} /> {pendingAction.confirmLabel}
-                </PressButton>
-                <PressButton
-                  onClick={cancelAction}
-                  className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-sm text-muted transition hover:text-fg"
-                >
-                  <X size={15} /> Yo&apos;q
-                </PressButton>
-              </div>
-            </GlassCard>
+            <ActionForm
+              proposal={pendingAction}
+              busy={busy}
+              onConfirm={(v) => void confirmAction(v)}
+              onCancel={cancelAction}
+            />
           </motion.div>
         )}
 

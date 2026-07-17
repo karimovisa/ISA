@@ -90,15 +90,35 @@ export type ActionKind =
   | "log_run"
   | "create_task"; // a PLAN ("ertaga yuguraman") — becomes a to-do, not a logged run
 
-/** A proposed write, awaiting explicit user confirmation (never auto-executed). */
+/** One editable field in an action template. ISA pre-fills it from the message;
+ *  the user adjusts it with a tap rather than typing. */
+export type FieldOption = { value: string; label: string };
+
+export type ActionField = {
+  key: string;
+  label: string; // i18n key
+  type: "text" | "number" | "choice" | "date" | "time";
+  value: string; // always string-normalized; the executor parses it
+  options?: FieldOption[]; // quick-pick chips
+  placeholder?: string;
+  suffix?: string; // "so'm", "km"
+  required?: boolean;
+};
+
+/** A proposed write, awaiting explicit user confirmation (never auto-executed).
+ *  ISA detects the intent and hands back a filled TEMPLATE — the user confirms
+ *  or tweaks a chip, instead of building the record by hand. */
 export type ActionProposal = {
   kind: ActionKind;
-  summary: string; // "Log a 50,000 so'm Food expense today?"
-  fields: Record<string, unknown>; // validated, ready-to-write values
+  headline: string; // "Task detected" — short, never a paragraph
+  form: ActionField[];
   module: IntelModule;
-  confirmLabel: string; // "Log expense"
+  confirmLabel: string; // "Create"
   warnings: string[]; // anything the user should notice before confirming
 };
+
+/** The values the user confirmed, keyed by field. */
+export type ActionValues = Record<string, string>;
 
 export type ActionResult = {
   ok: boolean;

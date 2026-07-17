@@ -32,7 +32,7 @@ function findingsBlock(answer: IsaAnswer): string {
     parts.push(`\n${s.heading || "DETAILS"}:`);
     for (const l of s.lines) parts.push(`- ${l}`);
   }
-  if (answer.action) parts.push(`\nPENDING ACTION (needs user confirmation, do NOT claim it's done): ${answer.action.summary}`);
+  if (answer.action) parts.push(`\nPENDING ACTION (a template the user must confirm — do NOT claim it's done): ${answer.action.headline}`);
   if (answer.followUps.length) parts.push(`\nPOSSIBLE FOLLOW-UPS: ${answer.followUps.join(" | ")}`);
   return parts.join("\n");
 }

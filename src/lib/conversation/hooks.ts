@@ -12,7 +12,7 @@ import { useEntitlements } from "@/components/EntitlementProvider";
 import { ask, userTurn } from "./engine";
 import { executeAction } from "./actions";
 import { noteConversation } from "./memory";
-import type { ActionProposal, ConversationTurn } from "./types";
+import type { ActionProposal, ActionValues, ConversationTurn } from "./types";
 
 export type UseAskIsa = {
   turns: ConversationTurn[];
@@ -20,7 +20,7 @@ export type UseAskIsa = {
   pendingAction: ActionProposal | null;
   error: string | null;
   send: (message: string) => Promise<void>;
-  confirmAction: () => Promise<void>;
+  confirmAction: (values: ActionValues) => Promise<void>;
   cancelAction: () => void;
   reset: () => void;
 };
@@ -68,13 +68,13 @@ export function useAskIsa(): UseAskIsa {
     [busy, turns, allowLLM, router]
   );
 
-  const confirmAction = useCallback(async () => {
+  const confirmAction = useCallback(async (values: ActionValues) => {
     if (!pendingAction || busy) return;
     setBusy(true);
     const proposal = pendingAction;
     setPendingAction(null);
     try {
-      const res = await executeAction(proposal);
+      const res = await executeAction(proposal, values);
       setTurns((t) => [...t, assistantTurn(res.message)]);
       if (!res.ok) setError(res.error);
     } catch (e) {

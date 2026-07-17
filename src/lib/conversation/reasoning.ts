@@ -120,12 +120,13 @@ function actionAnswer(intent: IntentResult, message: string): IsaAnswer {
       claim: "fact",
     });
   }
-  return shell(
-    intent,
-    proposal.summary,
-    [sec("Before I do this", [proposal.summary, ...proposal.warnings], [])],
-    { action: proposal, claim: "recommendation", confidence: 0.8 }
-  );
+  // Two words, then the template does the talking (§13 — never a paragraph).
+  return shell(intent, proposal.headline, [], {
+    action: proposal,
+    claim: "recommendation",
+    confidence: 0.85,
+    draft: proposal.headline,
+  });
 }
 
 async function searchAnswer(ctx: IntelligenceContext, intent: IntentResult, message: string): Promise<IsaAnswer> {
