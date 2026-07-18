@@ -24,7 +24,7 @@ export function PageHeader({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="mb-8 flex flex-wrap items-start justify-between gap-4"
+      className="mb-8 flex items-start justify-between gap-3"
     >
       <div className="min-w-0">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -36,8 +36,11 @@ export function PageHeader({
           </p>
         )}
       </div>
-      {/* Aligned with the TITLE line (mt-1), not dropped to the subtitle. */}
-      <div className="mt-1 flex shrink-0 items-center gap-2">
+      {/* The help "?" always stays at the END of the TITLE row (top-right),
+          never dropping below it. On mobile the action button stacks underneath
+          the "?" (flex-col-reverse); on desktop they share the row with "?" last. */}
+      <div className="mt-1 flex shrink-0 flex-col-reverse items-end gap-2 sm:flex-row sm:items-center">
+        {action}
         {hasHelp && (
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("isa:open-help", { detail: helpKey }))}
@@ -47,7 +50,6 @@ export function PageHeader({
             <HelpCircle size={17} />
           </button>
         )}
-        {action}
       </div>
     </motion.div>
   );
