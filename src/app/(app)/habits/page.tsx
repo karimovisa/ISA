@@ -40,6 +40,12 @@ function last7(): string[] {
   return out;
 }
 
+/** Local calendar date of an ISO timestamp — matches last7()'s format. */
+function localDay(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function isDueToday(h: Habit): boolean {
   if (h.frequency_type === "weekdays") return (h.frequency_config?.days ?? []).includes(new Date().getDay());
   return true; // daily / x_per_week / x_per_month always surface today
@@ -222,13 +228,26 @@ export default function HabitsPage() {
                         {h.target_value != null ? `${h.target_value}${h.target_unit ? ` ${h.target_unit}` : ""} · ` : ""}
                         {streak > 0 ? `${streak}-day streak` : "No streak yet"}{total > 0 ? ` · ${total} done` : ""}
                       </p>
-                      {/* 7-day history (missed = red) */}
+                      {/* 7-day history. A day only counts as "missed" (red) if the
+                          habit already existed then — days before it was created
+                          render neutral, so a brand-new habit isn't a wall of red. */}
                       <div className="mt-2 flex gap-1">
-                        {days.map((d) => {
-                          const dDone = logs.some((l) => l.habit_id === h.id && l.date === d && l.completed);
-                          const isToday = d === days[6];
-                          return <span key={d} title={d} className={`h-2 w-2 rounded-full ${dDone ? "bg-fg" : isToday ? "bg-white/20" : "bg-red-500/30"}`} />;
-                        })}
+                        {(() => {
+                          const created = localDay(h.created_at);
+                          return days.map((d) => {
+                            const dDone = logs.some((l) => l.habit_id === h.id && l.date === d && l.completed);
+                            const isToday = d === days[6];
+                            const beforeHabit = d < created;
+                            const cls = dDone
+                              ? "bg-fg"
+                              : beforeHabit
+                                ? "bg-white/[0.08]"
+                                : isToday
+                                  ? "bg-white/20"
+                                  : "bg-red-500/30";
+                            return <span key={d} title={d} className={`h-2 w-2 rounded-full ${cls}`} />;
+                          });
+                        })()}
                       </div>
                     </div>
                     {/* ⋮ menu — portaled so it's never clipped by the card */}
