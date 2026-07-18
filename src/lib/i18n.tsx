@@ -323,6 +323,17 @@ const UZ: Record<string, string> = {
   "Ask ISA": "ISA'dan so'rang",
   "Ask your life a question — or add something in a sentence.":
     "Hayotingiz haqida so'rang — yoki bir jumlada qo'shing.",
+  "ISA already knows you": "ISA sizni allaqachon biladi",
+  "Ask a question, or just note what you did — ISA understands and records it if needed. It always asks you first.":
+    "Savol bering yoki nima qilganingizni yozing — ISA tushunadi va kerak bo'lsa o'zi yozib qo'yadi. Har doim avval sizdan so'raydi.",
+  "ISA is thinking…": "ISA o'ylayapti…",
+  "Ask ISA…": "ISA'dan so'rang…",
+  Send: "Yuborish",
+  "What should I focus on today?": "Bugun nimaga e'tibor beray?",
+  "I'll run 5 km tomorrow": "Ertaga 5 km yuguraman",
+  "I spent 50,000 on food": "50 000 so'm ovqatga sarfladim",
+  "Where is my money going?": "Pulim qayerga ketyapti?",
+  "I'm tired": "Charchadim",
 
   // ── Common actions / states ──
   "Load more": "Ko'proq yuklash",
@@ -622,6 +633,19 @@ const RU: Record<string, string> = {
   "Sign in": "Войти",
   Search: "Поиск",
   "Ask ISA": "Спросить ISA",
+  "Ask your life a question — or add something in a sentence.":
+    "Задайте вопрос о своей жизни — или добавьте что-то одной фразой.",
+  "ISA already knows you": "ISA уже вас знает",
+  "Ask a question, or just note what you did — ISA understands and records it if needed. It always asks you first.":
+    "Задайте вопрос или просто напишите, что сделали — ISA поймёт и при необходимости запишет. Она всегда сначала спрашивает вас.",
+  "ISA is thinking…": "ISA думает…",
+  "Ask ISA…": "Спросите ISA…",
+  Send: "Отправить",
+  "What should I focus on today?": "На чём мне сегодня сосредоточиться?",
+  "I'll run 5 km tomorrow": "Завтра пробегу 5 км",
+  "I spent 50,000 on food": "Потратил 50 000 на еду",
+  "Where is my money going?": "Куда уходят мои деньги?",
+  "I'm tired": "Устал",
 
   // ── Greetings ──
   "Good morning": "Доброе утро",

@@ -12,18 +12,21 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ActionForm } from "@/components/conversation/ActionForm";
 import { useAskIsa } from "@/lib/conversation";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
+// English keys — the displayed (and sent) text is localised via t() at render.
 const STARTERS = [
-  "Bugun nimaga e'tibor beray?",
-  "Ertaga 5 km yuguraman",
-  "50 000 so'm ovqatga sarfladim",
-  "Pulim qayerga ketyapti?",
-  "Charchadim",
+  "What should I focus on today?",
+  "I'll run 5 km tomorrow",
+  "I spent 50,000 on food",
+  "Where is my money going?",
+  "I'm tired",
 ];
 
 export default function AskPage() {
   const { turns, busy, pendingAction, send, confirmAction, cancelAction } = useAskIsa();
+  const { t } = useT();
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +44,7 @@ export default function AskPage() {
 
   return (
     <div>
-      <PageHeader title="Ask ISA" subtitle="Hayotingiz haqida so'rang — yoki shu yerdan qo'shing." />
+      <PageHeader title="Ask ISA" subtitle="Ask your life a question — or add something in a sentence." />
 
       {/* Conversation */}
       <div className="space-y-3 pb-4">
@@ -49,20 +52,19 @@ export default function AskPage() {
           <GlassCard className="p-5">
             <div className="mb-3 flex items-center gap-2">
               <Sparkles size={16} className="text-accent" />
-              <h2 className="text-sm font-semibold">ISA sizni allaqachon biladi</h2>
+              <h2 className="text-sm font-semibold">{t("ISA already knows you")}</h2>
             </div>
             <p className="text-sm leading-relaxed text-muted">
-              Savol bering, yoki shunchaki nima qilganingizni yozing — ISA tushunadi va
-              kerak bo&apos;lsa o&apos;zi yozib qo&apos;yadi. Har doim avval sizdan so&apos;raydi.
+              {t("Ask a question, or just note what you did — ISA understands and records it if needed. It always asks you first.")}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {STARTERS.map((s) => (
                 <button
                   key={s}
-                  onClick={() => void send(s)}
+                  onClick={() => void send(t(s))}
                   className="rounded-full border border-line bg-white/[0.03] px-3 py-1.5 text-xs text-fg/80 transition hover:bg-white/[0.07]"
                 >
-                  {s}
+                  {t(s)}
                 </button>
               ))}
             </div>
@@ -92,7 +94,7 @@ export default function AskPage() {
 
         {busy && (
           <div className="flex justify-start">
-            <div className="glass rounded-2xl px-4 py-2.5 text-sm text-muted">ISA o&apos;ylayapti…</div>
+            <div className="glass rounded-2xl px-4 py-2.5 text-sm text-muted">{t("ISA is thinking…")}</div>
           </div>
         )}
 
@@ -120,12 +122,12 @@ export default function AskPage() {
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="ISA'dan so'rang…"
+            placeholder={t("Ask ISA…")}
             className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none"
           />
           <button
             type="submit"
-            aria-label="Yuborish"
+            aria-label={t("Send")}
             disabled={busy || !text.trim()}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition hover:brightness-110 disabled:opacity-40"
           >
