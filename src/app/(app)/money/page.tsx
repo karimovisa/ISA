@@ -13,6 +13,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader, AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { PressButton } from "@/components/ui/PressButton";
 import { MoneyGoals } from "@/components/sections/MoneyGoals";
 import { MoneyRecurring } from "@/components/sections/MoneyRecurring";
@@ -53,6 +54,7 @@ export default function MoneyPage() {
   const [freq, setFreq] = useState<Record<string, number>>({});
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | TxType>("all");
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
 
   useEffect(() => { try { setFreq(JSON.parse(localStorage.getItem("isa_money_freq") || "{}")); } catch {} }, []);
 
@@ -226,7 +228,7 @@ export default function MoneyPage() {
                   <div className="flex shrink-0 gap-1 opacity-0 transition group-hover:opacity-100">
                     <button onClick={() => duplicate(tx)} className="rounded-lg p-1.5 text-muted transition hover:text-fg" aria-label="Duplicate"><Copy size={14} /></button>
                     <button onClick={() => openEdit(tx)} className="rounded-lg p-1.5 text-muted transition hover:text-fg"><Pencil size={14} /></button>
-                    <button onClick={() => { if (confirm("Delete this transaction?")) txns.remove(tx.id); }} className="rounded-lg p-1.5 text-muted transition hover:text-red-400"><Trash2 size={14} /></button>
+                    <button onClick={() => setConfirmReq({ title: t("Delete this transaction?"), confirmLabel: t("Delete"), danger: true, onConfirm: () => txns.remove(tx.id) })} className="rounded-lg p-1.5 text-muted transition hover:text-red-400"><Trash2 size={14} /></button>
                   </div>
                 </div>
               );
@@ -280,6 +282,8 @@ export default function MoneyPage() {
           <PressButton type="submit" className={primaryBtnClass}>{editing ? t("Save changes") : t("Add transaction")}</PressButton>
         </form>
       </Modal>
+
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
     </div>
   );
 }

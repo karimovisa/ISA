@@ -590,6 +590,20 @@ const UZ: Record<string, string> = {
   "You're signed out — please sign in and try again.": "Siz tizimdan chiqdingiz — qayta kiring.",
   "ISA'dan so'rang…": "ISA'dan so'rang…",
 
+  // ── Confirmations & theme names ──
+  Midnight: "Tungi",
+  Rose: "Atirgul",
+  "Clear cache": "Keshni tozalash",
+  "Clear cached data?": "Keshlangan ma'lumot tozalansinmi?",
+  "This reloads the app. Your data is safe on the server.":
+    "Bu ilovani qayta yuklaydi. Ma'lumotlaringiz serverda xavfsiz.",
+  "Delete your account?": "Hisobingiz o'chirilsinmi?",
+  "This signs you out. For full data erasure, contact support.":
+    "Bu sizni tizimdan chiqaradi. To'liq o'chirish uchun qo'llab-quvvatlashga murojaat qiling.",
+  "This removes the goal and its milestones. It can't be undone.":
+    "Bu maqsad va uning bosqichlarini o'chiradi. Qaytarib bo'lmaydi.",
+  "Delete this transaction?": "Bu tranzaksiya o'chirilsinmi?",
+
   // ── Quick capture ──
   "What would you like to add?": "Nima qo'shmoqchisiz?",
   "Just say it — ISA fills in the rest.": "Shunchaki ayting — qolganini ISA to'ldiradi.",
@@ -1021,6 +1035,20 @@ const RU: Record<string, string> = {
   "Couldn't save that transaction.": "Не удалось сохранить транзакцию.",
   "Couldn't log that run.": "Не удалось записать пробежку.",
   "You're signed out — please sign in and try again.": "Вы вышли из аккаунта — войдите снова.",
+
+  // ── Confirmations & theme names ──
+  Midnight: "Полночь",
+  Rose: "Роза",
+  "Clear cache": "Очистить кэш",
+  "Clear cached data?": "Очистить кэшированные данные?",
+  "This reloads the app. Your data is safe on the server.":
+    "Приложение перезагрузится. Ваши данные в безопасности на сервере.",
+  "Delete your account?": "Удалить аккаунт?",
+  "This signs you out. For full data erasure, contact support.":
+    "Вы выйдете из аккаунта. Для полного удаления данных обратитесь в поддержку.",
+  "This removes the goal and its milestones. It can't be undone.":
+    "Это удалит цель и её этапы. Отменить будет нельзя.",
+  "Delete this transaction?": "Удалить эту транзакцию?",
 
   // ── Quick capture ──
   "What would you like to add?": "Что хотите добавить?",

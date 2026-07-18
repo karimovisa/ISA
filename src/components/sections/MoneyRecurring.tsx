@@ -14,6 +14,7 @@ import {
   primaryBtnClass,
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { EXPENSE_CATEGORIES, formatSom, upcomingRecurring } from "@/lib/money";
 import { toast } from "@/lib/toast";
 import { useT } from "@/lib/i18n";
@@ -35,6 +36,7 @@ export function MoneyRecurring() {
   const [editing, setEditing] = useState<RecurringPayment | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
   const [saving, setSaving] = useState(false);
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
 
   const list = upcomingRecurring(data.filter((p) => p.is_active));
 
@@ -185,9 +187,14 @@ export function MoneyRecurring() {
                   <Pencil size={14} />
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`Delete "${p.name}"?`)) remove(p.id);
-                  }}
+                  onClick={() =>
+                    setConfirmReq({
+                      title: t('Delete "{name}"?', { name: p.name }),
+                      confirmLabel: t("Delete"),
+                      danger: true,
+                      onConfirm: () => remove(p.id),
+                    })
+                  }
                   className="rounded-lg p-1.5 text-muted transition hover:text-red-400"
                 >
                   <Trash2 size={14} />
@@ -260,6 +267,8 @@ export function MoneyRecurring() {
           </PressButton>
         </form>
       </Modal>
+
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
     </div>
   );
 }

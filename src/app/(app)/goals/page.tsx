@@ -13,8 +13,10 @@ import { PageHeader, AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { captureLifeEvent } from "@/lib/life-events";
 import { analyzeGoal, type GoalPace } from "@/lib/goals";
+import { useT } from "@/lib/i18n";
 import type { Goal, GoalMilestone } from "@/lib/types";
 
 type Draft = { title: string; deadline: string; motivation: string };
@@ -29,8 +31,10 @@ const paceChip: Record<GoalPace, string> = {
 };
 
 export default function GoalsPage() {
+  const { t } = useT();
   const goals = useCollection<Goal>("goals");
   const ms = useCollection<GoalMilestone>("goal_milestones", { orderBy: "position", ascending: true });
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Goal | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
@@ -92,8 +96,14 @@ export default function GoalsPage() {
 
   const archive = (g: Goal) => { goals.update(g.id, { archived: true }); setMenuFor(null); };
   const del = (g: Goal) => {
-    if (confirm(`Delete goal "${g.title}"? This removes its milestones too.`)) goals.remove(g.id);
     setMenuFor(null);
+    setConfirmReq({
+      title: t('Delete "{name}"?', { name: g.title }),
+      body: t("This removes the goal and its milestones. It can't be undone."),
+      confirmLabel: t("Delete"),
+      danger: true,
+      onConfirm: () => goals.remove(g.id),
+    });
   };
 
   return (
@@ -240,6 +250,8 @@ export default function GoalsPage() {
           <PressButton type="submit" className={primaryBtnClass}>{editing ? "Save changes" : "Create goal"}</PressButton>
         </form>
       </Modal>
+
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
     </div>
   );
 }

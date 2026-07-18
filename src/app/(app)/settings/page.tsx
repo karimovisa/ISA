@@ -18,10 +18,13 @@ import { DataExport } from "@/components/sections/DataExport";
 import { AdminPanel } from "@/components/sections/AdminPanel";
 import { ReminderOverview } from "@/components/sections/ReminderOverview";
 import { SubscriptionSection } from "@/components/sections/SubscriptionSection";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 
+// Theme ids stay "boys"/"girls" (stored prefs + CSS data-theme); only the
+// user-facing labels changed to look-based, gender-neutral names.
 const THEMES: { id: Theme; label: string; bg: string; accent: string; text: string }[] = [
-  { id: "boys", label: "Boys", bg: "#101820", accent: "#D97B3F", text: "#F5F0E8" },
-  { id: "girls", label: "Girls", bg: "#FFF8FB", accent: "#FF5C8A", text: "#2B1B24" },
+  { id: "boys", label: "Midnight", bg: "#101820", accent: "#D97B3F", text: "#F5F0E8" },
+  { id: "girls", label: "Rose", bg: "#FFF8FB", accent: "#FF5C8A", text: "#2B1B24" },
 ];
 
 export default function SettingsPage() {
@@ -37,6 +40,7 @@ export default function SettingsPage() {
   // iOS Safari only allows push for sites opened from the Home Screen icon.
   const [ios, setIos] = useState(false);
   const [standalone, setStandalone] = useState(false);
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
 
   useEffect(() => {
     setIos(/iPad|iPhone|iPod/.test(navigator.userAgent));
@@ -83,15 +87,24 @@ export default function SettingsPage() {
     setNote("Test notification sent — check your device.");
   };
 
-  const clearCache = () => {
-    if (!confirm("Clear cached data and reload? Your data is safe on the server.")) return;
-    try { localStorage.clear(); } catch {}
-    location.reload();
-  };
-  const deleteAccount = () => {
-    if (!confirm("Delete your account? This signs you out. For full data erasure, contact support.")) return;
-    signOut();
-  };
+  const clearCache = () =>
+    setConfirmReq({
+      title: tr("Clear cached data?"),
+      body: tr("This reloads the app. Your data is safe on the server."),
+      confirmLabel: tr("Clear cache"),
+      onConfirm: () => {
+        try { localStorage.clear(); } catch {}
+        location.reload();
+      },
+    });
+  const deleteAccount = () =>
+    setConfirmReq({
+      title: tr("Delete your account?"),
+      body: tr("This signs you out. For full data erasure, contact support."),
+      confirmLabel: tr("Delete"),
+      danger: true,
+      onConfirm: () => signOut(),
+    });
 
   const AI_ITEMS: [string, string][] = [
     ["AI Coach", "ai_coach"], ["Weekly Reviews", "weekly_review"], ["Monthly Reviews", "monthly_review"],
@@ -126,11 +139,11 @@ export default function SettingsPage() {
               <div className="flex h-20 items-center gap-2 px-4" style={{ background: t.bg }}>
                 <span className="h-6 w-6 rounded-full" style={{ background: t.accent }} />
                 <span className="text-sm font-medium" style={{ color: t.text }}>
-                  {t.label}
+                  {tr(t.label)}
                 </span>
               </div>
               <div className="flex items-center justify-between px-4 py-2 text-xs">
-                <span className="text-muted">{t.label}</span>
+                <span className="text-muted">{tr(t.label)}</span>
                 {theme === t.id && (
                   <span className="text-accent">{tr("Active")}</span>
                 )}
@@ -344,6 +357,8 @@ export default function SettingsPage() {
         </div>
         <p className="mt-3 text-xs text-muted">Run. Process. Aim.</p>
       </GlassCard>
+
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
     </div>
   );
 }

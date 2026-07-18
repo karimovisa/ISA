@@ -15,6 +15,7 @@ import {
   primaryBtnClass,
 } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { formatSom, financeGoalStatus } from "@/lib/money";
 import { useT } from "@/lib/i18n";
 import { captureLifeEvent } from "@/lib/life-events";
@@ -41,6 +42,7 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<FinanceGoal | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
 
   const active = data.filter((g) => g.is_active);
 
@@ -136,9 +138,14 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
                         <Pencil size={14} />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Delete goal "${g.name}"?`)) remove(g.id);
-                        }}
+                        onClick={() =>
+                          setConfirmReq({
+                            title: t('Delete "{name}"?', { name: g.name }),
+                            confirmLabel: t("Delete"),
+                            danger: true,
+                            onConfirm: () => remove(g.id),
+                          })
+                        }
                         className="rounded-lg p-1.5 text-muted transition hover:text-red-400"
                       >
                         <Trash2 size={14} />
@@ -225,6 +232,8 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
           </PressButton>
         </form>
       </Modal>
+
+      <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
     </div>
   );
 }
