@@ -340,10 +340,9 @@ export default function SettingsPage() {
         <div className="mb-1 flex items-center gap-2"><Globe size={16} className="text-accent" /><h3 className="font-medium">{tr("Language")}</h3></div>
         <p className="mb-4 text-sm text-muted">{tr("Changes instantly.")}</p>
         <div className="flex flex-wrap gap-2">
-          {(["en", "uz"] as const).map((l) => (
-            <button key={l} onClick={() => setLang(l)} className={`rounded-xl px-4 py-2 text-sm font-medium transition ${lang === l ? "bg-accent text-white" : "bg-white/5 text-muted hover:text-fg"}`}>{l === "en" ? "English" : "O'zbek"}</button>
+          {(["en", "uz", "ru"] as const).map((l) => (
+            <button key={l} onClick={() => setLang(l)} className={`rounded-xl px-4 py-2 text-sm font-medium transition ${lang === l ? "bg-accent text-white" : "bg-white/5 text-muted hover:text-fg"}`}>{{ en: "English", uz: "O'zbek", ru: "Русский" }[l]}</button>
           ))}
-          <span className="rounded-xl bg-white/5 px-4 py-2 text-sm text-muted/50">Русский · soon</span>
         </div>
       </GlassCard>
 
