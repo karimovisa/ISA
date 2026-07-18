@@ -7,7 +7,6 @@ export const FEATURES = {
   weekly_review: "Weekly review",
   export_json: "Data export (JSON)",
   ai_summaries: "AI summaries",
-  exports: "Exports",
   pattern_detection: "Pattern detection",
   ai_predictions: "Predictions",
   ai_coach: "AI coach",

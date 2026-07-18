@@ -216,6 +216,7 @@ const UZ: Record<string, string> = {
   Income: "Kirim",
   Expense: "Chiqim",
   Balance: "Qoldiq",
+  "Net balance": "Sof qoldiq",
   "This month's income": "Bu oy kirimi",
   "This month's expenses": "Bu oy chiqimi",
   "Saving rate": "Jamg'arish darajasi",
@@ -720,6 +721,7 @@ const RU: Record<string, string> = {
 
   // ── Money ──
   Balance: "Баланс",
+  "Net balance": "Чистый баланс",
   Amount: "Сумма",
   Category: "Категория",
   Date: "Дата",

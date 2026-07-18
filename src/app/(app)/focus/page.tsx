@@ -295,7 +295,7 @@ export default function FocusPage() {
             <Stat label="Focused today" value={Math.floor(stats.secToday / 60)} unit="min" />
             <Stat label="This week" value={Math.floor(stats.secWeek / 60)} unit="min" />
             <Stat label="Longest" value={Math.floor(stats.longest / 60)} unit="min" />
-            <Stat label="Streak" value={stats.streak} unit="days" />
+            <Stat label="Streak" value={stats.streak} unit={stats.streak === 1 ? "day" : "days"} />
             <Stat label="Avg session" value={Math.floor(stats.avg / 60)} unit="min" />
             <Stat label="Sessions" value={stats.count} unit="" />
           </div>

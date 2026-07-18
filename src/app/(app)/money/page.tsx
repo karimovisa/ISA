@@ -136,7 +136,7 @@ export default function MoneyPage() {
       <GlassCard className="relative mb-4 overflow-hidden bg-gradient-to-br from-accent/15 via-transparent to-transparent p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted"><Wallet size={13} /> {t("Balance")}</p>
+            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted"><Wallet size={13} /> {t("Net balance")}</p>
             <div className={`mt-1.5 truncate text-4xl font-bold tabular-nums sm:text-5xl ${balance >= 0 ? "text-fg" : "text-red-300"}`}>{formatSom(animatedBalance)}</div>
             <div className="mt-2 flex items-center gap-1.5 text-sm">
               {summary.balance >= 0 ? <ArrowUpRight size={16} className="text-emerald-400" /> : <ArrowDownRight size={16} className="text-red-400" />}
@@ -152,7 +152,7 @@ export default function MoneyPage() {
       <div className="mb-4 grid grid-cols-3 gap-3">
         <Stat icon={TrendingUp} label="Income" value={formatSom(summary.income)} tone="text-emerald-300" />
         <Stat icon={TrendingDown} label="Expenses" value={formatSom(summary.expense)} tone="text-red-300" />
-        <Stat icon={PiggyBank} label="Saving rate" value={`${Math.round(summary.savingRate)}%`} tone={summary.savingRate >= 0 ? "text-fg" : "text-red-300"} />
+        <Stat icon={PiggyBank} label="Saving rate" value={`${Math.max(-100, Math.round(summary.savingRate))}%`} tone={summary.savingRate >= 0 ? "text-fg" : "text-red-300"} />
       </div>
 
       {/* Savings goals — high up: this is what the money is FOR. */}

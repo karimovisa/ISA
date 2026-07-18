@@ -15,7 +15,6 @@ import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/
 import { PressButton } from "@/components/ui/PressButton";
 import { PopMenu } from "@/components/ui/PopMenu";
 import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
-import { TodoList } from "@/components/sections/TodoList";
 import { ReminderFields, ReminderToggle, ALL_DAYS } from "@/components/ui/ReminderFields";
 import { useT } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
@@ -194,8 +193,6 @@ export default function HabitsPage() {
     <div>
       <PageHeader title="Habits" subtitle="Today's habits. Tap to complete — ISA learns from every one."
         action={<AddButton onClick={openNew} label="New habit" />} />
-
-      <div className="mb-6"><TodoList /></div>
 
       {habits.loading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="glass h-20 animate-pulse rounded-3xl" />)}</div>
