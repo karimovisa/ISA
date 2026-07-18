@@ -165,7 +165,7 @@ export function RunningSection() {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Footprints size={18} className="text-fg/80" />
-            <h3 className="text-sm font-medium">Running</h3>
+            <h3 className="text-sm font-medium">{t("Running")}</h3>
           </div>
           {connected ? (
             <PressButton
@@ -174,7 +174,7 @@ export function RunningSection() {
               className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-fg transition-colors hover:bg-white/15 disabled:opacity-50"
             >
               <RefreshCw size={13} className={syncing ? "animate-spin" : undefined} />
-              {syncing ? "Syncing…" : "Sync Strava"}
+              {syncing ? t("Syncing…") : t("Sync Strava")}
             </PressButton>
           ) : (
             <PressButton
@@ -183,16 +183,16 @@ export function RunningSection() {
               style={{ backgroundColor: ORANGE }}
             >
               <Link2 size={13} />
-              Connect Strava
+              {t("Connect Strava")}
             </PressButton>
           )}
         </div>
 
         {/* Insights */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat label="This week" value={`${ins.thisWeekKm} km`} />
+          <Stat label={t("This week")} value={`${ins.thisWeekKm} km`} />
           <Stat
-            label="vs last week"
+            label={t("vs last week")}
             value={
               ins.weekTrendPct === null
                 ? "—"
@@ -206,8 +206,8 @@ export function RunningSection() {
                   : "text-red-300"
             }
           />
-          <Stat label="Avg pace" value={`${ins.avgPace} /km`} />
-          <Stat label="Longest" value={`${ins.longestKm} km`} />
+          <Stat label={t("Avg pace")} value={`${ins.avgPace} /km`} />
+          <Stat label={t("Longest")} value={`${ins.longestKm} km`} />
         </div>
 
         {/* Chart */}
@@ -234,7 +234,7 @@ export function RunningSection() {
           onSubmit={logManual}
           className="mt-5 flex flex-wrap items-end gap-3 border-t border-line pt-5"
         >
-          <Field label="Date">
+          <Field label={t("Date")}>
             <input
               type="date"
               value={date}
@@ -242,7 +242,7 @@ export function RunningSection() {
               className={`${fieldClass} h-10 py-1`}
             />
           </Field>
-          <Field label="Distance (km)">
+          <Field label={t("Distance (km)")}>
             <input
               type="number"
               step="any"
@@ -254,7 +254,7 @@ export function RunningSection() {
               className={`${fieldClass} h-10 w-24 py-1`}
             />
           </Field>
-          <Field label="Time (min : sec)">
+          <Field label={t("Time (min : sec)")}>
             <div className="flex items-center gap-1">
               <input
                 type="number"
@@ -278,7 +278,7 @@ export function RunningSection() {
           </Field>
           {previewPace && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs uppercase tracking-wider text-muted">Pace</span>
+              <span className="text-xs uppercase tracking-wider text-muted">{t("Pace")}</span>
               <span className="flex h-10 items-center text-sm font-semibold tabular-nums text-fg/90">
                 {previewPace} /km
               </span>
@@ -289,7 +289,7 @@ export function RunningSection() {
             className="flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-black transition hover:bg-white/90"
           >
             <Plus size={15} />
-            Log run
+            {t("Log run")}
           </PressButton>
         </form>
 

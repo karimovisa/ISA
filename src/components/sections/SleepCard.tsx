@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/Modal";
 import { todayISO } from "@/lib/datetime";
 import { toast } from "@/lib/toast";
+import { useT } from "@/lib/i18n";
 import { captureLifeEvent } from "@/lib/life-events";
 import type { SleepLog } from "@/lib/types";
 
@@ -45,6 +46,7 @@ const CAP_HOURS = 16;
 const CAP_MS = CAP_HOURS * 3_600_000;
 
 export function SleepCard() {
+  const { t } = useT();
   const logs = useCollection<SleepLog>("sleep_logs", {
     orderBy: "date",
     ascending: false,
@@ -225,7 +227,7 @@ export function SleepCard() {
 
   return (
     <>
-      <GlassCard className="p-5" title="Avg sleep this week">
+      <GlassCard className="p-5" title={t("Avg sleep this week")}>
         {logs.loading ? (
           <div className="flex items-center gap-4">
             <div className="h-11 w-11 animate-pulse rounded-full bg-white/5" />
@@ -238,7 +240,7 @@ export function SleepCard() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs uppercase tracking-wider text-muted">
-                Sleeping
+                {t("Sleeping")}
               </div>
               <div className="text-2xl font-bold tabular-nums text-fg">
                 {eh}
@@ -253,7 +255,7 @@ export function SleepCard() {
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
             >
               <Sunrise size={14} />
-              Wake up
+              {t("Wake up")}
             </PressButton>
           </div>
         ) : (
@@ -263,7 +265,7 @@ export function SleepCard() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs uppercase tracking-wider text-muted">
-                Sleep
+                {t("Sleep")}
               </div>
               {avg !== null ? (
                 <div className="text-2xl font-bold tabular-nums text-fg">
@@ -275,7 +277,7 @@ export function SleepCard() {
                   onClick={() => setOpen(true)}
                   className="text-sm text-muted underline-offset-2 hover:underline"
                 >
-                  or log hours
+                  {t("or log hours")}
                 </button>
               )}
             </div>
@@ -285,17 +287,17 @@ export function SleepCard() {
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
             >
               <Moon size={14} />
-              Sleep
+              {t("Sleep")}
             </PressButton>
           </div>
         )}
         {note && <p className="mt-3 text-xs text-red-300">{note}</p>}
       </GlassCard>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Log sleep">
+      <Modal open={open} onClose={() => setOpen(false)} title={t("Log sleep")}>
         <form onSubmit={saveManual} className="space-y-4">
           <div>
-            <label className={labelClass}>Hours slept</label>
+            <label className={labelClass}>{t("Hours slept")}</label>
             <input
               type="number"
               step="0.1"
@@ -309,7 +311,7 @@ export function SleepCard() {
             />
           </div>
           <div>
-            <label className={labelClass}>Quality (optional)</label>
+            <label className={labelClass}>{t("Quality (optional)")}</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((q) => (
                 <button
@@ -328,7 +330,7 @@ export function SleepCard() {
             </div>
           </div>
           <PressButton type="submit" disabled={busy} className={primaryBtnClass}>
-            {busy ? "Saving…" : "Save sleep"}
+            {busy ? t("Saving…") : t("Save sleep")}
           </PressButton>
         </form>
       </Modal>

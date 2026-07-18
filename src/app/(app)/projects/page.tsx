@@ -189,7 +189,7 @@ export default function ProjectsPage() {
                 <GlassCard className="p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-lg font-semibold tracking-tight">{p.title}</h3>
+                      <h3 className="break-words text-lg font-semibold tracking-tight">{p.title}</h3>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${sm.tone}`}>{sm.label}</span>
                         <span className={`flex items-center gap-1 text-xs ${health.tone}`}><Activity size={11} />{health.label}</span>

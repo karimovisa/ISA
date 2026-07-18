@@ -125,7 +125,7 @@ export default function GoalsPage() {
                 <GlassCard className="p-5">
                   {/* header */}
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-semibold tracking-tight">{g.title}</h3>
+                    <h3 className="min-w-0 break-words text-lg font-semibold tracking-tight">{g.title}</h3>
                     <div className="relative shrink-0">
                       <button onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === g.id ? null : g.id); }}
                         aria-label="Goal menu" className="rounded-lg p-1.5 text-muted transition hover:bg-white/5 hover:text-fg">

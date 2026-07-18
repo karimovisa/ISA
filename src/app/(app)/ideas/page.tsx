@@ -168,7 +168,7 @@ export default function IdeasPage() {
                       </PopMenu>
                     </div>
                   </div>
-                  <p className="text-[15px] leading-relaxed text-fg/90">{idea.content}</p>
+                  <p className="break-words text-[15px] leading-relaxed text-fg/90">{idea.content}</p>
                 </GlassCard>
               </motion.div>
             );

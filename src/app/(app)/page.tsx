@@ -254,7 +254,9 @@ export default function DashboardPage() {
         >
           <Brain size={13} className="shrink-0 text-accent" />
           <span className="min-w-0 flex-1">
-            {t("ISA knows you {n}% — the more you add, the smarter it gets.", { n: coverage.pct })}
+            {coverage.pct >= 100
+              ? t("ISA can see your whole life — its insights are at their sharpest.")
+              : t("ISA knows you {n}% — the more you add, the smarter it gets.", { n: coverage.pct })}
           </span>
           <ArrowUpRight size={13} className="shrink-0 opacity-60 transition group-hover:opacity-100" />
         </Link>
