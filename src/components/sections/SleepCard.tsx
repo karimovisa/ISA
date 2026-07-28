@@ -71,10 +71,16 @@ export function SleepCard() {
   }, []);
 
   const loadOngoing = useCallback(async () => {
+    // A session is only "ongoing" if the user actually pressed Sleep (sleep_start
+    // set) and hasn't pressed Wake yet (sleep_end null). Rows logged by hours
+    // only — the evening check-in or the "Log sleep" modal — have NO sleep_start,
+    // so they must NOT be mistaken for an active session (that made the timer run
+    // from 1970 → cap at 16h → "you forgot to tap Wake").
     const { data } = await supabase
       .from("sleep_logs")
       .select("id, sleep_start, date")
       .is("sleep_end", null)
+      .not("sleep_start", "is", null)
       .order("sleep_start", { ascending: false })
       .limit(1)
       .maybeSingle();
