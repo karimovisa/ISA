@@ -81,7 +81,11 @@ export function useAskIsa(): UseAskIsa {
         const a = result.answer;
         void noteConversation(text, a);
 
-        if (a.navigation) {
+        // Only jump to a page when the user actually asked to open one ("open
+        // money"). A question or coaching reply may CARRY a deep link, but ISA
+        // should ANSWER in the chat — not yank the user out of the conversation.
+        // (That link is still offered as a tappable chip under the answer.)
+        if (a.navigation && a.intent === "navigate") {
           setTurns((t) => [...t, result.turn]);
           router.push(a.navigation.deepLink);
         } else if (a.action && a.action.confidence >= AUTO_EXECUTE) {

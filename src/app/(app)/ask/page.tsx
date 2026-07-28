@@ -6,8 +6,9 @@
 // never writes to your life without you saying yes.
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Send, Sparkles, RotateCcw } from "lucide-react";
+import { Send, Sparkles, RotateCcw, ArrowUpRight } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ActionForm } from "@/components/conversation/ActionForm";
@@ -30,6 +31,7 @@ export default function AskPage() {
     send, confirmAction, cancelAction, chooseClarification, undo,
   } = useAskIsa();
   const { t } = useT();
+  const router = useRouter();
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -74,26 +76,42 @@ export default function AskPage() {
           </GlassCard>
         )}
 
-        {turns.map((turn) => (
-          <motion.div
-            key={turn.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className={cn("flex", turn.role === "user" ? "justify-end" : "justify-start")}
-          >
-            <div
-              className={cn(
-                "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-                turn.role === "user"
-                  ? "bg-accent text-white"
-                  : "glass text-fg/90"
-              )}
+        {turns.map((turn) => {
+          // A question/coaching reply may carry a deep link — offer it as a chip,
+          // never an automatic jump (that belongs to an explicit "open X").
+          const nav =
+            turn.role === "assistant" && turn.answer?.navigation && turn.answer.intent !== "navigate"
+              ? turn.answer.navigation
+              : null;
+          return (
+            <motion.div
+              key={turn.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className={cn("flex flex-col gap-1.5", turn.role === "user" ? "items-end" : "items-start")}
             >
-              {turn.text}
-            </div>
-          </motion.div>
-        ))}
+              <div
+                className={cn(
+                  "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                  turn.role === "user"
+                    ? "bg-accent text-white"
+                    : "glass text-fg/90"
+                )}
+              >
+                {turn.text}
+              </div>
+              {nav && (
+                <button
+                  onClick={() => router.push(nav.deepLink)}
+                  className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs text-accent transition hover:bg-white/[0.05]"
+                >
+                  {t("Open")} {t(nav.label)} <ArrowUpRight size={13} />
+                </button>
+              )}
+            </motion.div>
+          );
+        })}
 
         {busy && (
           <div className="flex justify-start">
