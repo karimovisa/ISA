@@ -8,7 +8,7 @@ import type { IntelModule } from "@/lib/intelligence";
 
 // Both languages — the app is used in Uzbek, so the engine must understand it.
 const MODULE_WORDS: [IntelModule, RegExp][] = [
-  ["money", /\b(money|spend|spending|expense|budget|saving|income|finance|pul|xarajat|sarf|byudjet|daromad|jamg)/i],
+  ["money", /\b(money|spend|spending|expense|budget|saving|income|finance|pul|xarajat|chiqim|kirim|sarf|byudjet|daromad|jamg)/i],
   ["goals", /\b(goals?|maqsad)/i],
   ["projects", /\b(projects?|loyiha)/i],
   ["habits", /\b(habits?|odat)/i],
@@ -24,18 +24,22 @@ const MODULE_WORDS: [IntelModule, RegExp][] = [
 
 /** Parse a money amount, honoring k/m suffixes and thousands separators. */
 function parseAmount(text: string): number | undefined {
-  const m = text.match(/(\d[\d\s.,]*)\s*(k|m|mln|million|thousand|ming|million|so'?m|som)?/i);
+  const m = text.match(/(\d[\d\s.,]*)\s*(k|m|mln|million|thousand|ming|so'?m|som)?/i);
   if (!m) return undefined;
   // Only treat as an amount when the message is money-flavored (en + uz).
   if (
-    !/(spent|spend|paid|cost|save|saved|income|earn|expense|budget|money|\$|so'?m|som|sarfla|to'?la|xarajat|pul|daromad|oldim|sotib)/i.test(
+    !/(spent|spend|paid|cost|save|saved|income|earn|expense|budget|money|\$|so'?m|som|sarfla|to'?la|xarajat|chiqim|kirim|pul|daromad|oldim|sotib)/i.test(
       text
     )
   )
     return undefined;
-  const raw = Number(m[1].replace(/[\s,]/g, ""));
-  if (Number.isNaN(raw)) return undefined;
   const suffix = (m[2] ?? "").toLowerCase();
+  // With no k/m suffix, dots/commas/spaces are thousands separators — Uzbek so'm
+  // has no cents, so "200.000" means 200000, not 200. With a suffix a dot is a
+  // real decimal ("1.5m" = 1.5 million), so it's kept.
+  const cleaned = suffix ? m[1].replace(/[\s,]/g, "") : m[1].replace(/[\s.,]/g, "");
+  const raw = Number(cleaned);
+  if (Number.isNaN(raw)) return undefined;
   if (suffix === "k" || suffix === "thousand" || suffix === "ming") return raw * 1_000;
   if (suffix === "m" || suffix === "mln" || suffix === "million") return raw * 1_000_000;
   return raw;

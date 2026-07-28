@@ -51,8 +51,8 @@ export function detectAction(message: string, intent: IntentResult): ActionPropo
   const text = message.toLowerCase();
 
   // Money — expense vs income.
-  const isIncome = /\b(earned|income|received|got paid|salary|daromad|oldim maosh)\b/.test(text);
-  if (e.amount != null && (isIncome || /\b(spent|paid|cost|expense|buy|bought|sarfladim|to'?ladim|xarajat|sotib oldim)\b/.test(text))) {
+  const isIncome = /\b(earned|income|received|got paid|salary|daromad|kirim|oldim maosh|maosh)\b/.test(text);
+  if (e.amount != null && (isIncome || /\b(spent|paid|cost|expense|buy|bought|sarfladim|to'?ladim|xarajat|chiqim|sotib oldim)\b/.test(text))) {
     return {
       kind: isIncome ? "log_income" : "log_expense",
       headline: isIncome ? "Income detected" : "Expense detected",
