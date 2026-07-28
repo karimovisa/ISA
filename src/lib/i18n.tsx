@@ -337,6 +337,17 @@ const UZ: Record<string, string> = {
   "I'm tired": "Charchadim",
   "How should I add that?": "Buni qanday qo'shay?",
   Open: "Ochish",
+  // ── Ask ISA follow-up suggestions ──
+  "Should I rest today?": "Bugun dam olaymi?",
+  "What's my biggest expense?": "Eng katta xarajatim nima?",
+  "How can I save more?": "Qanday ko'proq jamg'araman?",
+  "How's my sleep?": "Uyqum qanday?",
+  "When do I focus best?": "Qachon eng yaxshi diqqat qilaman?",
+  "Am I on track for my goals?": "Maqsadlarim yo'lidamanmi?",
+  "How's my running trend?": "Yugurish tendentsiyam qanday?",
+  "What's my biggest risk?": "Eng katta xavfim nima?",
+  "How's my money?": "Moliyam qanday?",
+  "What's my top priority today?": "Bugun asosiy vazifam nima?",
 
   // ── Common actions / states ──
   "Load more": "Ko'proq yuklash",
@@ -665,6 +676,17 @@ const RU: Record<string, string> = {
   "I'm tired": "Устал",
   "How should I add that?": "Как это добавить?",
   Open: "Открыть",
+  // ── Ask ISA follow-up suggestions ──
+  "Should I rest today?": "Отдохнуть сегодня?",
+  "What's my biggest expense?": "Моя самая большая трата?",
+  "How can I save more?": "Как больше откладывать?",
+  "How's my sleep?": "Как мой сон?",
+  "When do I focus best?": "Когда я фокусируюсь лучше всего?",
+  "Am I on track for my goals?": "Я в графике по целям?",
+  "How's my running trend?": "Какой у меня тренд по бегу?",
+  "What's my biggest risk?": "Мой главный риск?",
+  "How's my money?": "Как мои финансы?",
+  "What's my top priority today?": "Мой главный приоритет сегодня?",
 
   // ── Greetings ──
   "Good morning": "Доброе утро",

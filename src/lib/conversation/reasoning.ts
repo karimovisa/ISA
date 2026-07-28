@@ -21,7 +21,7 @@ import {
   moduleLabel,
   deepLink,
 } from "@/lib/intelligence";
-import type { EvidenceRef } from "@/lib/intelligence";
+import type { EvidenceRef, IntelModule } from "@/lib/intelligence";
 import { canUse } from "@/lib/entitlements";
 import { detectAction } from "./actions";
 import { resolveNavigation } from "./navigation";
@@ -288,8 +288,32 @@ function coachAnswer(ctx: IntelligenceContext, intent: IntentResult): IsaAnswer 
     intent,
     coach.headline,
     [sec("", lines)],
-    { claim: "recommendation", confidence: coach.explanation.confidence, evidence: coach.explanation.evidence, navigation: coach.action ? { module: coach.module, deepLink: coach.action.deepLink, label: moduleLabel(coach.module) } : null }
+    {
+      claim: "recommendation",
+      confidence: coach.explanation.confidence,
+      evidence: coach.explanation.evidence,
+      navigation: coach.action ? { module: coach.module, deepLink: coach.action.deepLink, label: moduleLabel(coach.module) } : null,
+      followUps: ["What should I focus on today?", "Should I rest today?"],
+    }
   );
+}
+
+/** One or two next questions that fit the area the user just asked about. */
+function moduleFollowUps(mod: IntelModule): string[] {
+  switch (mod) {
+    case "money":
+      return ["What's my biggest expense?", "How can I save more?"];
+    case "energy":
+      return ["How's my sleep?", "Should I rest today?"];
+    case "focus":
+      return ["When do I focus best?", "What should I focus on today?"];
+    case "goals":
+      return ["Am I on track for my goals?", "What should I focus on today?"];
+    case "running":
+      return ["How's my running trend?"];
+    default:
+      return ["What should I focus on today?"];
+  }
 }
 
 function planningAnswer(ctx: IntelligenceContext, intent: IntentResult, message: string): IsaAnswer {
@@ -327,6 +351,7 @@ function questionAnswer(ctx: IntelligenceContext, intent: IntentResult): IsaAnsw
         confidence: mc.explanation.confidence,
         evidence: mc.explanation.evidence,
         navigation: { module: mod, deepLink: deepLink(mod), label: moduleLabel(mod) },
+        followUps: moduleFollowUps(mod),
       });
     }
   }

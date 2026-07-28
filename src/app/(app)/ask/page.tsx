@@ -76,13 +76,20 @@ export default function AskPage() {
           </GlassCard>
         )}
 
-        {turns.map((turn) => {
+        {turns.map((turn, i) => {
           // A question/coaching reply may carry a deep link — offer it as a chip,
           // never an automatic jump (that belongs to an explicit "open X").
           const nav =
             turn.role === "assistant" && turn.answer?.navigation && turn.answer.intent !== "navigate"
               ? turn.answer.navigation
               : null;
+          // Suggested next steps live only under the LATEST answer, so the thread
+          // doesn't fill with stale chips. ISA answers, then offers — never nags.
+          const isLast = i === turns.length - 1;
+          const followUps =
+            isLast && turn.role === "assistant" && !pendingAction && !clarification
+              ? (turn.answer?.followUps ?? []).slice(0, 3)
+              : [];
           return (
             <motion.div
               key={turn.id}
@@ -108,6 +115,19 @@ export default function AskPage() {
                 >
                   {t("Open")} {t(nav.label)} <ArrowUpRight size={13} />
                 </button>
+              )}
+              {followUps.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {followUps.map((fu) => (
+                    <button
+                      key={fu}
+                      onClick={() => void send(t(fu))}
+                      className="rounded-full border border-line bg-white/[0.03] px-3 py-1.5 text-xs text-fg/80 transition hover:bg-white/[0.07]"
+                    >
+                      {t(fu)}
+                    </button>
+                  ))}
+                </div>
               )}
             </motion.div>
           );
