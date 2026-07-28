@@ -13,7 +13,7 @@ import { formatSom, EXPENSE_CATEGORIES } from "@/lib/money";
 import { todayISO } from "@/lib/datetime";
 import { invalidateContext } from "@/lib/intelligence";
 import type {
-  ActionField, ActionProposal, ActionResult, ActionValues, FieldOption, IntentResult,
+  ActionField, ActionKind, ActionProposal, ActionResult, ActionValues, FieldOption, IntentResult,
 } from "./types";
 
 const tomorrowISO = (): string => {
@@ -59,6 +59,9 @@ export function detectAction(message: string, intent: IntentResult): ActionPropo
       module: "money",
       confirmLabel: "Save",
       warnings: e.category ? [] : ["No category detected — pick one below."],
+      // A clear expense with a known category is safe to log instantly (Undo
+      // stays available). Income, or a missing category, drops to "confirm".
+      confidence: isIncome ? 0.9 : e.category ? 0.96 : 0.72,
       form: [
         field({ key: "amount", label: "Amount", type: "number", value: String(e.amount), suffix: "so'm", required: true }),
         field({
@@ -78,18 +81,7 @@ export function detectAction(message: string, intent: IntentResult): ActionPropo
   if (e.future && (e.distanceKm != null || intent.primary === "create" || intent.primary === "planning")) {
     const title = e.title ?? (e.distanceKm != null ? `${e.distanceKm} km yugurish` : message.trim().replace(/[?.!]+$/, ""));
     if (title)
-      return {
-        kind: "create_task",
-        headline: "Task detected",
-        module: "tasks",
-        confirmLabel: "Create",
-        warnings: [],
-        form: [
-          field({ key: "title", label: "Title", type: "text", value: title, required: true }),
-          field({ key: "date", label: "When", type: "date", value: e.date ?? tomorrowISO(), options: dateChips() }),
-          field({ key: "priority", label: "Priority", type: "choice", value: "normal", options: priorityChips }),
-        ],
-      };
+      return taskTemplate(title, e.date ?? tomorrowISO());
   }
 
   // A recurring reminder. One-off reminders aren't offered: the schema repeats
@@ -102,6 +94,7 @@ export function detectAction(message: string, intent: IntentResult): ActionPropo
       module: "habits",
       confirmLabel: "Create",
       warnings: ["Reminders repeat — pick the days below."],
+      confidence: 0.72,
       form: [
         field({ key: "title", label: "Title", type: "text", value: title, required: true }),
         field({ key: "time", label: "Time", type: "time", value: e.timeOfDay ?? "08:00", options: timeChips }),
@@ -118,6 +111,7 @@ export function detectAction(message: string, intent: IntentResult): ActionPropo
       module: "running",
       confirmLabel: "Save",
       warnings: [],
+      confidence: 0.88,
       form: [
         field({ key: "km", label: "Distance", type: "number", value: String(e.distanceKm), suffix: "km", required: true }),
         field({ key: "date", label: "Date", type: "date", value: e.date ?? todayISO(), options: dateChips() }),
@@ -128,37 +122,106 @@ export function detectAction(message: string, intent: IntentResult): ActionPropo
   if (intent.primary === "create" && /\bgoal\b|\bmaqsad\b/.test(text)) {
     const title = e.title ?? message.replace(/.*(goal|maqsad)\s*/i, "").trim();
     if (!title) return null;
-    return {
-      kind: "create_goal",
-      headline: "Goal detected",
-      module: "goals",
-      confirmLabel: "Create",
-      warnings: [],
-      form: [
-        field({ key: "title", label: "Title", type: "text", value: title, required: true }),
-        field({ key: "deadline", label: "Deadline", type: "date", value: "", options: [] }),
-      ],
-    };
+    return goalTemplate(title);
   }
 
   // Habit.
   if (intent.primary === "create" && /\bhabit\b|\bodat\b/.test(text)) {
     const title = e.title ?? "";
     if (!title) return null;
-    return {
-      kind: "create_habit",
-      headline: "Habit detected",
-      module: "habits",
-      confirmLabel: "Create",
-      warnings: [],
-      form: [
-        field({ key: "name", label: "Name", type: "text", value: title, required: true }),
-        field({ key: "repeat", label: "Frequency", type: "choice", value: "all", options: repeatChips }),
-      ],
-    };
+    return habitTemplate(title);
   }
 
   return null;
+}
+
+// ── Template builders (shared by detection AND clarification selection) ──
+
+function taskTemplate(title: string, date: string): ActionProposal {
+  return {
+    kind: "create_task",
+    headline: "Task detected",
+    module: "tasks",
+    confirmLabel: "Create",
+    warnings: [],
+    confidence: 0.8,
+    form: [
+      field({ key: "title", label: "Title", type: "text", value: title, required: true }),
+      field({ key: "date", label: "When", type: "date", value: date, options: dateChips() }),
+      field({ key: "priority", label: "Priority", type: "choice", value: "normal", options: priorityChips }),
+    ],
+  };
+}
+
+function goalTemplate(title: string): ActionProposal {
+  return {
+    kind: "create_goal",
+    headline: "Goal detected",
+    module: "goals",
+    confirmLabel: "Create",
+    warnings: [],
+    confidence: 0.78,
+    form: [
+      field({ key: "title", label: "Title", type: "text", value: title, required: true }),
+      field({ key: "deadline", label: "Deadline", type: "date", value: "", options: [] }),
+    ],
+  };
+}
+
+function habitTemplate(title: string): ActionProposal {
+  return {
+    kind: "create_habit",
+    headline: "Habit detected",
+    module: "habits",
+    confirmLabel: "Create",
+    warnings: [],
+    confidence: 0.78,
+    form: [
+      field({ key: "name", label: "Name", type: "text", value: title, required: true }),
+      field({ key: "repeat", label: "Frequency", type: "choice", value: "all", options: repeatChips }),
+    ],
+  };
+}
+
+/** Build a template from a clarification choice the user tapped. The title is
+ *  already extracted, so this never re-parses free text. */
+export function buildProposalFor(kind: ActionKind, title: string): ActionProposal | null {
+  const t = title.trim();
+  if (!t) return null;
+  switch (kind) {
+    case "create_task":
+      return taskTemplate(t, todayISO());
+    case "create_goal":
+      return goalTemplate(t);
+    case "create_habit":
+      return habitTemplate(t);
+    default:
+      return null;
+  }
+}
+
+/** The default (pre-filled) values of a template — used to act immediately when
+ *  confidence is high enough that no confirmation is needed. */
+export function defaultValues(p: ActionProposal): ActionValues {
+  return Object.fromEntries(p.form.map((f) => [f.key, f.value]));
+}
+
+/** Reverse a just-performed action (only records with an id can be undone). */
+export async function undoAction(kind: ActionKind, createdId: string | null): Promise<boolean> {
+  if (!createdId) return false;
+  const table: Partial<Record<ActionKind, string>> = {
+    log_expense: "transactions",
+    log_income: "transactions",
+    create_task: "todos",
+    create_goal: "goals",
+    create_habit: "habits",
+    set_reminder: "reminders",
+  };
+  const t = table[kind];
+  if (!t) return false;
+  const { error } = await supabase.from(t).delete().eq("id", createdId);
+  if (!error) invalidateContext();
+  return !error;
 }
 
 // ─────────────────────────── EXECUTION ───────────────────────────

@@ -335,6 +335,7 @@ const UZ: Record<string, string> = {
   "I spent 50,000 on food": "50 000 so'm ovqatga sarfladim",
   "Where is my money going?": "Pulim qayerga ketyapti?",
   "I'm tired": "Charchadim",
+  "How should I add that?": "Buni qanday qo'shay?",
 
   // ── Common actions / states ──
   "Load more": "Ko'proq yuklash",
@@ -661,6 +662,7 @@ const RU: Record<string, string> = {
   "I spent 50,000 on food": "Потратил 50 000 на еду",
   "Where is my money going?": "Куда уходят мои деньги?",
   "I'm tired": "Устал",
+  "How should I add that?": "Как это добавить?",
 
   // ── Greetings ──
   "Good morning": "Доброе утро",

@@ -71,6 +71,7 @@ export type IsaAnswer = {
   sections: AnswerSection[];
   followUps: string[]; // suggested next questions, grounded in what ISA knows
   action: ActionProposal | null; // set when the message asks ISA to DO something
+  clarification: Clarification | null; // set when ISA offers interpretations instead
   navigation: { module: IntelModule; deepLink: string; label: string } | null;
   confidence: number;
   evidence: EvidenceRef[];
@@ -115,10 +116,27 @@ export type ActionProposal = {
   module: IntelModule;
   confirmLabel: string; // "Create"
   warnings: string[]; // anything the user should notice before confirming
+  /** 0..1 — how sure ISA is about BOTH the action and its filled fields.
+   *  ≥0.95 lets the surface act immediately; 0.70–0.95 asks one confirmation;
+   *  below that ISA offers interpretations instead of a form. */
+  confidence: number;
 };
 
 /** The values the user confirmed, keyed by field. */
 export type ActionValues = Record<string, string>;
+
+/** When ISA isn't confident enough to fill a single template, it offers a few
+ *  likely readings as buttons — one tap beats retyping. Each carries everything
+ *  needed to build the real action, so selecting it never re-parses text. */
+export type ClarifyOption = {
+  label: string; // i18n key shown on the button — "Task", "Expense"…
+  kind: ActionKind;
+  title: string; // pre-extracted title/subject from the original message
+};
+export type Clarification = {
+  prompt: string; // "Did you mean…?" (i18n key)
+  options: ClarifyOption[]; // 2–4
+};
 
 export type ActionResult = {
   ok: boolean;

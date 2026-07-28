@@ -34,7 +34,10 @@ export async function ask(
   // Pure navigation / action-confirmation turns don't need a model — they're
   // exact by construction, and phrasing them risks drift.
   const needsPhrasing =
-    opts.allowLLM !== false && !answer.navigation && !(answer.action && answer.sections.length <= 1);
+    opts.allowLLM !== false &&
+    !answer.navigation &&
+    !answer.clarification &&
+    !(answer.action && answer.sections.length <= 1);
 
   if (needsPhrasing) {
     const req = buildGenerationRequest(answer, toProviderMessages(history), message);

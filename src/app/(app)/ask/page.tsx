@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, RotateCcw } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ActionForm } from "@/components/conversation/ActionForm";
@@ -25,14 +25,17 @@ const STARTERS = [
 ];
 
 export default function AskPage() {
-  const { turns, busy, pendingAction, send, confirmAction, cancelAction } = useAskIsa();
+  const {
+    turns, busy, pendingAction, clarification, undoable,
+    send, confirmAction, cancelAction, chooseClarification, undo,
+  } = useAskIsa();
   const { t } = useT();
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [turns.length, pendingAction]);
+  }, [turns.length, pendingAction, clarification, undoable]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +99,38 @@ export default function AskPage() {
           <div className="flex justify-start">
             <div className="glass rounded-2xl px-4 py-2.5 text-sm text-muted">{t("ISA is thinking…")}</div>
           </div>
+        )}
+
+        {/* ISA acted on its own (high confidence) — one tap to take it back. */}
+        {undoable && !busy && (
+          <div className="flex justify-start">
+            <button
+              onClick={() => void undo()}
+              className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-muted transition hover:text-fg"
+            >
+              <RotateCcw size={13} /> {t("Undo")}
+            </button>
+          </div>
+        )}
+
+        {/* Not sure which template fits — offer the likely readings as buttons. */}
+        {clarification && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <GlassCard className="border border-accent/40 p-4">
+              <p className="mb-3 text-sm font-semibold text-accent">{t(clarification.prompt)}</p>
+              <div className="flex flex-wrap gap-2">
+                {clarification.options.map((o) => (
+                  <button
+                    key={o.kind}
+                    onClick={() => chooseClarification(o)}
+                    className="rounded-full border border-line bg-white/[0.03] px-3.5 py-1.5 text-sm text-fg/90 transition hover:bg-white/[0.07]"
+                  >
+                    {t(o.label)}
+                  </button>
+                ))}
+              </div>
+            </GlassCard>
+          </motion.div>
         )}
 
         {/* A detected intent becomes a filled template — confirm, don't build. */}

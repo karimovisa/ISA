@@ -1,27 +1,39 @@
 "use client";
 
 // ISA — Conversation Layer · React integration (Ask ISA, §1)
-// One hook powers the whole conversational surface: it holds the turns, runs the
-// pipeline, gates the optional LLM phrasing on the subscription, handles the
-// action confirm/cancel round-trip, and auto-navigates when ISA is asked to open
-// a module. The user feels like they're talking to ISA — because they are.
+// One hook powers the whole conversational surface. It turns ISA's confidence
+// into the right amount of friction:
+//   • ≥95%  → act immediately (Undo stays available)
+//   • 70–95% → one pre-filled confirmation
+//   • <70%  → offer a few interpretations as buttons, never a re-type
+// The user feels understood with the least possible typing.
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEntitlements } from "@/components/EntitlementProvider";
 import { ask, userTurn } from "./engine";
-import { executeAction } from "./actions";
+import { buildProposalFor, defaultValues, executeAction, undoAction } from "./actions";
 import { noteConversation } from "./memory";
-import type { ActionProposal, ActionValues, ConversationTurn } from "./types";
+import type {
+  ActionKind, ActionProposal, ActionValues, Clarification, ClarifyOption, ConversationTurn,
+} from "./types";
+
+const AUTO_EXECUTE = 0.95; // act without asking above this
+
+type Undoable = { kind: ActionKind; id: string };
 
 export type UseAskIsa = {
   turns: ConversationTurn[];
   busy: boolean;
   pendingAction: ActionProposal | null;
+  clarification: Clarification | null;
+  undoable: Undoable | null;
   error: string | null;
   send: (message: string) => Promise<void>;
   confirmAction: (values: ActionValues) => Promise<void>;
   cancelAction: () => void;
+  chooseClarification: (option: ClarifyOption) => void;
+  undo: () => Promise<void>;
   reset: () => void;
 };
 
@@ -39,25 +51,47 @@ export function useAskIsa(): UseAskIsa {
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<ActionProposal | null>(null);
+  const [clarification, setClarification] = useState<Clarification | null>(null);
+  const [undoable, setUndoable] = useState<Undoable | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // LLM phrasing is a Pro nicety; the deterministic answer is always available.
   const allowLLM = canUse("ai_coach") || canUse("nl_search");
+
+  // The one place a write happens — shared by auto-execute and explicit confirm.
+  const runAction = useCallback(async (proposal: ActionProposal, values: ActionValues) => {
+    const res = await executeAction(proposal, values);
+    setTurns((t) => [...t, assistantTurn(res.message)]);
+    setUndoable(res.ok && res.createdId ? { kind: proposal.kind, id: res.createdId } : null);
+    if (!res.ok) setError(res.error);
+  }, []);
 
   const send = useCallback(
     async (message: string) => {
       const text = message.trim();
       if (!text || busy) return;
       setError(null);
+      setClarification(null);
+      setUndoable(null);
       setBusy(true);
       const history = turns;
       setTurns((t) => [...t, userTurn(text)]);
       try {
         const result = await ask(text, history, { allowLLM });
-        setTurns((t) => [...t, result.turn]);
-        if (result.answer.action) setPendingAction(result.answer.action);
-        if (result.answer.navigation) router.push(result.answer.navigation.deepLink);
-        void noteConversation(text, result.answer);
+        const a = result.answer;
+        void noteConversation(text, a);
+
+        if (a.navigation) {
+          setTurns((t) => [...t, result.turn]);
+          router.push(a.navigation.deepLink);
+        } else if (a.action && a.action.confidence >= AUTO_EXECUTE) {
+          // High confidence: act now, skip the "detected" label, keep Undo.
+          await runAction(a.action, defaultValues(a.action));
+        } else {
+          setTurns((t) => [...t, result.turn]);
+          if (a.action) setPendingAction(a.action);
+          else if (a.clarification) setClarification(a.clarification);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
         setTurns((t) => [...t, assistantTurn("I hit a snag reaching your data. Try again in a moment.")]);
@@ -65,7 +99,7 @@ export function useAskIsa(): UseAskIsa {
         setBusy(false);
       }
     },
-    [busy, turns, allowLLM, router]
+    [busy, turns, allowLLM, router, runAction]
   );
 
   const confirmAction = useCallback(async (values: ActionValues) => {
@@ -74,15 +108,13 @@ export function useAskIsa(): UseAskIsa {
     const proposal = pendingAction;
     setPendingAction(null);
     try {
-      const res = await executeAction(proposal, values);
-      setTurns((t) => [...t, assistantTurn(res.message)]);
-      if (!res.ok) setError(res.error);
+      await runAction(proposal, values);
     } catch (e) {
       setError(e instanceof Error ? e.message : "That action failed.");
     } finally {
       setBusy(false);
     }
-  }, [pendingAction, busy]);
+  }, [pendingAction, busy, runAction]);
 
   const cancelAction = useCallback(() => {
     if (!pendingAction) return;
@@ -90,11 +122,36 @@ export function useAskIsa(): UseAskIsa {
     setTurns((t) => [...t, assistantTurn("No problem — I won't record that.")]);
   }, [pendingAction]);
 
+  // A tapped interpretation becomes a pre-filled confirmation — never a re-type.
+  const chooseClarification = useCallback((option: ClarifyOption) => {
+    setClarification(null);
+    const proposal = buildProposalFor(option.kind, option.title);
+    if (proposal) setPendingAction(proposal);
+  }, []);
+
+  const undo = useCallback(async () => {
+    if (!undoable || busy) return;
+    setBusy(true);
+    const target = undoable;
+    setUndoable(null);
+    try {
+      const ok = await undoAction(target.kind, target.id);
+      setTurns((t) => [...t, assistantTurn(ok ? "Undone." : "Couldn't undo that.")]);
+    } finally {
+      setBusy(false);
+    }
+  }, [undoable, busy]);
+
   const reset = useCallback(() => {
     setTurns([]);
     setPendingAction(null);
+    setClarification(null);
+    setUndoable(null);
     setError(null);
   }, []);
 
-  return { turns, busy, pendingAction, error, send, confirmAction, cancelAction, reset };
+  return {
+    turns, busy, pendingAction, clarification, undoable, error,
+    send, confirmAction, cancelAction, chooseClarification, undo, reset,
+  };
 }

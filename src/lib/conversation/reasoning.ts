@@ -25,7 +25,7 @@ import type { EvidenceRef } from "@/lib/intelligence";
 import { canUse } from "@/lib/entitlements";
 import { detectAction } from "./actions";
 import { resolveNavigation } from "./navigation";
-import type { AnswerSection, IntentResult, IsaAnswer } from "./types";
+import type { AnswerSection, Clarification, IntentResult, IsaAnswer } from "./types";
 
 const sec = (heading: string, lines: string[], evidence: EvidenceRef[] = []): AnswerSection => ({
   heading,
@@ -52,6 +52,7 @@ function shell(
     sections,
     followUps: opts.followUps ?? [],
     action: opts.action ?? null,
+    clarification: opts.clarification ?? null,
     navigation: opts.navigation ?? null,
     confidence: opts.confidence ?? intent.confidence,
     evidence,
@@ -115,18 +116,52 @@ function navigateAnswer(intent: IntentResult, message: string): IsaAnswer {
 
 function actionAnswer(intent: IntentResult, message: string): IsaAnswer {
   const proposal = detectAction(message, intent);
-  if (!proposal) {
-    return shell(intent, "I can log expenses, runs, goals, habits and reminders — what would you like to record?", [], {
-      claim: "fact",
+  if (proposal) {
+    // Two words, then the template does the talking (§13 — never a paragraph).
+    // The proposal's own confidence drives whether the surface acts, confirms,
+    // or (below) clarifies — no fixed 0.85 anymore.
+    return shell(intent, proposal.headline, [], {
+      action: proposal,
+      claim: "recommendation",
+      confidence: proposal.confidence,
+      draft: proposal.headline,
     });
   }
-  // Two words, then the template does the talking (§13 — never a paragraph).
-  return shell(intent, proposal.headline, [], {
-    action: proposal,
-    claim: "recommendation",
-    confidence: 0.85,
-    draft: proposal.headline,
+  // Couldn't fill one confident template. Rather than a dead-end question, offer
+  // the few likely readings as buttons — one tap beats retyping.
+  const clarification = buildClarification(intent, message);
+  if (clarification) {
+    return shell(intent, "How should I add that?", [], {
+      clarification,
+      claim: "fact",
+      confidence: 0.5,
+      draft: "How should I add that?",
+    });
+  }
+  return shell(intent, "I can log expenses, runs, goals, habits and reminders — what would you like to record?", [], {
+    claim: "fact",
   });
+}
+
+/** When ISA can't confidently pick ONE template, offer a short phrase as a few
+ *  likely creations. Only for create intent, and only for a genuinely short
+ *  subject — never a whole sentence or a delete/update request. */
+function buildClarification(intent: IntentResult, message: string): Clarification | null {
+  if (intent.primary !== "create") return null;
+  const raw = (intent.entities.title ?? message)
+    .trim()
+    .replace(/^(add|create|make|new|log|record|qo'?sh|yarat|yoz)\s+/i, "")
+    .replace(/[?.!]+$/, "")
+    .trim();
+  if (!raw || raw.length > 60 || raw.split(/\s+/).length > 8) return null;
+  return {
+    prompt: "How should I add that?",
+    options: [
+      { label: "Task", kind: "create_task", title: raw },
+      { label: "Habit", kind: "create_habit", title: raw },
+      { label: "Goal", kind: "create_goal", title: raw },
+    ],
+  };
 }
 
 async function searchAnswer(ctx: IntelligenceContext, intent: IntentResult, message: string): Promise<IsaAnswer> {
