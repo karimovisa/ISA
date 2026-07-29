@@ -617,6 +617,26 @@ const UZ: Record<string, string> = {
     "Bu maqsad va uning bosqichlarini o'chiradi. Qaytarib bo'lmaydi.",
   "Delete this transaction?": "Bu tranzaksiya o'chirilsinmi?",
 
+  // ── Dashboard v2 ──
+  Continue: "Davom etish",
+  "Add a goal": "Maqsad qo'shish",
+  "Set your first goal": "Birinchi maqsadingizni belgilang",
+  "A direction makes every day count.": "Yo'nalish har kunni mazmunli qiladi.",
+  "Focus now, get closer to your goal.": "Hozir diqqat qiling — maqsadingizga yaqinlashing.",
+  "habits left": "odat qoldi",
+  "tasks left": "vazifa qoldi",
+  d: "k",
+  "Quick actions": "Tezkor amallar",
+  "Today's Progress": "Bugungi natija",
+  "of today": "bugungi",
+  Tasks: "Vazifalar",
+  "ISA Insight": "ISA tahlili",
+  "Keep going — ISA is still learning your rhythm.": "Davom eting — ISA hali ritmingizni o'rganyapti.",
+  "View more": "Batafsil",
+  "Recent activity": "So'nggi faoliyat",
+  Overview: "Umumiy ko'rinish",
+  Streak: "Ketma-ketlik",
+
   // ── Quick capture ──
   "What would you like to add?": "Nima qo'shmoqchisiz?",
   "Just say it — ISA fills in the rest.": "Shunchaki ayting — qolganini ISA to'ldiradi.",
@@ -1075,6 +1095,26 @@ const RU: Record<string, string> = {
   "This removes the goal and its milestones. It can't be undone.":
     "Это удалит цель и её этапы. Отменить будет нельзя.",
   "Delete this transaction?": "Удалить эту транзакцию?",
+
+  // ── Dashboard v2 ──
+  Continue: "Продолжить",
+  "Add a goal": "Добавить цель",
+  "Set your first goal": "Поставьте первую цель",
+  "A direction makes every day count.": "Направление делает каждый день значимым.",
+  "Focus now, get closer to your goal.": "Сфокусируйтесь — приблизьтесь к цели.",
+  "habits left": "привычек осталось",
+  "tasks left": "задач осталось",
+  d: "д",
+  "Quick actions": "Быстрые действия",
+  "Today's Progress": "Прогресс за сегодня",
+  "of today": "за сегодня",
+  Tasks: "Задачи",
+  "ISA Insight": "Инсайт ISA",
+  "Keep going — ISA is still learning your rhythm.": "Продолжайте — ISA ещё изучает ваш ритм.",
+  "View more": "Подробнее",
+  "Recent activity": "Недавняя активность",
+  Overview: "Обзор",
+  Streak: "Серия",
 
   // ── Quick capture ──
   "What would you like to add?": "Что хотите добавить?",

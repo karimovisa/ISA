@@ -1,47 +1,77 @@
 "use client";
 
-// ISA — Dashboard. A control center, not a stats wall. It answers one question:
-// "what should I do today?" — with a real mission list built from live data.
-// Below it, Life Coverage says honestly how much of your life ISA can actually
-// see. AI speaks only when it has something worth saying.
+// ISA — Dashboard. A decision center, not an analytics wall. It answers one
+// question the moment you open it: "what should I do next?" Everything else is
+// quiet. Calm, spacious, premium — a life OS, not a dashboard concept.
+//
+// Order is deliberate: Greeting → Mission → Quick Actions → Progress → Insight →
+// Recent Activity → Statistics. Nothing else.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  Target, Wallet, Timer, Repeat, Quote, CalendarClock, Sparkles,
-  ArrowUpRight, HelpCircle, Compass, Brain,
+  Target, Plus, Search, Sparkles, MessageSquare, CalendarDays, ArrowUpRight,
+  BookOpen, Footprints, Timer, Wallet, Repeat, ListTodo, Moon, ChevronRight,
+  Flame, Lightbulb,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { SleepCard } from "@/components/sections/SleepCard";
+import { MountainBg } from "@/components/brand/MountainBg";
+import { DailyCheckin } from "@/components/sections/DailyCheckin";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { Onboarding } from "@/components/sections/Onboarding";
-import { TodoList } from "@/components/sections/TodoList";
-import { DailyCheckin } from "@/components/sections/DailyCheckin";
-import { AscentProgress } from "@/components/ui/AscentProgress";
-import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { greetingFor, formatDate, todayISO } from "@/lib/datetime";
 import { useT } from "@/lib/i18n";
-import { quoteOfTheDay } from "@/lib/quotes";
-import { nearestDeadline, focusMinutesThisWeek } from "@/lib/stats";
+import { nearestDeadline } from "@/lib/stats";
 import { summarizeMonth, currentMonthKey, overallBalance, formatSom } from "@/lib/money";
-import { computeCoverage } from "@/lib/coverage";
 import { retrieveTopInsights, type Insight } from "@/lib/insights";
 import type { Goal, JournalEntry, FocusSession, Todo, Transaction, Habit } from "@/lib/types";
 
-type Mission = { key: string; label: string; done: boolean; href: string };
+// Green is reserved for progress / done / success — nothing else.
+const GREEN = "#86A97F";
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
+
+type Activity = { id: string; label: string; when: string; Icon: typeof BookOpen };
+
+const activityMeta = (type: string): { label: string; Icon: typeof BookOpen } => {
+  const t = type.toLowerCase();
+  if (t.includes("journal")) return { label: "Journal", Icon: BookOpen };
+  if (t.includes("run")) return { label: "Running", Icon: Footprints };
+  if (t.includes("goal")) return { label: "Goal updated", Icon: Target };
+  if (t.includes("focus") || t.includes("deepwork")) return { label: "Focus", Icon: Timer };
+  if (t.includes("expense") || t.includes("income") || t.includes("saving") || t.includes("budget"))
+    return { label: "Money", Icon: Wallet };
+  if (t.includes("habit") || t.includes("streak")) return { label: "Habit", Icon: Repeat };
+  if (t.includes("task")) return { label: "Task", Icon: ListTodo };
+  if (t.includes("sleep") || t.includes("energy")) return { label: "Sleep", Icon: Moon };
+  if (t.includes("prayer")) return { label: "Prayer", Icon: Sparkles };
+  return { label: "Activity", Icon: Sparkles };
+};
+
+const relTime = (iso: string): string => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.round(diff / 60000);
+  if (m < 1) return "now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  return `${d}d ago`;
+};
 
 export default function DashboardPage() {
   const { displayName } = useAuth();
   const { t } = useT();
   const reduce = useReducedMotion();
+
   const [dateNow, setDateNow] = useState<Date | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
-  const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleep: false, mood: false });
-  const [counts, setCounts] = useState({ sleepLogs: 0, moodLogs: 0, runs: 0 });
+  const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleepToday: false });
+  const [sleepAvg, setSleepAvg] = useState<number | null>(null);
+  const [activity, setActivity] = useState<Activity[]>([]);
 
   const goals = useCollection<Goal>("goals");
   const journal = useCollection<JournalEntry>("journal_entries");
@@ -55,295 +85,392 @@ export default function DashboardPage() {
   useEffect(() => {
     setDateNow(new Date());
     void retrieveTopInsights(1).then((r) => setInsight(r[0] ?? null));
+    void (async () => {
+      const { data } = await supabase
+        .from("life_events")
+        .select("id, type, created_at")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      const rows = (data as { id: string; type: string; created_at: string }[]) ?? [];
+      setActivity(
+        rows.slice(0, 3).map((r) => {
+          const m = activityMeta(r.type);
+          return { id: r.id, label: m.label, when: relTime(r.created_at), Icon: m.Icon };
+        })
+      );
+    })();
   }, []);
 
   useEffect(() => {
-    (async () => {
-      const [{ data: hl }, { data: sl }, { data: ml }, { data: rl }, { data: sa }] = await Promise.all([
-        supabase.from("habit_logs").select("habit_id,completed,date").eq("date", today),
-        supabase.from("sleep_logs").select("id,date"),
-        supabase.from("mood_logs").select("id,date"),
-        supabase.from("runs").select("id"),
-        // Strava counts as running data too — coverage read only `runs` and so
-        // claimed "no running" while 33 synced activities sat in the database.
-        supabase.from("strava_activities").select("id"),
+    void (async () => {
+      const [{ data: hl }, { data: sl }] = await Promise.all([
+        supabase.from("habit_logs").select("completed,date").eq("date", today),
+        supabase.from("sleep_logs").select("date,duration_hours"),
       ]);
       const logs = (hl as { completed: boolean }[]) ?? [];
-      const sleeps = (sl as { date: string }[]) ?? [];
-      const moods = (ml as { date: string }[]) ?? [];
+      const sleeps = (sl as { date: string; duration_hours: number }[]) ?? [];
       setToday2({
         habitsDone: logs.filter((x) => x.completed).length,
         habitsDue: habits.data.filter((h) => h.is_active).length,
-        sleep: sleeps.some((x) => x.date === today),
-        mood: moods.some((x) => x.date === today),
+        sleepToday: sleeps.some((x) => x.date === today),
       });
-      setCounts({
-        sleepLogs: sleeps.length,
-        moodLogs: moods.length,
-        runs: ((rl as unknown[]) ?? []).length + ((sa as unknown[]) ?? []).length,
-      });
+      const cutoff = Date.now() - 7 * 86_400_000;
+      const week = sleeps.filter((s) => new Date(s.date).getTime() >= cutoff && s.duration_hours > 0);
+      setSleepAvg(week.length ? week.reduce((a, s) => a + Number(s.duration_hours), 0) / week.length : null);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [habits.data.length, today]);
 
+  // ── Derived facts ──
+  const activeGoals = useMemo(() => goals.data.filter((g) => !g.archived), [goals.data]);
+  const primaryGoal = useMemo(() => {
+    const withDeadline = activeGoals.filter((g) => g.deadline && (g.percentage ?? 0) < 100);
+    if (withDeadline.length)
+      return [...withDeadline].sort((a, b) => +new Date(a.deadline!) - +new Date(b.deadline!))[0];
+    const open = activeGoals.filter((g) => (g.percentage ?? 0) < 100);
+    return [...open].sort((a, b) => (a.percentage ?? 0) - (b.percentage ?? 0))[0] ?? activeGoals[0] ?? null;
+  }, [activeGoals]);
+
   const todaysTodos = todos.data.filter((x) => x.date === today);
-  const openTodos = todaysTodos.filter((x) => !x.done);
+  const tasksDone = todaysTodos.filter((x) => x.done).length;
+  const tasksRemaining = todaysTodos.length - tasksDone;
+  const habitsRemaining = Math.max(0, today2.habitsDue - today2.habitsDone);
+  const focusToday = focus.data.filter(
+    (s) => new Date(s.created_at).toDateString() === new Date().toDateString()
+  ).length;
   const journaledToday = journal.data.some((j) => j.entry_date === today);
-  const focusMinToday = Math.round(
-    focus.data
-      .filter((s) => new Date(s.created_at).toDateString() === new Date().toDateString())
-      .reduce((s, x) => s + x.duration_seconds, 0) / 60
-  );
-  const spentToday = txns.data.some((x) => x.date === today);
-  const deadline = nearestDeadline(goals.data);
-  const month = summarizeMonth(txns.data, currentMonthKey());
-  const balance = overallBalance(txns.data);
-  const overall = goals.data.length
-    ? Math.round(goals.data.reduce((s, g) => s + (g.percentage ?? 0), 0) / goals.data.length)
+  const deadline = nearestDeadline(activeGoals);
+
+  // "% of today": a calm blend of the day's rhythm (habits, one task, focus,
+  // journal, sleep) — the answer to "how am I doing?".
+  const dayParts = [
+    today2.habitsDue > 0 ? today2.habitsDone >= today2.habitsDue : true,
+    todaysTodos.length > 0 ? tasksRemaining === 0 : true,
+    focusToday > 0,
+    journaledToday,
+    today2.sleepToday,
+  ];
+  const todayPct = Math.round((dayParts.filter(Boolean).length / dayParts.length) * 100);
+
+  const overall = activeGoals.length
+    ? Math.round(activeGoals.reduce((s, g) => s + (g.percentage ?? 0), 0) / activeGoals.length)
     : 0;
-  const weeklyMin = focusMinutesThisWeek(focus.data);
+  const balance = overallBalance(txns.data);
+  const month = summarizeMonth(txns.data, currentMonthKey());
   const activeHabits = habits.data.filter((h) => h.is_active).length;
 
-  // ── Today's Mission — real, checkable, from live data ──
-  const mission: Mission[] = [];
-  if (activeHabits > 0)
-    mission.push({
-      key: "habits",
-      label: t("Complete today's habits"),
-      done: today2.habitsDue > 0 && today2.habitsDone >= today2.habitsDue,
-      href: "/habits",
-    });
-  mission.push({ key: "focus", label: t("Focus for 25 minutes"), done: focusMinToday >= 25, href: "/focus" });
-  mission.push({ key: "journal", label: t("Write today's journal"), done: journaledToday, href: "/journal" });
-  if (todaysTodos.length > 0)
-    mission.push({ key: "todos", label: t("Clear today's tasks"), done: openTodos.length === 0, href: "/" });
-  mission.push({ key: "money", label: t("Log today's expenses"), done: spentToday, href: "/money" });
-  mission.push({ key: "sleep", label: t("Log your sleep"), done: today2.sleep, href: "/" });
-  mission.push({ key: "mood", label: t("Record your mood"), done: today2.mood, href: "/journal" });
+  // 7-day focus sparkline (minutes/day).
+  const focusSeries = useMemo(() => {
+    const days: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toDateString();
+      const mins = focus.data
+        .filter((s) => new Date(s.created_at).toDateString() === key)
+        .reduce((a, s) => a + s.duration_seconds, 0) / 60;
+      days.push(Math.round(mins));
+    }
+    return days;
+  }, [focus.data]);
 
-  const doneCount = mission.filter((m) => m.done).length;
-  const missionPct = mission.length ? Math.round((doneCount / mission.length) * 100) : 0;
-  // "Less work, more meaning" — surface ONE thing worth doing next, and let the
-  // rest of the day's rhythm sit quietly as progress rather than a chore-wall.
-  const primary = mission.find((m) => !m.done) ?? null;
-
-  // ── Life Coverage ──
-  const coverage = computeCoverage({
-    goals: goals.data.length,
-    habits: habits.data.length,
-    focusSessions: focus.data.length,
-    journalEntries: journal.data.length,
-    transactions: txns.data.length,
-    sleepLogs: counts.sleepLogs,
-    moodLogs: counts.moodLogs,
-    runs: counts.runs,
-  });
+  const insightText = insight ? humanize(insight.detail || insight.title) : null;
 
   const anyLoading = goals.loading || journal.loading || focus.loading || todos.loading;
   const freshAccount =
     !anyLoading &&
     goals.data.length + journal.data.length + focus.data.length + todos.data.length + txns.data.length === 0;
 
-  const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
   const rise = (delay = 0) => ({
-    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 14 },
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 16 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.45, delay, ease },
+    transition: { duration: 0.5, delay, ease: EASE },
   });
 
-  // Internal engine names must never reach the user ("GoalCompleted").
-  const humanize = (s: string) =>
-    s
-      .replace(/\b([A-Z][a-z]+)([A-Z][a-z]+)+\b/g, (m) => m.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase())
-      .replace(/^./, (c) => c.toUpperCase());
+  const openCapture = () => window.dispatchEvent(new CustomEvent("isa:open-capture"));
+  const openSearch = () => window.dispatchEvent(new CustomEvent("isa:open-palette"));
 
   return (
-    <div>
+    <div className="relative mx-auto max-w-[1280px]">
+      <MountainBg />
       <WeeklyReviewModal />
       <Onboarding name={displayName} show={freshAccount} />
 
       {/* 1 — Greeting */}
-      <motion.section {...rise(0)} className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wider text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
-          {/* A name is never truncated — it wraps, and long ones step the type
-              down instead of turning into "Isl…". */}
-          <h1
-            className={`mt-1 font-bold tracking-tight break-words text-balance ${
-              displayName.length > 14 ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"
-            }`}
-          >
-            {dateNow ? t(greetingFor(dateNow)) : t("Welcome")}, {displayName}.
-          </h1>
-        </div>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent("isa:open-help", { detail: "dashboard" }))}
-          aria-label={t("Help")}
-          className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line text-muted transition hover:bg-white/5 hover:text-fg"
+      <motion.header {...rise(0)} className="pt-4 sm:pt-6">
+        <h1
+          className={`font-bold tracking-tight break-words text-balance ${
+            displayName.length > 14 ? "text-3xl sm:text-4xl" : "text-4xl sm:text-[2.6rem]"
+          }`}
         >
-          <HelpCircle size={17} />
-        </button>
-      </motion.section>
+          {dateNow ? t(greetingFor(dateNow)) : t("Welcome")}, {displayName}.
+        </h1>
+        <p className="mt-1.5 text-sm text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
+      </motion.header>
 
-      {/* Evening only, once a day — the one thing ISA can't derive: why. */}
-      <DailyCheckin />
-
-      {/* 2 — Today: one thing worth doing, then the day's rhythm as quiet progress */}
-      <motion.div {...rise(0.05)} className="mb-4">
-        <GlassCard className="bg-gradient-to-br from-accent/10 via-transparent to-transparent p-5">
-          <div className="mb-2 flex items-center gap-2">
-            <Compass size={16} className="text-accent" />
-            <h2 className="text-sm font-semibold">{t("Today")}</h2>
-          </div>
-
-          {primary ? (
-            <Link
-              href={primary.href}
-              className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]"
-            >
-              <span className="min-w-0">
-                <span className="block text-base font-medium text-fg">{primary.label}</span>
-                <span className="mt-0.5 block text-xs text-muted">{t("One small step. ISA tracks the rest.")}</span>
-              </span>
-              <ArrowUpRight size={17} className="shrink-0 text-muted" />
-            </Link>
-          ) : (
-            <p className="py-1 text-sm text-fg/90">{t("You're on top of today. Nicely done.")}</p>
-          )}
-
-          {/* The old chore-list, reframed as passive progress — not a to-do wall. */}
-          <div className="mt-4 border-t border-line pt-3">
-            <div className="mb-2 flex items-center justify-between text-xs text-muted">
-              <span>{t("Daily rhythm")}</span>
-              <span className="tabular-nums">{doneCount}/{mission.length}</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
-              <motion.div
-                className="h-full rounded-full bg-accent"
-                initial={{ width: 0 }}
-                animate={{ width: `${missionPct}%` }}
-                transition={{ duration: 0.7, ease }}
-              />
-            </div>
-          </div>
-
-          {/* AI speaks only when it has something real to say. */}
-          {insight && (
-            <div className="mt-4 border-t border-line pt-3">
-              <p className="text-xs leading-relaxed text-muted">
-                <span className="inline-flex items-center gap-1 font-medium text-fg/80">
-                  <Sparkles size={11} className="text-accent" /> {t("Insight")} ·{" "}
-                </span>
-                {humanize(insight.detail || insight.title)}
-              </p>
-            </div>
-          )}
-        </GlassCard>
-      </motion.div>
-
-      {/* 3 — Today's tasks */}
-      <motion.div {...rise(0.1)} className="mb-4">
-        <TodoList />
-      </motion.div>
-
-      {/* 4 — How much of your life ISA can see — a quiet hint, not a dashboard card */}
-      <motion.div {...rise(0.14)} className="mb-4">
-        <Link
-          href="/knows"
-          className="group flex items-center gap-2 px-1 text-xs text-muted transition hover:text-fg"
-        >
-          <Brain size={13} className="shrink-0 text-accent" />
-          <span className="min-w-0 flex-1">
-            {coverage.pct >= 100
-              ? t("ISA can see your whole life — its insights are at their sharpest.")
-              : t("ISA knows you {n}% — the more you add, the smarter it gets.", { n: coverage.pct })}
-          </span>
-          <ArrowUpRight size={13} className="shrink-0 opacity-60 transition group-hover:opacity-100" />
-        </Link>
-      </motion.div>
-
-      {/* 5 — Overview */}
-      <div className="grid grid-cols-2 gap-3">
-        <Overview {...rise(0.18)} href="/goals" Icon={Target} label={t("Goals")}
-          value={<AnimatedNumber value={goals.data.length} />} sub={t("{n}% overall", { n: overall })} />
-        <Overview {...rise(0.21)} href="/money" Icon={Wallet} label={t("Money")}
-          value={<span className="tabular-nums">{formatSom(balance)}</span>}
-          sub={month.savingRate >= 0 ? t("on track") : t("over budget")} small />
-        <Overview {...rise(0.24)} href="/focus" Icon={Timer} label={t("Focus")}
-          value={<AnimatedNumber value={weeklyMin} />} sub={t("min this week")} />
-        <Overview {...rise(0.27)} href="/habits" Icon={Repeat} label={t("Habits")}
-          value={<AnimatedNumber value={activeHabits} />} sub={t("active")} />
+      {/* Evening-only, once a day — the one thing ISA can't sense: sleep + why. */}
+      <div className="mt-6">
+        <DailyCheckin />
       </div>
 
-      {/* 6 — Below the fold */}
-      {deadline && (
-        <motion.div {...rise(0.3)} className="mt-4">
-          <Link href="/goals">
-            <GlassCard hover className="flex items-center gap-3 p-4">
-              <CalendarClock size={18} className="shrink-0 text-muted" />
-              <span className="flex-1 truncate text-sm text-fg/90">{deadline.title}</span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">
-                {deadline.daysLeft} {t("days")}
-              </span>
-            </GlassCard>
+      {/* 2 — Today's Mission — the largest card, the single answer to "what next?" */}
+      <motion.section {...rise(0.06)} className="mt-6">
+        <div className={`${CARD} relative overflow-hidden p-6 sm:p-7`}>
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0">
+              <div className="mb-3 flex items-center gap-2">
+                <Target size={15} style={{ color: GREEN }} />
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
+                  {t("Today's Mission")}
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                {primaryGoal ? primaryGoal.title : t("Set your first goal")}
+              </h2>
+              <p className="mt-1.5 text-sm text-fg/70">
+                {primaryGoal ? t("Focus now, get closer to your goal.") : t("A direction makes every day count.")}
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-muted">
+                <span>{habitsRemaining} {t("habits left")}</span>
+                <Dot />
+                <span>{tasksRemaining} {t("tasks left")}</span>
+                {deadline && (
+                  <>
+                    <Dot />
+                    <span>{deadline.title} · {deadline.daysLeft}{t("d")}</span>
+                  </>
+                )}
+              </div>
+              <Link
+                href={primaryGoal ? "/focus" : "/goals"}
+                className="mt-6 inline-flex h-[52px] items-center gap-2 rounded-[18px] bg-[var(--color-fg)] px-6 text-sm font-semibold text-[color:var(--color-bg)] transition hover:opacity-90"
+              >
+                {primaryGoal ? t("Continue") : t("Add a goal")}
+                <ChevronRight size={17} />
+              </Link>
+            </div>
+            {primaryGoal && (
+              <div className="hidden shrink-0 sm:block">
+                <Ring value={primaryGoal.percentage ?? 0} size={128} stroke={9} reduce={reduce}>
+                  <span className="text-2xl font-bold tabular-nums">{primaryGoal.percentage ?? 0}%</span>
+                  <span className="mt-0.5 text-[11px] uppercase tracking-wider text-muted">{t("Progress")}</span>
+                </Ring>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.section>
+
+      {/* 3 — Quick Actions */}
+      <motion.section {...rise(0.1)} className="mt-8">
+        <SectionLabel>{t("Quick actions")}</SectionLabel>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <QuickAction Icon={Plus} label={t("Add")} onClick={openCapture} />
+          <QuickAction Icon={MessageSquare} label={t("Ask ISA")} href="/ask" />
+          <QuickAction Icon={Search} label={t("Search")} onClick={openSearch} />
+          <QuickAction Icon={CalendarDays} label={t("Calendar")} href="/calendar" />
+        </div>
+      </motion.section>
+
+      {/* 4 + 5 — Progress + Insight */}
+      <div className="mt-8 grid gap-4 lg:grid-cols-5">
+        <motion.section {...rise(0.14)} className="lg:col-span-3">
+          <SectionLabel>{t("Today's Progress")}</SectionLabel>
+          <div className={`${CARD} mt-3 p-6`}>
+            <div className="flex items-center gap-6">
+              <Ring value={todayPct} size={116} stroke={9} reduce={reduce}>
+                <span className="text-3xl font-bold tabular-nums">{todayPct}%</span>
+                <span className="mt-0.5 text-[11px] uppercase tracking-wider text-muted">{t("of today")}</span>
+              </Ring>
+              <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-4">
+                <MiniStat value={today2.habitsDone} label={t("Habits")} />
+                <MiniStat value={tasksDone} label={t("Tasks")} />
+                <MiniStat value={focusToday} label={t("Focus")} />
+                <MiniStat value={sleepAvg != null ? `${sleepAvg.toFixed(1)}h` : "—"} label={t("Sleep")} />
+              </div>
+            </div>
+            <div className="mt-6">
+              <Sparkline data={focusSeries} reduce={reduce} />
+            </div>
+          </div>
+        </motion.section>
+
+        <motion.section {...rise(0.18)} className="lg:col-span-2">
+          <SectionLabel>{t("ISA Insight")}</SectionLabel>
+          <Link href="/knows" className={`${CARD} mt-3 flex h-[calc(100%-2rem)] flex-col p-6 transition hover:border-white/10`}>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04]">
+              <Lightbulb size={19} style={{ color: GREEN }} />
+            </span>
+            <p className="mt-4 text-[15px] font-semibold leading-snug text-fg">
+              {insightText ?? t("Keep going — ISA is still learning your rhythm.")}
+            </p>
+            {insight?.detail && insight.title && insight.detail !== insight.title && (
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{humanize(insight.title)}</p>
+            )}
+            <span className="mt-auto flex items-center gap-1 pt-4 text-xs font-medium" style={{ color: GREEN }}>
+              {t("View more")} <ArrowUpRight size={13} />
+            </span>
           </Link>
-        </motion.div>
+        </motion.section>
+      </div>
+
+      {/* 6 — Recent Activity */}
+      {activity.length > 0 && (
+        <motion.section {...rise(0.22)} className="mt-8">
+          <SectionLabel>{t("Recent activity")}</SectionLabel>
+          <div className={`${CARD} mt-3 divide-y divide-[var(--color-line)] px-6`}>
+            {activity.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 py-4">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: `${GREEN}22` }}>
+                  <a.Icon size={14} style={{ color: GREEN }} />
+                </span>
+                <span className="flex-1 text-sm text-fg/90">{t(a.label)}</span>
+                <span className="text-xs tabular-nums text-muted">{a.when}</span>
+              </div>
+            ))}
+          </div>
+        </motion.section>
       )}
 
-      <motion.div {...rise(0.33)} className="mt-4">
-        <SleepCard />
-      </motion.div>
-
-      <motion.div {...rise(0.36)} className="mt-4">
-        <GlassCard className="mb-4 flex items-start gap-3 p-5">
-          <Quote className="mt-0.5 shrink-0 text-accent" size={18} />
-          <div>
-            <p className="text-sm text-fg/90">{quote().text}</p>
-            <p className="mt-1.5 text-xs uppercase tracking-wider text-muted">{quote().author}</p>
-          </div>
-        </GlassCard>
-      </motion.div>
-
-      <motion.div {...rise(0.4)}>
-        <GlassCard className="p-5">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium">{t("The ascent")}</span>
-            <span className="text-xl font-bold tabular-nums">
-              <AnimatedNumber value={overall} suffix="%" />
-            </span>
-          </div>
-          <AscentProgress value={overall} />
-        </GlassCard>
-      </motion.div>
+      {/* 7 — Statistics */}
+      <motion.section {...rise(0.26)} className="mb-4 mt-8">
+        <SectionLabel>{t("Overview")}</SectionLabel>
+        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile href="/goals" Icon={Target} label={t("Goals")} value={String(activeGoals.length)}
+            trend={t("{n}% overall", { n: overall })} />
+          <StatTile href="/habits" Icon={Repeat} label={t("Habits")} value={String(activeHabits)}
+            trend={`${today2.habitsDone}/${today2.habitsDue || 0} ${t("today")}`} />
+          <StatTile href="/money" Icon={Wallet} label={t("Money")} value={formatSom(balance)} small
+            trend={month.savingRate >= 0 ? t("on track") : t("over budget")}
+            trendGood={month.savingRate >= 0} />
+          <StatTile href="/habits" Icon={Flame} label={t("Streak")} value={journalStreakDisplay(journal.data)}
+            trend={t("days")} />
+        </div>
+      </motion.section>
     </div>
   );
 }
 
-const quote = quoteOfTheDay;
+// Internal engine names must never reach the user ("GoalCompleted").
+function humanize(s: string): string {
+  return s
+    .replace(/\b([A-Z][a-z]+)([A-Z][a-z]+)+\b/g, (m) => m.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase())
+    .replace(/^./, (c) => c.toUpperCase());
+}
 
-function Overview({
-  href, Icon, label, value, sub, small, ...motionProps
+function journalStreakDisplay(entries: JournalEntry[]): string {
+  const days = new Set(entries.map((e) => new Date(e.entry_date).toDateString()));
+  const DAY = 86_400_000;
+  let cursor = new Date();
+  if (!days.has(cursor.toDateString())) cursor = new Date(Date.now() - DAY);
+  let streak = 0;
+  while (days.has(cursor.toDateString())) {
+    streak++;
+    cursor = new Date(cursor.getTime() - DAY);
+  }
+  return String(streak);
+}
+
+const Dot = () => <span className="h-1 w-1 rounded-full bg-[var(--color-muted)]/50" />;
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="px-1 text-xs font-medium uppercase tracking-[0.14em] text-muted">{children}</p>;
+}
+
+function Ring({
+  value, size, stroke, reduce, children,
 }: {
-  href: string;
-  Icon: typeof Target;
-  label: string;
-  value: React.ReactNode;
-  sub: string;
-  small?: boolean;
-} & React.ComponentProps<typeof motion.div>) {
+  value: number; size: number; stroke: number; reduce: boolean | null; children: React.ReactNode;
+}) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - Math.min(100, Math.max(0, value)) / 100);
   return (
-    <motion.div {...motionProps}>
-      <Link href={href} className="block">
-        <GlassCard hover className="group p-4">
-          <div className="flex items-center justify-between">
-            <Icon size={18} className="text-fg/70" />
-            <ArrowUpRight size={16} className="text-muted transition group-hover:text-fg" />
-          </div>
-          <div className={`mt-4 font-bold tracking-tight ${small ? "text-lg" : "text-3xl"}`}>{value}</div>
-          <div className="mt-0.5 text-sm font-medium text-fg">{label}</div>
-          <div className="text-xs text-muted">{sub}</div>
-        </GlassCard>
-      </Link>
-    </motion.div>
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-line)" strokeWidth={stroke} />
+        <motion.circle
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={GREEN} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={c}
+          initial={{ strokeDashoffset: reduce ? off : c }}
+          animate={{ strokeDashoffset: off }}
+          transition={{ duration: 0.9, ease: EASE }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>
+    </div>
+  );
+}
+
+function Sparkline({ data, reduce }: { data: number[]; reduce: boolean | null }) {
+  const W = 560, H = 60, PAD = 5;
+  const max = Math.max(1, ...data);
+  const pts = data.map((v, i) => {
+    const x = data.length > 1 ? (i / (data.length - 1)) * W : W / 2;
+    const y = H - PAD - (v / max) * (H - PAD * 2);
+    return [x, y] as const;
+  });
+  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const last = pts[pts.length - 1] ?? [W, H - PAD];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-[60px] w-full" preserveAspectRatio="none">
+      <motion.path
+        d={d} fill="none" stroke="var(--color-fg)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
+        initial={{ pathLength: reduce ? 1 : 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: EASE }}
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle cx={last[0]} cy={last[1]} r={9} fill="var(--color-fg)" opacity={0.14} />
+      <circle cx={last[0]} cy={last[1]} r={3} fill="var(--color-fg)" />
+    </svg>
+  );
+}
+
+function QuickAction({
+  Icon, label, href, onClick,
+}: {
+  Icon: typeof Plus; label: string; href?: string; onClick?: () => void;
+}) {
+  const inner = (
+    <>
+      <Icon size={18} className="text-fg/80" />
+      <span className="text-sm font-medium">{label}</span>
+    </>
+  );
+  const cls = `flex h-16 items-center justify-center gap-2.5 rounded-[20px] border border-line bg-[var(--color-card)] transition hover:-translate-y-0.5 hover:border-white/10`;
+  return href ? (
+    <Link href={href} className={cls}>{inner}</Link>
+  ) : (
+    <button onClick={onClick} className={cls}>{inner}</button>
+  );
+}
+
+function MiniStat({ value, label }: { value: number | string; label: string }) {
+  return (
+    <div>
+      <div className="text-2xl font-bold tabular-nums">{value}</div>
+      <div className="mt-0.5 text-xs text-muted">{label}</div>
+    </div>
+  );
+}
+
+function StatTile({
+  href, Icon, label, value, trend, small, trendGood,
+}: {
+  href: string; Icon: typeof Target; label: string; value: string; trend: string; small?: boolean; trendGood?: boolean;
+}) {
+  return (
+    <Link href={href} className={`${CARD} flex h-[130px] flex-col justify-between p-5 transition hover:-translate-y-0.5 hover:border-white/10`}>
+      <div className="flex items-center justify-between">
+        <Icon size={17} className="text-muted" />
+        <ArrowUpRight size={15} className="text-muted" />
+      </div>
+      <div>
+        <div className={`font-bold tracking-tight tabular-nums ${small ? "text-xl" : "text-[2rem] leading-none"}`}>{value}</div>
+        <div className="mt-1 flex items-center gap-1.5 text-xs">
+          <span className="text-fg/70">{label}</span>
+          <span style={trendGood ? { color: GREEN } : undefined} className={trendGood ? "" : "text-muted"}>· {trend}</span>
+        </div>
+      </div>
+    </Link>
   );
 }

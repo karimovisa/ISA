@@ -75,6 +75,18 @@ export function QuickCapture() {
   };
   const closeAll = () => { setOpen(false); setActive(null); };
 
+  // Let anywhere in the app open the capture sheet (e.g. the dashboard's Add
+  // quick action) without threading a prop through the tree.
+  useEffect(() => {
+    const onOpen = () => {
+      setOverrides(readUnlockOverrides());
+      setActive(null); setText(""); setAmount(""); setNote("");
+      setOpen(true);
+    };
+    window.addEventListener("isa:open-capture", onOpen);
+    return () => window.removeEventListener("isa:open-capture", onOpen);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
