@@ -13,12 +13,12 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   Target, Plus, Search, Sparkles, MessageSquare, CalendarDays, ArrowUpRight,
   BookOpen, Footprints, Timer, Wallet, Repeat, ListTodo, Moon, ChevronRight,
-  Flame, Lightbulb,
+  Flame, Lightbulb, Zap,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
-import { MountainBg } from "@/components/brand/MountainBg";
+import { Atmosphere } from "@/components/brand/Atmosphere";
 import { DailyCheckin } from "@/components/sections/DailyCheckin";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { Onboarding } from "@/components/sections/Onboarding";
@@ -71,6 +71,7 @@ export default function DashboardPage() {
   const [insight, setInsight] = useState<Insight | null>(null);
   const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleepToday: false });
   const [sleepAvg, setSleepAvg] = useState<number | null>(null);
+  const [energy, setEnergy] = useState<number | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
 
   const goals = useCollection<Goal>("goals");
@@ -103,12 +104,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void (async () => {
-      const [{ data: hl }, { data: sl }] = await Promise.all([
+      const [{ data: hl }, { data: sl }, { data: es }] = await Promise.all([
         supabase.from("habit_logs").select("completed,date").eq("date", today),
         supabase.from("sleep_logs").select("date,duration_hours"),
+        supabase.from("daily_energy_scores").select("score,date").order("date", { ascending: false }).limit(1),
       ]);
       const logs = (hl as { completed: boolean }[]) ?? [];
       const sleeps = (sl as { date: string; duration_hours: number }[]) ?? [];
+      setEnergy((es as { score: number }[] | null)?.[0]?.score ?? null);
       setToday2({
         habitsDone: logs.filter((x) => x.completed).length,
         habitsDue: habits.data.filter((h) => h.is_active).length,
@@ -134,7 +137,6 @@ export default function DashboardPage() {
   const todaysTodos = todos.data.filter((x) => x.date === today);
   const tasksDone = todaysTodos.filter((x) => x.done).length;
   const tasksRemaining = todaysTodos.length - tasksDone;
-  const habitsRemaining = Math.max(0, today2.habitsDue - today2.habitsDone);
   const focusToday = focus.data.filter(
     (s) => new Date(s.created_at).toDateString() === new Date().toDateString()
   ).length;
@@ -158,6 +160,7 @@ export default function DashboardPage() {
   const balance = overallBalance(txns.data);
   const month = summarizeMonth(txns.data, currentMonthKey());
   const activeHabits = habits.data.filter((h) => h.is_active).length;
+  const streak = Number(journalStreakDisplay(journal.data));
 
   // 7-day focus sparkline (minutes/day).
   const focusSeries = useMemo(() => {
@@ -192,20 +195,44 @@ export default function DashboardPage() {
 
   return (
     <div className="relative mx-auto max-w-[1280px]">
-      <MountainBg />
+      <Atmosphere />
       <WeeklyReviewModal />
       <Onboarding name={displayName} show={freshAccount} />
 
-      {/* 1 — Greeting */}
-      <motion.header {...rise(0)} className="pt-4 sm:pt-6">
+      {/* 1 — Greeting + vitals */}
+      <motion.header {...rise(0)} className="pt-5 sm:pt-7">
         <h1
           className={`font-bold tracking-tight break-words text-balance ${
-            displayName.length > 14 ? "text-3xl sm:text-4xl" : "text-4xl sm:text-[2.6rem]"
+            displayName.length > 14 ? "text-4xl sm:text-5xl" : "text-[2.75rem] leading-[1.06] sm:text-5xl"
           }`}
         >
-          {dateNow ? t(greetingFor(dateNow)) : t("Welcome")}, {displayName}.
+          {dateNow ? t(greetingFor(dateNow)) : t("Welcome")},<br />
+          {displayName}.
         </h1>
-        <p className="mt-1.5 text-sm text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
+        <p className="mt-2 text-[15px] text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
+
+        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <span className="inline-flex items-center gap-1.5 text-fg/85">
+            <Flame size={15} style={{ color: GREEN }} /> {streak} {t("day streak")}
+          </span>
+          <span className="h-3.5 w-px bg-[var(--color-line)]" />
+          <span className="inline-flex items-center gap-1.5 text-fg/85">
+            <Zap size={15} className="text-accent" /> {t("Energy")} {energy ?? "—"}
+          </span>
+        </div>
+
+        <div className="mt-4 flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: GREEN }}
+              initial={{ width: 0 }}
+              animate={{ width: `${todayPct}%` }}
+              transition={{ duration: 0.85, ease: EASE }}
+            />
+          </div>
+          <span className="shrink-0 text-xs tabular-nums text-muted">{todayPct}% {t("today")}</span>
+        </div>
       </motion.header>
 
       {/* Evening-only, once a day — the one thing ISA can't sense: sleep + why. */}
@@ -213,10 +240,15 @@ export default function DashboardPage() {
         <DailyCheckin />
       </div>
 
-      {/* 2 — Today's Mission — the largest card, the single answer to "what next?" */}
-      <motion.section {...rise(0.06)} className="mt-6">
-        <div className={`${CARD} relative overflow-hidden p-6 sm:p-7`}>
-          <div className="flex items-start justify-between gap-6">
+      {/* 2 — Continue — the hero. Resume the goal that matters most today. */}
+      <motion.section {...rise(0.06)} className="mt-7">
+        <div className="relative overflow-hidden rounded-[32px] border border-line bg-[var(--color-card)] p-6 sm:p-8">
+          {/* soft, GPU-cheap accent wash */}
+          <div
+            className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full"
+            style={{ background: "radial-gradient(circle, var(--color-accent), transparent 68%)", opacity: 0.14, filter: "blur(44px)" }}
+          />
+          <div className="relative flex items-center justify-between gap-6">
             <div className="min-w-0">
               <div className="mb-3 flex items-center gap-2">
                 <Target size={15} style={{ color: GREEN }} />
@@ -224,35 +256,30 @@ export default function DashboardPage() {
                   {t("Today's Mission")}
                 </span>
               </div>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h2 className="text-[26px] font-bold leading-tight tracking-tight sm:text-3xl">
                 {primaryGoal ? primaryGoal.title : t("Set your first goal")}
               </h2>
-              <p className="mt-1.5 text-sm text-fg/70">
+              <p className="mt-2 text-[15px] leading-relaxed text-fg/70">
                 {primaryGoal ? t("Focus now, get closer to your goal.") : t("A direction makes every day count.")}
               </p>
-              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-muted">
-                <span>{habitsRemaining} {t("habits left")}</span>
-                <Dot />
-                <span>{tasksRemaining} {t("tasks left")}</span>
-                {deadline && (
-                  <>
-                    <Dot />
-                    <span>{deadline.title} · {deadline.daysLeft}{t("d")}</span>
-                  </>
-                )}
-              </div>
+              {primaryGoal && (
+                <div className="mt-4 text-[13px] text-muted">
+                  <span className="font-semibold text-fg/90">{primaryGoal.percentage ?? 0}%</span>
+                  {deadline && <> · {deadline.daysLeft} {t("days left")}</>}
+                </div>
+              )}
               <Link
                 href={primaryGoal ? "/focus" : "/goals"}
-                className="mt-6 inline-flex h-[52px] items-center gap-2 rounded-[18px] bg-[var(--color-fg)] px-6 text-sm font-semibold text-[color:var(--color-bg)] transition hover:opacity-90"
+                className="mt-6 inline-flex h-[54px] items-center gap-2 rounded-[18px] bg-[var(--color-fg)] px-7 text-[15px] font-semibold text-[color:var(--color-bg)] transition hover:opacity-90 active:scale-[0.98]"
               >
                 {primaryGoal ? t("Continue") : t("Add a goal")}
-                <ChevronRight size={17} />
+                <ChevronRight size={18} />
               </Link>
             </div>
             {primaryGoal && (
               <div className="hidden shrink-0 sm:block">
-                <Ring value={primaryGoal.percentage ?? 0} size={128} stroke={9} reduce={reduce}>
-                  <span className="text-2xl font-bold tabular-nums">{primaryGoal.percentage ?? 0}%</span>
+                <Ring value={primaryGoal.percentage ?? 0} size={132} stroke={9} reduce={reduce}>
+                  <span className="text-[26px] font-bold tabular-nums">{primaryGoal.percentage ?? 0}%</span>
                   <span className="mt-0.5 text-[11px] uppercase tracking-wider text-muted">{t("Progress")}</span>
                 </Ring>
               </div>
@@ -370,8 +397,6 @@ function journalStreakDisplay(entries: JournalEntry[]): string {
   }
   return String(streak);
 }
-
-const Dot = () => <span className="h-1 w-1 rounded-full bg-[var(--color-muted)]/50" />;
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="px-1 text-xs font-medium uppercase tracking-[0.14em] text-muted">{children}</p>;
