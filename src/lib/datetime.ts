@@ -13,8 +13,13 @@ export function formatTime(date: Date): string {
   });
 }
 
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString([], {
+// Map the app language to a real BCP-47 locale so the weekday/month names match
+// the chosen language — never the device's system locale (which was leaking
+// Russian weekday names into an Uzbek UI).
+const DATE_LOCALE: Record<string, string> = { en: "en-US", uz: "uz-UZ", ru: "ru-RU" };
+
+export function formatDate(date: Date, lang = "en"): string {
+  return date.toLocaleDateString(DATE_LOCALE[lang] ?? "en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",

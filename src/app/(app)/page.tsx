@@ -13,7 +13,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   Target, Plus, Search, Sparkles, MessageSquare, CalendarDays, ArrowUpRight,
   BookOpen, Footprints, Timer, Wallet, Repeat, ListTodo, Moon, ChevronRight,
-  Flame, Lightbulb, Zap,
+  Flame, Zap, PenLine,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
@@ -64,7 +64,7 @@ const relTime = (iso: string): string => {
 
 export default function DashboardPage() {
   const { displayName } = useAuth();
-  const { t } = useT();
+  const { t, lang } = useT();
   const reduce = useReducedMotion();
 
   const [dateNow, setDateNow] = useState<Date | null>(null);
@@ -162,21 +162,6 @@ export default function DashboardPage() {
   const activeHabits = habits.data.filter((h) => h.is_active).length;
   const streak = Number(journalStreakDisplay(journal.data));
 
-  // 7-day focus sparkline (minutes/day).
-  const focusSeries = useMemo(() => {
-    const days: number[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = d.toDateString();
-      const mins = focus.data
-        .filter((s) => new Date(s.created_at).toDateString() === key)
-        .reduce((a, s) => a + s.duration_seconds, 0) / 60;
-      days.push(Math.round(mins));
-    }
-    return days;
-  }, [focus.data]);
-
   const insightText = insight ? humanize(insight.detail || insight.title) : null;
 
   const anyLoading = goals.loading || journal.loading || focus.loading || todos.loading;
@@ -209,7 +194,7 @@ export default function DashboardPage() {
           {dateNow ? t(greetingFor(dateNow)) : t("Welcome")},<br />
           {displayName}.
         </h1>
-        <p className="mt-2 text-[15px] text-muted">{dateNow ? formatDate(dateNow) : " "}</p>
+        <p className="mt-2 text-[15px] text-muted">{dateNow ? formatDate(dateNow, lang) : " "}</p>
 
         <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <span className="inline-flex items-center gap-1.5 text-fg/85">
@@ -243,10 +228,10 @@ export default function DashboardPage() {
       {/* 2 — Continue — the hero. Resume the goal that matters most today. */}
       <motion.section {...rise(0.06)} className="mt-7">
         <div className="relative overflow-hidden rounded-[32px] border border-line bg-[var(--color-card)] p-6 sm:p-8">
-          {/* soft, GPU-cheap accent wash */}
+          {/* soft, GPU-cheap wash — a calm green that echoes the progress ring */}
           <div
             className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full"
-            style={{ background: "radial-gradient(circle, var(--color-accent), transparent 68%)", opacity: 0.14, filter: "blur(44px)" }}
+            style={{ background: `radial-gradient(circle, ${GREEN}, transparent 68%)`, opacity: 0.16, filter: "blur(46px)" }}
           />
           <div className="relative flex items-center justify-between gap-6">
             <div className="min-w-0">
@@ -288,45 +273,51 @@ export default function DashboardPage() {
         </div>
       </motion.section>
 
-      {/* 3 — Quick Actions */}
+      {/* 3 — Quick Actions — icons above text, one tap to begin */}
       <motion.section {...rise(0.1)} className="mt-8">
         <SectionLabel>{t("Quick actions")}</SectionLabel>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <QuickAction Icon={Plus} label={t("Add")} onClick={openCapture} />
           <QuickAction Icon={MessageSquare} label={t("Ask ISA")} href="/ask" />
-          <QuickAction Icon={Search} label={t("Search")} onClick={openSearch} />
+          <QuickAction Icon={Target} label={t("Goal")} href="/goals?new=1" />
+          <QuickAction Icon={PenLine} label={t("Note")} href="/ideas?new=1" />
           <QuickAction Icon={CalendarDays} label={t("Calendar")} href="/calendar" />
+          <QuickAction Icon={Search} label={t("Search")} onClick={openSearch} />
         </div>
       </motion.section>
 
-      {/* 4 + 5 — Progress + Insight */}
+      {/* 4 + 5 — Today (horizontal progress, no donut) + ISA Insight */}
       <div className="mt-8 grid gap-4 lg:grid-cols-5">
         <motion.section {...rise(0.14)} className="lg:col-span-3">
-          <SectionLabel>{t("Today's Progress")}</SectionLabel>
+          <SectionLabel>{t("Today")}</SectionLabel>
           <div className={`${CARD} mt-3 p-6`}>
-            <div className="flex items-center gap-6">
-              <Ring value={todayPct} size={116} stroke={9} reduce={reduce}>
-                <span className="text-3xl font-bold tabular-nums">{todayPct}%</span>
-                <span className="mt-0.5 text-[11px] uppercase tracking-wider text-muted">{t("of today")}</span>
-              </Ring>
-              <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-4">
-                <MiniStat value={today2.habitsDone} label={t("Habits")} />
-                <MiniStat value={tasksDone} label={t("Tasks")} />
-                <MiniStat value={focusToday} label={t("Focus")} />
-                <MiniStat value={sleepAvg != null ? `${sleepAvg.toFixed(1)}h` : "—"} label={t("Sleep")} />
-              </div>
+            <div className="flex items-end justify-between">
+              <span className="text-4xl font-bold tabular-nums leading-none">{todayPct}%</span>
+              <span className="text-sm text-muted">{t("of today")}</span>
             </div>
-            <div className="mt-6">
-              <Sparkline data={focusSeries} reduce={reduce} />
+            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: GREEN }}
+                initial={{ width: 0 }}
+                animate={{ width: `${todayPct}%` }}
+                transition={{ duration: 0.9, ease: EASE }}
+              />
+            </div>
+            <div className="mt-6 grid grid-cols-4 gap-3 border-t border-line pt-5">
+              <MiniStat value={today2.habitsDone} label={t("Habits")} />
+              <MiniStat value={tasksDone} label={t("Tasks")} />
+              <MiniStat value={focusToday} label={t("Focus")} />
+              <MiniStat value={sleepAvg != null ? `${sleepAvg.toFixed(1)}h` : "—"} label={t("Sleep")} />
             </div>
           </div>
         </motion.section>
 
         <motion.section {...rise(0.18)} className="lg:col-span-2">
           <SectionLabel>{t("ISA Insight")}</SectionLabel>
-          <Link href="/knows" className={`${CARD} mt-3 flex h-[calc(100%-2rem)] flex-col p-6 transition hover:border-white/10`}>
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04]">
-              <Lightbulb size={19} style={{ color: GREEN }} />
+          <div className={`${CARD} mt-3 flex h-[calc(100%-2rem)] flex-col p-6`}>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: `${GREEN}18` }}>
+              <Sparkles size={19} style={{ color: GREEN }} />
             </span>
             <p className="mt-4 text-[15px] font-semibold leading-snug text-fg">
               {insightText ?? t("Keep going — ISA is still learning your rhythm.")}
@@ -334,10 +325,13 @@ export default function DashboardPage() {
             {insight?.detail && insight.title && insight.detail !== insight.title && (
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{humanize(insight.title)}</p>
             )}
-            <span className="mt-auto flex items-center gap-1 pt-4 text-xs font-medium" style={{ color: GREEN }}>
-              {t("View more")} <ArrowUpRight size={13} />
-            </span>
-          </Link>
+            <Link
+              href="/ask"
+              className="mt-auto inline-flex h-11 w-fit items-center gap-2 rounded-2xl bg-white/[0.06] px-4 text-sm font-medium text-fg transition hover:bg-white/[0.1]"
+            >
+              <Sparkles size={14} style={{ color: GREEN }} /> {t("Optimize my day")}
+            </Link>
+          </div>
         </motion.section>
       </div>
 
@@ -427,29 +421,6 @@ function Ring({
   );
 }
 
-function Sparkline({ data, reduce }: { data: number[]; reduce: boolean | null }) {
-  const W = 560, H = 60, PAD = 5;
-  const max = Math.max(1, ...data);
-  const pts = data.map((v, i) => {
-    const x = data.length > 1 ? (i / (data.length - 1)) * W : W / 2;
-    const y = H - PAD - (v / max) * (H - PAD * 2);
-    return [x, y] as const;
-  });
-  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
-  const last = pts[pts.length - 1] ?? [W, H - PAD];
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-[60px] w-full" preserveAspectRatio="none">
-      <motion.path
-        d={d} fill="none" stroke="var(--color-fg)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
-        initial={{ pathLength: reduce ? 1 : 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: EASE }}
-        vectorEffect="non-scaling-stroke"
-      />
-      <circle cx={last[0]} cy={last[1]} r={9} fill="var(--color-fg)" opacity={0.14} />
-      <circle cx={last[0]} cy={last[1]} r={3} fill="var(--color-fg)" />
-    </svg>
-  );
-}
-
 function QuickAction({
   Icon, label, href, onClick,
 }: {
@@ -457,11 +428,14 @@ function QuickAction({
 }) {
   const inner = (
     <>
-      <Icon size={18} className="text-fg/80" />
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05]">
+        <Icon size={19} className="text-fg/85" />
+      </span>
       <span className="text-sm font-medium">{label}</span>
     </>
   );
-  const cls = `flex h-16 items-center justify-center gap-2.5 rounded-[20px] border border-line bg-[var(--color-card)] transition hover:-translate-y-0.5 hover:border-white/10`;
+  const cls =
+    "flex h-[104px] flex-col items-center justify-center gap-2.5 rounded-[24px] border border-line bg-[var(--color-card)] transition hover:-translate-y-0.5 hover:border-white/10 active:scale-[0.98]";
   return href ? (
     <Link href={href} className={cls}>{inner}</Link>
   ) : (
