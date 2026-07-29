@@ -11,13 +11,14 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  Target, Plus, Search, Sparkles, MessageSquare, CalendarDays, ArrowUpRight,
+  Target, Plus, Search, Sparkles, MessageSquare, CalendarDays,
   BookOpen, Footprints, Timer, Wallet, Repeat, ListTodo, Moon, ChevronRight,
-  Flame, Zap, PenLine,
+  Flame, Zap, PenLine, Check,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
+import { captureLifeEvent } from "@/lib/life-events";
 import { Atmosphere } from "@/components/brand/Atmosphere";
 import { DailyCheckin } from "@/components/sections/DailyCheckin";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
@@ -25,12 +26,13 @@ import { Onboarding } from "@/components/sections/Onboarding";
 import { greetingFor, formatDate, todayISO } from "@/lib/datetime";
 import { useT } from "@/lib/i18n";
 import { nearestDeadline } from "@/lib/stats";
-import { summarizeMonth, currentMonthKey, overallBalance, formatSom } from "@/lib/money";
 import { retrieveTopInsights, type Insight } from "@/lib/insights";
 import type { Goal, JournalEntry, FocusSession, Todo, Transaction, Habit } from "@/lib/types";
 
 // Green is reserved for progress / done / success — nothing else.
 const GREEN = "#86A97F";
+const DANGER = "#F26D6D";
+const WARN = "#E0A458";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
 
@@ -63,7 +65,7 @@ const relTime = (iso: string): string => {
 };
 
 export default function DashboardPage() {
-  const { displayName } = useAuth();
+  const { user, displayName } = useAuth();
   const { t, lang } = useT();
   const reduce = useReducedMotion();
 
@@ -72,6 +74,7 @@ export default function DashboardPage() {
   const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleepToday: false });
   const [sleepAvg, setSleepAvg] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
+  const [doneHabits, setDoneHabits] = useState<Set<string>>(new Set());
   const [activity, setActivity] = useState<Activity[]>([]);
 
   const goals = useCollection<Goal>("goals");
@@ -105,13 +108,14 @@ export default function DashboardPage() {
   useEffect(() => {
     void (async () => {
       const [{ data: hl }, { data: sl }, { data: es }] = await Promise.all([
-        supabase.from("habit_logs").select("completed,date").eq("date", today),
+        supabase.from("habit_logs").select("habit_id,completed,date").eq("date", today),
         supabase.from("sleep_logs").select("date,duration_hours"),
         supabase.from("daily_energy_scores").select("score,date").order("date", { ascending: false }).limit(1),
       ]);
-      const logs = (hl as { completed: boolean }[]) ?? [];
+      const logs = (hl as { habit_id: string; completed: boolean }[]) ?? [];
       const sleeps = (sl as { date: string; duration_hours: number }[]) ?? [];
       setEnergy((es as { score: number }[] | null)?.[0]?.score ?? null);
+      setDoneHabits(new Set(logs.filter((x) => x.completed).map((x) => x.habit_id)));
       setToday2({
         habitsDone: logs.filter((x) => x.completed).length,
         habitsDue: habits.data.filter((h) => h.is_active).length,
@@ -154,13 +158,19 @@ export default function DashboardPage() {
   ];
   const todayPct = Math.round((dayParts.filter(Boolean).length / dayParts.length) * 100);
 
-  const overall = activeGoals.length
-    ? Math.round(activeGoals.reduce((s, g) => s + (g.percentage ?? 0), 0) / activeGoals.length)
-    : 0;
-  const balance = overallBalance(txns.data);
-  const month = summarizeMonth(txns.data, currentMonthKey());
-  const activeHabits = habits.data.filter((h) => h.is_active).length;
   const streak = Number(journalStreakDisplay(journal.data));
+  const goalsForCards = useMemo(
+    () =>
+      [...activeGoals]
+        .sort((a, b) => {
+          const ad = a.deadline ? +new Date(a.deadline) : Infinity;
+          const bd = b.deadline ? +new Date(b.deadline) : Infinity;
+          return ad !== bd ? ad - bd : (a.percentage ?? 0) - (b.percentage ?? 0);
+        })
+        .slice(0, 3),
+    [activeGoals]
+  );
+  const todayHabits = habits.data.filter((h) => h.is_active).slice(0, 6);
 
   const insightText = insight ? humanize(insight.detail || insight.title) : null;
 
@@ -177,6 +187,22 @@ export default function DashboardPage() {
 
   const openCapture = () => window.dispatchEvent(new CustomEvent("isa:open-capture"));
   const openSearch = () => window.dispatchEvent(new CustomEvent("isa:open-palette"));
+
+  const completeHabit = async (h: Habit) => {
+    if (!user || doneHabits.has(h.id)) return;
+    // Optimistic: check it now, persist behind the scenes.
+    setDoneHabits((prev) => new Set(prev).add(h.id));
+    setToday2((s) => ({ ...s, habitsDone: s.habitsDone + 1 }));
+    await supabase
+      .from("habit_logs")
+      .upsert({ user_id: user.id, habit_id: h.id, date: today, completed: true }, { onConflict: "habit_id,date" });
+    void captureLifeEvent({
+      type: "HabitCompleted",
+      occurredAt: today,
+      payload: { habit: h.name, category: h.category },
+      context: { outcome: "consistency" },
+    });
+  };
 
   return (
     <div className="relative mx-auto max-w-[1280px]">
@@ -335,9 +361,50 @@ export default function DashboardPage() {
         </motion.section>
       </div>
 
-      {/* 6 — Recent Activity */}
-      {activity.length > 0 && (
+      {/* 6 — Goals — large progress cards */}
+      {goalsForCards.length > 0 && (
         <motion.section {...rise(0.22)} className="mt-8">
+          <SectionLabel>{t("Goals")}</SectionLabel>
+          <div className="mt-3 space-y-3">
+            {goalsForCards.map((g) => (
+              <GoalCard key={g.id} goal={g} t={t} reduce={reduce} />
+            ))}
+          </div>
+        </motion.section>
+      )}
+
+      {/* 7 — Habits — Apple-Reminders checklist, tap to complete */}
+      {todayHabits.length > 0 && (
+        <motion.section {...rise(0.26)} className="mt-8">
+          <SectionLabel>{t("Habits")}</SectionLabel>
+          <div className={`${CARD} mt-3 divide-y divide-[var(--color-line)] px-5`}>
+            {todayHabits.map((h) => {
+              const done = doneHabits.has(h.id);
+              return (
+                <button
+                  key={h.id}
+                  onClick={() => completeHabit(h)}
+                  disabled={done}
+                  className="flex w-full items-center gap-3.5 py-3.5 text-left"
+                >
+                  <motion.span
+                    whileTap={done ? undefined : { scale: 0.82 }}
+                    className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border transition-colors"
+                    style={done ? { borderColor: GREEN, background: GREEN } : { borderColor: "var(--color-line)" }}
+                  >
+                    {done && <Check size={15} strokeWidth={3} style={{ color: "var(--color-bg)" }} />}
+                  </motion.span>
+                  <span className={`flex-1 text-[15px] ${done ? "text-muted line-through" : "text-fg/90"}`}>{h.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.section>
+      )}
+
+      {/* 8 — Recent Activity — minimal timeline */}
+      {activity.length > 0 && (
+        <motion.section {...rise(0.3)} className="mb-4 mt-8">
           <SectionLabel>{t("Recent activity")}</SectionLabel>
           <div className={`${CARD} mt-3 divide-y divide-[var(--color-line)] px-6`}>
             {activity.map((a) => (
@@ -352,22 +419,6 @@ export default function DashboardPage() {
           </div>
         </motion.section>
       )}
-
-      {/* 7 — Statistics */}
-      <motion.section {...rise(0.26)} className="mb-4 mt-8">
-        <SectionLabel>{t("Overview")}</SectionLabel>
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile href="/goals" Icon={Target} label={t("Goals")} value={String(activeGoals.length)}
-            trend={t("{n}% overall", { n: overall })} />
-          <StatTile href="/habits" Icon={Repeat} label={t("Habits")} value={String(activeHabits)}
-            trend={`${today2.habitsDone}/${today2.habitsDue || 0} ${t("today")}`} />
-          <StatTile href="/money" Icon={Wallet} label={t("Money")} value={formatSom(balance)} small
-            trend={month.savingRate >= 0 ? t("on track") : t("over budget")}
-            trendGood={month.savingRate >= 0} />
-          <StatTile href="/habits" Icon={Flame} label={t("Streak")} value={journalStreakDisplay(journal.data)}
-            trend={t("days")} />
-        </div>
-      </motion.section>
     </div>
   );
 }
@@ -452,23 +503,47 @@ function MiniStat({ value, label }: { value: number | string; label: string }) {
   );
 }
 
-function StatTile({
-  href, Icon, label, value, trend, small, trendGood,
+function GoalCard({
+  goal, t, reduce,
 }: {
-  href: string; Icon: typeof Target; label: string; value: string; trend: string; small?: boolean; trendGood?: boolean;
+  goal: Goal;
+  t: (s: string, v?: Record<string, string | number>) => string;
+  reduce: boolean | null;
 }) {
+  const pct = Math.min(100, Math.max(0, goal.percentage ?? 0));
+  const daysLeft = goal.deadline
+    ? Math.round((new Date(goal.deadline).getTime() - Date.now()) / 86_400_000)
+    : null;
+  const status =
+    pct >= 100
+      ? { label: t("Done"), color: GREEN }
+      : daysLeft != null && daysLeft < 0
+        ? { label: t("Overdue"), color: DANGER }
+        : daysLeft != null && daysLeft <= 7
+          ? { label: t("Due soon"), color: WARN }
+          : { label: t("On track"), color: "var(--color-muted)" };
   return (
-    <Link href={href} className={`${CARD} flex h-[130px] flex-col justify-between p-5 transition hover:-translate-y-0.5 hover:border-white/10`}>
-      <div className="flex items-center justify-between">
-        <Icon size={17} className="text-muted" />
-        <ArrowUpRight size={15} className="text-muted" />
+    <Link href="/goals" className={`${CARD} block p-5 transition hover:-translate-y-0.5 hover:border-white/10`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate font-medium">{goal.title}</span>
+        <span className="shrink-0 text-sm font-semibold tabular-nums" style={pct >= 100 ? { color: GREEN } : undefined}>
+          {pct}%
+        </span>
       </div>
-      <div>
-        <div className={`font-bold tracking-tight tabular-nums ${small ? "text-xl" : "text-[2rem] leading-none"}`}>{value}</div>
-        <div className="mt-1 flex items-center gap-1.5 text-xs">
-          <span className="text-fg/70">{label}</span>
-          <span style={trendGood ? { color: GREEN } : undefined} className={trendGood ? "" : "text-muted"}>· {trend}</span>
-        </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: GREEN }}
+          initial={{ width: reduce ? `${pct}%` : 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.9, ease: EASE }}
+        />
+      </div>
+      <div className="mt-2.5 flex items-center justify-between text-xs">
+        <span style={{ color: status.color }}>{status.label}</span>
+        {daysLeft != null && (
+          <span className="text-muted">{daysLeft < 0 ? t("overdue") : `${daysLeft} ${t("days left")}`}</span>
+        )}
       </div>
     </Link>
   );
