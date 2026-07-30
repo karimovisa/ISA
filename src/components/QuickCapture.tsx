@@ -10,7 +10,7 @@
 // Gated modules aren't offered here — capture never points at a locked page.
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Plus, X, ArrowLeft, Check, MessageCircle, Target, Repeat, ListTodo, PenLine,
@@ -55,6 +55,7 @@ const ITEMS: Item[] = [
 
 export function QuickCapture() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useT();
   const [open, setOpen] = useState(false);
@@ -106,6 +107,8 @@ export function QuickCapture() {
 
   const age = accountAgeDays(user?.created_at);
   const items = ITEMS.filter((i) => !i.module || isUnlocked(i.module, age, overrides));
+  // The Money page has its own thumb "+" and sheet — don't stack two FABs there.
+  if (pathname === "/money") return null;
 
   const go = (href: string) => {
     closeAll();

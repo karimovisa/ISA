@@ -3,20 +3,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Wallet, TrendingUp, TrendingDown, PiggyBank, Sparkles, Pencil, Trash2, Copy,
+  Wallet, Sparkles, Pencil, Trash2, Copy, Plus,
   ArrowDownCircle, ArrowUpCircle, ArrowUpRight, ArrowDownRight, Search, Lock,
   Coffee, UtensilsCrossed, Fuel, Car, ShoppingBag, GraduationCap,
 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { PageHeader, AddButton } from "@/components/ui/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
 import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { PressButton } from "@/components/ui/PressButton";
 import { MoneyGoals } from "@/components/sections/MoneyGoals";
 import { MoneyRecurring } from "@/components/sections/MoneyRecurring";
+import { MoneySheet, INCOME, EXPENSE } from "@/components/sections/MoneySheet";
 import { todayISO } from "@/lib/datetime";
 import { useT } from "@/lib/i18n";
 import { useCountUp } from "@/lib/useCountUp";
@@ -55,6 +56,7 @@ export default function MoneyPage() {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | TxType>("all");
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => { try { setFreq(JSON.parse(localStorage.getItem("isa_money_freq") || "{}")); } catch {} }, []);
 
@@ -131,43 +133,53 @@ export default function MoneyPage() {
 
   return (
     <div>
-      <PageHeader title="Money" subtitle="Where it goes, whether it's wise, and what to do next."
-        action={<div className="flex gap-2"><AddButton onClick={() => openNew("income")} label="Income" /><AddButton onClick={() => openNew("expense")} label="Expense" /></div>} />
+      <PageHeader title="Money" subtitle="Know where your money goes." />
 
-      {/* Hero */}
-      <GlassCard className="relative mb-4 overflow-hidden bg-gradient-to-br from-accent/15 via-transparent to-transparent p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted"><Wallet size={13} /> {t("Net balance")}</p>
-            <div className={`mt-1.5 truncate text-4xl font-bold tabular-nums sm:text-5xl ${balance >= 0 ? "text-fg" : "text-red-300"}`}>{formatSom(animatedBalance)}</div>
-            <div className="mt-2 flex items-center gap-1.5 text-sm">
-              {summary.balance >= 0 ? <ArrowUpRight size={16} className="text-emerald-400" /> : <ArrowDownRight size={16} className="text-red-400" />}
-              <span className={`font-medium tabular-nums ${summary.balance >= 0 ? "text-emerald-300" : "text-red-300"}`}>{summary.balance >= 0 ? "+" : "−"}{formatSom(Math.abs(summary.balance))}</span>
-              <span className="text-muted">{t("this month")}</span>
+      {/* Balance hero — Apple Wallet feel */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="mb-5">
+        <div className="relative overflow-hidden rounded-[28px] border border-line bg-[var(--color-card)] p-6 sm:p-7">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full" style={{ background: "radial-gradient(circle, var(--color-accent), transparent 70%)", opacity: 0.12, filter: "blur(42px)" }} />
+          <div className="relative">
+            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted"><Wallet size={13} /> {t("Current Balance")}</p>
+            <div className="mt-2 truncate text-[42px] font-bold leading-none tabular-nums sm:text-5xl" style={balance < 0 ? { color: EXPENSE } : undefined}>{formatSom(animatedBalance)}</div>
+            <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="inline-flex items-center gap-1 text-sm">
+                {summary.balance >= 0 ? <ArrowUpRight size={15} style={{ color: INCOME }} /> : <ArrowDownRight size={15} style={{ color: EXPENSE }} />}
+                <span className="font-medium tabular-nums" style={{ color: summary.balance >= 0 ? INCOME : EXPENSE }}>{summary.balance >= 0 ? "+" : "−"}{formatSom(Math.abs(summary.balance))}</span>
+                <span className="text-muted">{t("this month")}</span>
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                style={
+                  health.score >= 70
+                    ? { background: `color-mix(in srgb, ${INCOME} 15%, transparent)`, color: INCOME }
+                    : health.score >= 40
+                      ? { background: "color-mix(in srgb, var(--color-accent) 15%, transparent)", color: "var(--color-accent)" }
+                      : { background: `color-mix(in srgb, ${EXPENSE} 15%, transparent)`, color: EXPENSE }
+                }
+              >
+                {t("Savings Health")} {health.score}/100 · {t(health.label)}
+              </span>
             </div>
           </div>
-          <div className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${health.score >= 70 ? "bg-emerald-400/15 text-emerald-300" : health.score >= 40 ? "bg-amber-400/15 text-amber-300" : "bg-red-400/15 text-red-300"}`}>{health.score}/100 · {t(health.label)}</div>
         </div>
-      </GlassCard>
+      </motion.div>
 
-      {/* Stats */}
-      <div className="mb-4 grid grid-cols-3 gap-3">
-        <Stat icon={TrendingUp} label="Income" value={formatSom(summary.income)} tone="text-emerald-300" />
-        <Stat icon={TrendingDown} label="Expenses" value={formatSom(summary.expense)} tone="text-red-300" />
-        <Stat icon={PiggyBank} label="Saving rate" value={`${Math.max(-100, Math.round(summary.savingRate))}%`} tone={summary.savingRate >= 0 ? "text-fg" : "text-red-300"} />
+      {/* Metrics — this month */}
+      <div className="mb-5 grid grid-cols-3 gap-3">
+        <Metric label="Income" value={formatSom(summary.income)} color={INCOME} />
+        <Metric label="Expenses" value={formatSom(summary.expense)} color={EXPENSE} />
+        <Metric label="Saving rate" value={`${Math.max(-100, Math.round(summary.savingRate))}%`} />
       </div>
 
-      {/* Savings goals — high up: this is what the money is FOR. */}
-      <div className="mb-6"><MoneyGoals monthlyNet={summary.balance} /></div>
+      {/* Quick Insight — AI, one sentence, right at the top */}
+      <div className="mb-6 flex items-start gap-3 rounded-[28px] border border-line bg-[var(--color-card)] p-5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.04]"><Sparkles size={16} className="text-accent" /></span>
+        <p className="pt-1.5 text-[15px] leading-relaxed text-fg/90">{insights[0] ?? t("Add a few transactions to see insights here.")}</p>
+      </div>
 
-      {/* ONE AI insight + health why */}
-      <GlassCard className="mb-6 p-5">
-        <div className="flex items-center gap-2"><Sparkles size={15} className="text-accent" /><h3 className="text-sm font-medium">{t("Insight")}</h3></div>
-        <p className="mt-2 text-sm text-fg/90">{insights[0] ?? t("Add a few transactions to see insights here.")}</p>
-        {health.reasons.length > 0 && (
-          <p className="mt-2 text-xs text-muted">{t("Health")} {health.score}/100 · {health.reasons.join(" · ")}</p>
-        )}
-      </GlassCard>
+      {/* Savings goals — what the money is FOR */}
+      <div className="mb-6"><MoneyGoals monthlyNet={summary.balance} /></div>
 
       {/* Quick add — frequency-ordered */}
       <div className="mb-6">
@@ -284,18 +296,36 @@ export default function MoneyPage() {
       </Modal>
 
       <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
+
+      {/* Thumb-reachable add — in the bottom zone, opens the money sheet */}
+      <button
+        onClick={() => setSheetOpen(true)}
+        aria-label={t("Add")}
+        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full text-white shadow-[0_14px_34px_-8px_rgba(0,0,0,0.75)] transition hover:brightness-110 active:scale-95 md:bottom-8"
+        style={{ background: "var(--color-accent)" }}
+      >
+        <Plus size={28} strokeWidth={2.4} />
+      </button>
+
+      <MoneySheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onIncome={() => openNew("income")}
+        onExpense={() => openNew("expense")}
+        onGoal={() => window.dispatchEvent(new CustomEvent("isa:add-savings-goal"))}
+        onRecurring={() => window.dispatchEvent(new CustomEvent("isa:add-recurring"))}
+      />
     </div>
   );
 }
 
-function Stat({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; value: string; tone: string }) {
+function Metric({ label, value, color }: { label: string; value: string; color?: string }) {
   const { t } = useT();
   return (
-    <GlassCard className="p-4 sm:p-5">
-      <Icon size={16} className="mb-2 text-muted" />
+    <div className="rounded-[22px] border border-line bg-[var(--color-card)] p-4">
       <p className="text-xs text-muted">{t(label)}</p>
-      <p className={`mt-0.5 truncate text-lg font-bold tabular-nums sm:text-xl ${tone}`}>{value}</p>
-    </GlassCard>
+      <p className="mt-1 truncate text-lg font-bold tabular-nums sm:text-xl" style={color ? { color } : undefined}>{value}</p>
+    </div>
   );
 }
 function Mini({ label, value, tone }: { label: string; value: string; tone?: string }) {

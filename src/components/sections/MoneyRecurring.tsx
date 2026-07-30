@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Trash2, Repeat2 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
@@ -45,6 +45,13 @@ export function MoneyRecurring() {
     setDraft(empty);
     setOpen(true);
   };
+
+  // The Money page's bottom sheet opens this modal via a global event.
+  useEffect(() => {
+    const h = () => { setEditing(null); setDraft(empty); setOpen(true); };
+    window.addEventListener("isa:add-recurring", h);
+    return () => window.removeEventListener("isa:add-recurring", h);
+  }, []);
 
   const openEdit = (p: RecurringPayment) => {
     setEditing(p);
