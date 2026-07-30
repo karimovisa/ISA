@@ -181,13 +181,18 @@ export default function MoneyPage() {
       {/* Savings goals — what the money is FOR */}
       <div className="mb-6"><MoneyGoals monthlyNet={summary.balance} /></div>
 
-      {/* Quick add — frequency-ordered */}
+      {/* Quick add — bigger, 2-column, icons above (frequency-ordered) */}
       <div className="mb-6">
         <h2 className="mb-3 text-lg font-semibold tracking-tight">{t("Quick add")}</h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {orderedPresets.map((p) => (
-            <PressButton key={p.label} onClick={() => openQuick(p)} className="glass flex flex-col items-center gap-2 rounded-2xl py-4 text-xs font-medium text-fg transition hover:bg-white/[0.06]">
-              <p.Icon size={22} className="text-accent" />{t(p.label)}
+            <PressButton
+              key={p.label}
+              onClick={() => openQuick(p)}
+              className="flex flex-col items-center justify-center gap-2.5 rounded-[24px] border border-line bg-[var(--color-card)] py-6 text-sm font-medium text-fg transition hover:-translate-y-0.5 hover:border-white/10"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04]"><p.Icon size={22} className="text-accent" /></span>
+              {t(p.label)}
             </PressButton>
           ))}
         </div>

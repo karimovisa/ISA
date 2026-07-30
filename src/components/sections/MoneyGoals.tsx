@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil, Trash2, Wallet } from "lucide-react";
+import { Pencil, Trash2, Wallet, Target } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { AscentProgress } from "@/components/ui/AscentProgress";
 import { AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
@@ -34,6 +32,12 @@ const empty: Draft = {
   current_amount: "0",
   target_date: "",
 };
+
+const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
+const ACCENT_SOFT = "color-mix(in srgb, var(--color-accent) 15%, transparent)";
+const GREEN = "#86A97F";
+const fmtMonth = (d: string | number) => new Date(d).toLocaleDateString([], { month: "short", year: "numeric" });
+const addMonths = (base: number, m: number) => { const d = new Date(base); d.setMonth(d.getMonth() + m); return d.getTime(); };
 
 export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
   const { t } = useT();
@@ -125,8 +129,16 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {active.map((g, i) => {
             const s = financeGoalStatus(g, monthlyNet);
-            const pct = s.pct;
-            const tone = s.status === "ahead" ? "text-emerald-300 bg-emerald-300/10" : s.status === "behind" ? "text-amber-300 bg-amber-300/10" : "text-muted bg-white/10";
+            const pct = Math.min(100, Math.max(0, s.pct));
+            const remaining = Math.max(0, g.target_amount - g.current_amount);
+            const done = pct >= 100;
+            const finish = done
+              ? { text: t("Reached"), good: true }
+              : g.target_date
+                ? { text: fmtMonth(g.target_date), good: false }
+                : monthlyNet > 0
+                  ? { text: `~${fmtMonth(addMonths(Date.now(), Math.max(1, Math.ceil(remaining / monthlyNet))))}`, good: false }
+                  : { text: "—", good: false };
             return (
               <motion.div
                 key={g.id}
@@ -134,45 +146,40 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.05 }}
               >
-                <GlassCard hover className="group p-5">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-medium">{g.name}</h3>
-                    <div className="flex shrink-0 gap-1 opacity-0 transition group-hover:opacity-100">
-                      <button
-                        onClick={() => openEdit(g)}
-                        className="rounded-lg p-1.5 text-muted transition hover:text-fg"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() =>
-                          setConfirmReq({
-                            title: t('Delete "{name}"?', { name: g.name }),
-                            confirmLabel: t("Delete"),
-                            danger: true,
-                            onConfirm: () => remove(g.id),
-                          })
-                        }
-                        className="rounded-lg p-1.5 text-muted transition hover:text-red-400"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                <div className={`${CARD} group p-5 transition hover:-translate-y-0.5 hover:border-white/10`}>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: ACCENT_SOFT }}>
+                      <Target size={18} className="text-accent" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold">{g.name}</h3>
+                      <p className="truncate text-xs tabular-nums text-muted">{formatSom(g.current_amount)} / {formatSom(g.target_amount)}</p>
                     </div>
+                    <span className="shrink-0 text-lg font-bold tabular-nums" style={done ? { color: GREEN } : undefined}>{pct}%</span>
                   </div>
-                  <p className="mt-1 text-sm text-muted">
-                    {formatSom(g.current_amount)} / {formatSom(g.target_amount)}
-                  </p>
-                  <div className="mt-3">
-                    <AscentProgress value={pct} />
+                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: done ? GREEN : "var(--color-accent)" }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                    />
                   </div>
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}>{t(s.label)}</span>
-                    {s.requiredMonthly != null && s.status !== "done" && (
-                      <span className="text-[10px] text-muted">{formatSom(s.requiredMonthly)}/mo</span>
-                    )}
+                  <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-muted">{t("Remaining")} <span className="tabular-nums text-fg/85">{formatSom(remaining)}</span></span>
+                    <span className={finish.good ? "font-medium" : "text-muted"} style={finish.good ? { color: GREEN } : undefined}>{finish.text}</span>
                   </div>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted">{s.prediction}</p>
-                </GlassCard>
+                  <div className="mt-2 flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100">
+                    <button onClick={() => openEdit(g)} className="rounded-lg p-1.5 text-muted transition hover:text-fg"><Pencil size={14} /></button>
+                    <button
+                      onClick={() => setConfirmReq({ title: t('Delete "{name}"?', { name: g.name }), confirmLabel: t("Delete"), danger: true, onConfirm: () => remove(g.id) })}
+                      className="rounded-lg p-1.5 text-muted transition hover:text-red-400"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             );
           })}

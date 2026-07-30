@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Pencil, Trash2, Repeat2 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
-import { GlassCard } from "@/components/ui/GlassCard";
 import { AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
@@ -27,6 +26,8 @@ const empty: Draft = {
   category: EXPENSE_CATEGORIES[0],
   day_of_month: "1",
 };
+
+const CARD = "rounded-[24px] border border-line bg-[var(--color-card)]";
 
 export function MoneyRecurring() {
   const { t } = useT();
@@ -162,54 +163,36 @@ export function MoneyRecurring() {
           onAction={openNew}
         />
       ) : (
-        <GlassCard className="divide-y divide-white/5 p-0">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {list.map((p) => (
-            <div
-              key={p.id}
-              className="group flex items-center gap-3 px-5 py-3.5"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{p.name}</p>
-                <p className="text-xs text-muted">
-                  {p.category} · {t("day")} {p.day_of_month}
-                </p>
+            <div key={p.id} className={`${CARD} group p-4 transition hover:-translate-y-0.5 hover:border-white/10`}>
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/[0.04]">
+                  <Repeat2 size={18} className="text-accent" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{p.name}</p>
+                  <p className="truncate text-xs text-muted">{p.category} · {t("Monthly")}</p>
+                </div>
+                <span className="shrink-0 text-sm font-bold tabular-nums">{formatSom(p.amount)}</span>
               </div>
-              <span
-                className={`shrink-0 text-xs font-medium ${
-                  p.daysUntil <= 3 ? "text-amber-300" : "text-muted"
-                }`}
-              >
-                {p.daysUntil === 0
-                  ? t("due today")
-                  : t("in {n}d", { n: p.daysUntil })}
-              </span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">
-                {formatSom(p.amount)}
-              </span>
-              <div className="flex shrink-0 gap-1 opacity-0 transition group-hover:opacity-100">
-                <button
-                  onClick={() => openEdit(p)}
-                  className="rounded-lg p-1.5 text-muted transition hover:text-fg"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  onClick={() =>
-                    setConfirmReq({
-                      title: t('Delete "{name}"?', { name: p.name }),
-                      confirmLabel: t("Delete"),
-                      danger: true,
-                      onConfirm: () => remove(p.id),
-                    })
-                  }
-                  className="rounded-lg p-1.5 text-muted transition hover:text-red-400"
-                >
-                  <Trash2 size={14} />
-                </button>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className={`text-xs font-medium ${p.daysUntil <= 3 ? "text-amber-300" : "text-muted"}`}>
+                  {p.daysUntil === 0 ? t("due today") : t("in {n}d", { n: p.daysUntil })} · {t("day")} {p.day_of_month}
+                </span>
+                <div className="flex shrink-0 gap-1 opacity-0 transition group-hover:opacity-100">
+                  <button onClick={() => openEdit(p)} className="rounded-lg p-1.5 text-muted transition hover:text-fg"><Pencil size={14} /></button>
+                  <button
+                    onClick={() => setConfirmReq({ title: t('Delete "{name}"?', { name: p.name }), confirmLabel: t("Delete"), danger: true, onConfirm: () => remove(p.id) })}
+                    className="rounded-lg p-1.5 text-muted transition hover:text-red-400"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
-        </GlassCard>
+        </div>
       )}
 
       <Modal
