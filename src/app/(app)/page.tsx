@@ -13,13 +13,13 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   Target, Plus, Search, Sparkles, MessageSquare, CalendarDays,
   BookOpen, Footprints, Timer, Wallet, Repeat, ListTodo, Moon, ChevronRight,
-  Flame, Zap, PenLine, Check,
+  Flame, Zap, PenLine,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
-import { captureLifeEvent } from "@/lib/life-events";
 import { Atmosphere } from "@/components/brand/Atmosphere";
+import { TodayPlan } from "@/components/sections/TodayPlan";
 import { DailyCheckin } from "@/components/sections/DailyCheckin";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { Onboarding } from "@/components/sections/Onboarding";
@@ -65,7 +65,7 @@ const relTime = (iso: string): string => {
 };
 
 export default function DashboardPage() {
-  const { user, displayName } = useAuth();
+  const { displayName } = useAuth();
   const { t, lang } = useT();
   const reduce = useReducedMotion();
 
@@ -74,7 +74,6 @@ export default function DashboardPage() {
   const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleepToday: false });
   const [sleepAvg, setSleepAvg] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
-  const [doneHabits, setDoneHabits] = useState<Set<string>>(new Set());
   const [activity, setActivity] = useState<Activity[]>([]);
 
   const goals = useCollection<Goal>("goals");
@@ -115,7 +114,6 @@ export default function DashboardPage() {
       const logs = (hl as { habit_id: string; completed: boolean }[]) ?? [];
       const sleeps = (sl as { date: string; duration_hours: number }[]) ?? [];
       setEnergy((es as { score: number }[] | null)?.[0]?.score ?? null);
-      setDoneHabits(new Set(logs.filter((x) => x.completed).map((x) => x.habit_id)));
       setToday2({
         habitsDone: logs.filter((x) => x.completed).length,
         habitsDue: habits.data.filter((h) => h.is_active).length,
@@ -170,7 +168,6 @@ export default function DashboardPage() {
         .slice(0, 3),
     [activeGoals]
   );
-  const todayHabits = habits.data.filter((h) => h.is_active).slice(0, 6);
 
   const insightText = insight ? humanize(insight.detail || insight.title) : null;
 
@@ -187,22 +184,6 @@ export default function DashboardPage() {
 
   const openCapture = () => window.dispatchEvent(new CustomEvent("isa:open-capture"));
   const openSearch = () => window.dispatchEvent(new CustomEvent("isa:open-palette"));
-
-  const completeHabit = async (h: Habit) => {
-    if (!user || doneHabits.has(h.id)) return;
-    // Optimistic: check it now, persist behind the scenes.
-    setDoneHabits((prev) => new Set(prev).add(h.id));
-    setToday2((s) => ({ ...s, habitsDone: s.habitsDone + 1 }));
-    await supabase
-      .from("habit_logs")
-      .upsert({ user_id: user.id, habit_id: h.id, date: today, completed: true }, { onConflict: "habit_id,date" });
-    void captureLifeEvent({
-      type: "HabitCompleted",
-      occurredAt: today,
-      payload: { habit: h.name, category: h.category },
-      context: { outcome: "consistency" },
-    });
-  };
 
   return (
     <div className="relative mx-auto max-w-[1280px]">
@@ -361,6 +342,11 @@ export default function DashboardPage() {
         </motion.section>
       </div>
 
+      {/* Today's plan — live timeline + habits checklist */}
+      <motion.section {...rise(0.2)} className="mt-8">
+        <TodayPlan />
+      </motion.section>
+
       {/* 6 — Goals — large progress cards */}
       {goalsForCards.length > 0 && (
         <motion.section {...rise(0.22)} className="mt-8">
@@ -369,35 +355,6 @@ export default function DashboardPage() {
             {goalsForCards.map((g) => (
               <GoalCard key={g.id} goal={g} t={t} reduce={reduce} />
             ))}
-          </div>
-        </motion.section>
-      )}
-
-      {/* 7 — Habits — Apple-Reminders checklist, tap to complete */}
-      {todayHabits.length > 0 && (
-        <motion.section {...rise(0.26)} className="mt-8">
-          <SectionLabel>{t("Habits")}</SectionLabel>
-          <div className={`${CARD} mt-3 divide-y divide-[var(--color-line)] px-5`}>
-            {todayHabits.map((h) => {
-              const done = doneHabits.has(h.id);
-              return (
-                <button
-                  key={h.id}
-                  onClick={() => completeHabit(h)}
-                  disabled={done}
-                  className="flex w-full items-center gap-3.5 py-3.5 text-left"
-                >
-                  <motion.span
-                    whileTap={done ? undefined : { scale: 0.82 }}
-                    className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border transition-colors"
-                    style={done ? { borderColor: GREEN, background: GREEN } : { borderColor: "var(--color-line)" }}
-                  >
-                    {done && <Check size={15} strokeWidth={3} style={{ color: "var(--color-bg)" }} />}
-                  </motion.span>
-                  <span className={`flex-1 text-[15px] ${done ? "text-muted line-through" : "text-fg/90"}`}>{h.name}</span>
-                </button>
-              );
-            })}
           </div>
         </motion.section>
       )}
