@@ -20,6 +20,7 @@ import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
 import { Atmosphere } from "@/components/brand/Atmosphere";
 import { TodayPlan } from "@/components/sections/TodayPlan";
+import { TodoList } from "@/components/sections/TodoList";
 import { DailyCheckin } from "@/components/sections/DailyCheckin";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { Onboarding } from "@/components/sections/Onboarding";
@@ -291,6 +292,12 @@ export default function DashboardPage() {
           <QuickAction Icon={CalendarDays} label={t("Calendar")} href="/calendar" />
           <QuickAction Icon={Search} label={t("Search")} onClick={openSearch} />
         </div>
+      </motion.section>
+
+      {/* To-do — the day's tasks, high on the page so nothing slips. Its own
+          card + header; reads/writes the `todos` table (add/check/delete). */}
+      <motion.section {...rise(0.12)} className="mt-8">
+        <TodoList />
       </motion.section>
 
       {/* 4 + 5 — Today (horizontal progress, no donut) + ISA Insight */}
