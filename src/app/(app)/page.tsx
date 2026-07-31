@@ -230,62 +230,32 @@ export default function DashboardPage() {
       </motion.header>
 
       {/* Evening-only, once a day — the one thing ISA can't sense: sleep + why. */}
-      <div className="mt-6">
+      <div className="mt-5">
         <DailyCheckin />
       </div>
 
-      {/* 2 — Continue — the hero. Resume the goal that matters most today. */}
-      <motion.section {...rise(0.06)} className="mt-7">
-        <div className="relative overflow-hidden rounded-[32px] border border-line bg-[var(--color-card)] p-6 sm:p-8">
-          {/* soft, GPU-cheap wash — a calm green that echoes the progress ring */}
-          <div
-            className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full"
-            style={{ background: `radial-gradient(circle, ${GREEN}, transparent 68%)`, opacity: 0.16, filter: "blur(46px)" }}
-          />
-          <div className="relative flex items-center justify-between gap-6">
-            <div className="min-w-0">
-              <div className="mb-3 flex items-center gap-2">
-                <Target size={15} style={{ color: GREEN }} />
-                <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-                  {t("Today's Mission")}
-                </span>
-              </div>
-              <h2 className="text-[26px] font-bold leading-tight tracking-tight sm:text-3xl">
-                {primaryGoal ? primaryGoal.title : t("Set your first goal")}
-              </h2>
-              <p className="mt-2 text-[15px] leading-relaxed text-fg/70">
-                {primaryGoal ? t("Focus now, get closer to your goal.") : t("A direction makes every day count.")}
-              </p>
-              {primaryGoal && (
-                <div className="mt-4 text-[13px] text-muted">
-                  <span className="font-semibold text-fg/90">{primaryGoal.percentage ?? 0}%</span>
-                  {deadline && <> · {deadline.daysLeft} {t("days left")}</>}
-                </div>
-              )}
-              <Link
-                href={primaryGoal ? "/focus" : "/goals"}
-                className="mt-6 inline-flex h-[54px] items-center gap-2 rounded-[18px] bg-[var(--color-fg)] px-7 text-[15px] font-semibold text-[color:var(--color-bg)] transition hover:opacity-90 active:scale-[0.98]"
-              >
-                {primaryGoal ? t("Continue") : t("Add a goal")}
-                <ChevronRight size={18} />
-              </Link>
-            </div>
-            {primaryGoal && (
-              <div className="hidden shrink-0 sm:block">
-                <Ring value={primaryGoal.percentage ?? 0} size={132} stroke={9} reduce={reduce}>
-                  <span className="text-[26px] font-bold tabular-nums">{primaryGoal.percentage ?? 0}%</span>
-                  <span className="mt-0.5 text-[11px] uppercase tracking-wider text-muted">{t("Progress")}</span>
-                </Ring>
-              </div>
-            )}
+      {/* 2 — TODAY'S STATUS — a compact stat strip, not a big card */}
+      <motion.section {...rise(0.04)} className="mt-7">
+        <SectionLabel>{t("Today")}</SectionLabel>
+        <div className={`${CARD} mt-2.5 p-4`}>
+          <div className="grid grid-cols-4 gap-2">
+            <MiniStat value={today2.habitsDone} label={t("Habits")} />
+            <MiniStat value={tasksDone} label={t("Tasks")} />
+            <MiniStat value={focusToday} label={t("Focus")} />
+            <MiniStat value={sleepAvg != null ? `${sleepAvg.toFixed(1)}h` : "—"} label={t("Sleep")} />
           </div>
         </div>
       </motion.section>
 
-      {/* 3 — Quick Actions — icons above text, one tap to begin */}
-      <motion.section {...rise(0.1)} className="mt-8">
+      {/* 3 — TODAY'S TODO — the first, most important content card */}
+      <motion.section {...rise(0.07)} className="mt-7">
+        <TodoList />
+      </motion.section>
+
+      {/* 4 — QUICK ACTIONS — compact one-hand tiles */}
+      <motion.section {...rise(0.1)} className="mt-7">
         <SectionLabel>{t("Quick actions")}</SectionLabel>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           <QuickAction Icon={Plus} label={t("Add")} onClick={openCapture} />
           <QuickAction Icon={MessageSquare} label={t("Ask ISA")} href="/ask" />
           <QuickAction Icon={Target} label={t("Goal")} href="/goals?new=1" />
@@ -295,76 +265,64 @@ export default function DashboardPage() {
         </div>
       </motion.section>
 
-      {/* To-do — the day's tasks, high on the page so nothing slips. Its own
-          card + header; reads/writes the `todos` table (add/check/delete). */}
-      <motion.section {...rise(0.12)} className="mt-8">
-        <TodoList />
+      {/* 5 + 6 — TODAY'S SCHEDULE + HABITS (stacks vertically on mobile) */}
+      <motion.section {...rise(0.13)} className="mt-7">
+        <TodayPlan />
       </motion.section>
 
-      {/* 4 + 5 — Today (horizontal progress, no donut) + ISA Insight */}
-      <div className="mt-8 grid gap-4 lg:grid-cols-5">
-        <motion.section {...rise(0.14)} className="lg:col-span-3">
-          <SectionLabel>{t("Today")}</SectionLabel>
-          <div className={`${CARD} mt-3 p-6`}>
-            <div className="flex items-end justify-between">
-              <span className="text-4xl font-bold tabular-nums leading-none">{todayPct}%</span>
-              <span className="text-sm text-muted">{t("of today")}</span>
-            </div>
-            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
+      {/* 7 — SLEEP — compact morning-first summary */}
+      <motion.section {...rise(0.16)} className="mt-7 sm:max-w-md">
+        <SleepCard />
+      </motion.section>
+
+      {/* 8 — GOAL / VA'DA — a small secondary module, no longer the hero */}
+      <motion.section {...rise(0.19)} className="mt-7">
+        <SectionLabel>{t("Today's goal")}</SectionLabel>
+        <div className={`${CARD} mt-2.5 p-5`}>
+          <div className="flex items-center gap-2">
+            <Target size={14} className="shrink-0" style={{ color: GREEN }} />
+            <span className="min-w-0 flex-1 truncate font-semibold">
+              {primaryGoal ? primaryGoal.title : t("Set your first goal")}
+            </span>
+            {primaryGoal && (
+              <span className="shrink-0 text-sm font-bold tabular-nums">{primaryGoal.percentage ?? 0}%</span>
+            )}
+          </div>
+          {primaryGoal && (
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: GREEN }}
                 initial={{ width: 0 }}
-                animate={{ width: `${todayPct}%` }}
-                transition={{ duration: 0.9, ease: EASE }}
+                animate={{ width: `${primaryGoal.percentage ?? 0}%` }}
+                transition={{ duration: 0.8, ease: EASE }}
               />
             </div>
-            <div className="mt-6 grid grid-cols-4 gap-3 border-t border-line pt-5">
-              <MiniStat value={today2.habitsDone} label={t("Habits")} />
-              <MiniStat value={tasksDone} label={t("Tasks")} />
-              <MiniStat value={focusToday} label={t("Focus")} />
-              <MiniStat value={sleepAvg != null ? `${sleepAvg.toFixed(1)}h` : "—"} label={t("Sleep")} />
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section {...rise(0.18)} className="lg:col-span-2">
-          <SectionLabel>{t("ISA Insight")}</SectionLabel>
-          <div className={`${CARD} mt-3 flex h-[calc(100%-2rem)] flex-col p-6`}>
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: `${GREEN}18` }}>
-              <Sparkles size={19} style={{ color: GREEN }} />
+          )}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <span className="min-w-0 truncate text-xs text-muted">
+              {primaryGoal
+                ? deadline
+                  ? `${deadline.daysLeft} ${t("days left")}`
+                  : t("Focus now, get closer to your goal.")
+                : t("A direction makes every day count.")}
             </span>
-            <p className="mt-4 text-[15px] font-semibold leading-snug text-fg">
-              {insightText ?? t("Keep going — ISA is still learning your rhythm.")}
-            </p>
-            {insight?.detail && insight.title && insight.detail !== insight.title && (
-              <p className="mt-1.5 text-sm leading-relaxed text-muted">{humanize(insight.title)}</p>
-            )}
             <Link
-              href="/ask"
-              className="mt-auto inline-flex h-11 w-fit items-center gap-2 rounded-2xl bg-white/[0.06] px-4 text-sm font-medium text-fg transition hover:bg-white/[0.1]"
+              href={primaryGoal ? "/focus" : "/goals"}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[var(--color-fg)] px-4 text-sm font-semibold text-[color:var(--color-bg)] transition hover:opacity-90 active:scale-[0.98]"
             >
-              <Sparkles size={14} style={{ color: GREEN }} /> {t("Optimize my day")}
+              {primaryGoal ? t("Continue") : t("Add a goal")}
+              <ChevronRight size={16} />
             </Link>
           </div>
-        </motion.section>
-      </div>
-
-      {/* Today's plan — live timeline + habits checklist */}
-      <motion.section {...rise(0.2)} className="mt-8">
-        <TodayPlan />
+        </div>
       </motion.section>
 
-      {/* Sleep — morning-first. Small card, low on the page for one-handed reach. */}
-      <motion.section {...rise(0.22)} className="mt-8 sm:max-w-md">
-        <SleepCard />
-      </motion.section>
-
-      {/* 6 — Goals — large progress cards */}
+      {/* Goals — secondary detail, compact cards under the primary goal */}
       {goalsForCards.length > 0 && (
-        <motion.section {...rise(0.22)} className="mt-8">
+        <motion.section {...rise(0.22)} className="mt-6">
           <SectionLabel>{t("Goals")}</SectionLabel>
-          <div className="mt-3 space-y-3">
+          <div className="mt-2.5 space-y-2.5">
             {goalsForCards.map((g) => (
               <GoalCard key={g.id} goal={g} t={t} reduce={reduce} />
             ))}
@@ -372,13 +330,37 @@ export default function DashboardPage() {
         </motion.section>
       )}
 
-      {/* 8 — Recent Activity — minimal timeline */}
+      {/* 9 — ISA ANALYSIS — an interesting observation, near the bottom */}
+      <motion.section {...rise(0.25)} className="mt-7">
+        <SectionLabel>{t("ISA Insight")}</SectionLabel>
+        <div className={`${CARD} mt-2.5 flex items-start gap-3 p-5`}>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: `${GREEN}18` }}>
+            <Sparkles size={18} style={{ color: GREEN }} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-semibold leading-snug text-fg">
+              {insightText ?? t("Keep going — ISA is still learning your rhythm.")}
+            </p>
+            {insight?.detail && insight.title && insight.detail !== insight.title && (
+              <p className="mt-1 text-sm leading-relaxed text-muted">{humanize(insight.title)}</p>
+            )}
+            <Link
+              href="/ask"
+              className="mt-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-xl bg-white/[0.06] px-3.5 text-sm font-medium text-fg transition hover:bg-white/[0.1]"
+            >
+              <Sparkles size={13} style={{ color: GREEN }} /> {t("Optimize my day")}
+            </Link>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Recent Activity — minimal timeline, very bottom */}
       {activity.length > 0 && (
-        <motion.section {...rise(0.3)} className="mb-4 mt-8">
+        <motion.section {...rise(0.28)} className="mb-4 mt-7">
           <SectionLabel>{t("Recent activity")}</SectionLabel>
-          <div className={`${CARD} mt-3 divide-y divide-[var(--color-line)] px-6`}>
+          <div className={`${CARD} mt-2.5 divide-y divide-[var(--color-line)] px-5`}>
             {activity.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 py-4">
+              <div key={a.id} className="flex items-center gap-3 py-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: `${GREEN}22` }}>
                   <a.Icon size={14} style={{ color: GREEN }} />
                 </span>
@@ -417,31 +399,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="px-1 text-xs font-medium uppercase tracking-[0.14em] text-muted">{children}</p>;
 }
 
-function Ring({
-  value, size, stroke, reduce, children,
-}: {
-  value: number; size: number; stroke: number; reduce: boolean | null; children: React.ReactNode;
-}) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const off = c * (1 - Math.min(100, Math.max(0, value)) / 100);
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-line)" strokeWidth={stroke} />
-        <motion.circle
-          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={GREEN} strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={c}
-          initial={{ strokeDashoffset: reduce ? off : c }}
-          animate={{ strokeDashoffset: off }}
-          transition={{ duration: 0.9, ease: EASE }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>
-    </div>
-  );
-}
-
 function QuickAction({
   Icon, label, href, onClick,
 }: {
@@ -449,14 +406,14 @@ function QuickAction({
 }) {
   const inner = (
     <>
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05]">
-        <Icon size={19} className="text-fg/85" />
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05]">
+        <Icon size={18} className="text-fg/85" />
       </span>
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-[13px] font-medium">{label}</span>
     </>
   );
   const cls =
-    "flex h-[104px] flex-col items-center justify-center gap-2.5 rounded-[24px] border border-line bg-[var(--color-card)] transition hover:-translate-y-0.5 hover:border-white/10 active:scale-[0.98]";
+    "flex h-[84px] flex-col items-center justify-center gap-2 rounded-[20px] border border-line bg-[var(--color-card)] transition hover:-translate-y-0.5 hover:border-white/10 active:scale-[0.98]";
   return href ? (
     <Link href={href} className={cls}>{inner}</Link>
   ) : (

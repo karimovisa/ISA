@@ -459,6 +459,7 @@ const UZ: Record<string, string> = {
 
   // ── Dashboard: Today's Mission ──
   "Today's Mission": "Bugungi vazifa",
+  "Today's goal": "Bugungi maqsad",
   "{done} of {total} done": "{total} tadan {done} tasi bajarildi",
   "Daily rhythm": "Kunlik ritm",
   "One small step. ISA tracks the rest.": "Bitta kichik qadam. Qolganini ISA kuzatadi.",
@@ -1029,6 +1030,7 @@ const RU: Record<string, string> = {
 
   // ── Dashboard: Today's Mission ──
   "Today's Mission": "Миссия дня",
+  "Today's goal": "Цель на сегодня",
   "{done} of {total} done": "{done} из {total} выполнено",
   "Daily rhythm": "Ритм дня",
   "One small step. ISA tracks the rest.": "Один маленький шаг. Остальное отследит ISA.",
