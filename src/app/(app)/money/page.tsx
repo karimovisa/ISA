@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Wallet, Sparkles, Pencil, Trash2, Copy, Plus,
-  ArrowDownCircle, ArrowUpCircle, ArrowUpRight, ArrowDownRight, Search, Lock,
+  Wallet, Sparkles, Pencil, Trash2, Plus,
+  ArrowUpRight, ArrowDownRight, Search, Lock,
   Coffee, UtensilsCrossed, Fuel, Car, ShoppingBag, GraduationCap,
 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
@@ -25,7 +25,7 @@ import { useEntitlements } from "@/components/EntitlementProvider";
 import { captureLifeEvent } from "@/lib/life-events";
 import {
   EXPENSE_CATEGORIES, INCOME_CATEGORIES, currentMonthKey, summarizeMonth,
-  overallBalance, healthWithReasons, generateInsights, transactionTag, formatSom,
+  overallBalance, healthWithReasons, generateInsights, formatSom,
   suggestCategory, recentCategories, spendAnalytics,
 } from "@/lib/money";
 import type { Transaction, FinanceGoal, TxType } from "@/lib/types";
@@ -42,6 +42,12 @@ type Preset = (typeof QUICK_PRESETS)[number];
 type Draft = { type: TxType; amount: string; category: string; note: string; date: string; goalId: string };
 const emptyDraft = (type: TxType = "expense"): Draft => ({ type, amount: "", category: type === "expense" ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0], note: "", date: todayISO(), goalId: "" });
 
+const CAT_ICON: Record<string, typeof Coffee> = {
+  Food: UtensilsCrossed, Transport: Car, Shopping: ShoppingBag, Education: GraduationCap,
+};
+const catIcon = (c: string) => CAT_ICON[c] ?? Wallet;
+const FILTER_LABEL: Record<string, string> = { all: "All", income: "Income", expense: "Expense", savings: "Savings" };
+
 export default function MoneyPage() {
   const { t } = useT();
   const { canUse } = useEntitlements();
@@ -54,9 +60,10 @@ export default function MoneyPage() {
   const [catTouched, setCatTouched] = useState(false);
   const [freq, setFreq] = useState<Record<string, number>>({});
   const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | TxType>("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | TxType | "savings">("all");
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [detailTx, setDetailTx] = useState<Transaction | null>(null);
 
   useEffect(() => { try { setFreq(JSON.parse(localStorage.getItem("isa_money_freq") || "{}")); } catch {} }, []);
 
@@ -125,7 +132,8 @@ export default function MoneyPage() {
   const catList = [...recentExp, ...categories.filter((c) => !recentExp.includes(c))];
 
   const filtered = txns.data.filter((tx) => {
-    if (typeFilter !== "all" && tx.type !== typeFilter) return false;
+    if (typeFilter === "savings") { if (!(tx.type === "income" && tx.goal_id)) return false; }
+    else if (typeFilter !== "all" && tx.type !== typeFilter) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return `${tx.note ?? ""} ${tx.category} ${tx.amount}`.toLowerCase().includes(q);
@@ -211,46 +219,42 @@ export default function MoneyPage() {
 
       <div className="mb-6"><MoneyRecurring /></div>
 
-      {/* Transactions + search/filter */}
+      {/* Transactions — compact list, filter chips, swipe (mobile), tap for detail */}
       <div>
         <h2 className="mb-3 text-lg font-semibold tracking-tight">{t("Transactions")}</h2>
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex flex-1 items-center gap-2 rounded-xl border border-line bg-white/[0.02] px-3 py-2">
-            <Search size={15} className="text-muted" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search transactions…")} className="min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-muted/60" />
-          </div>
-          <div className="flex gap-1 rounded-xl bg-white/[0.03] p-1">
-            {(["all", "income", "expense"] as const).map((f) => (
-              <button key={f} onClick={() => setTypeFilter(f)} className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${typeFilter === f ? "bg-white/10 text-fg" : "text-muted hover:text-fg"}`}>{t(f)}</button>
-            ))}
-          </div>
+        <div className="mb-3 flex items-center gap-2 rounded-2xl border border-line bg-white/[0.02] px-4 py-2.5">
+          <Search size={16} className="text-muted" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search transactions…")} className="min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-muted/60 focus:outline-none" />
         </div>
-        {txns.loading ? <div className="glass h-40 animate-pulse rounded-3xl" /> : filtered.length === 0 ? (
-          <EmptyState icon={Wallet} title="No transactions" description="Add your first income or expense — or tap a Quick add above."
+        <div className="mb-3 flex flex-wrap gap-2">
+          {(["all", "income", "expense", "savings"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setTypeFilter(f)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${typeFilter === f ? "bg-accent text-white" : "border border-line text-muted hover:text-fg"}`}
+            >
+              {t(FILTER_LABEL[f])}
+            </button>
+          ))}
+        </div>
+        {txns.loading ? (
+          <div className="glass h-40 animate-pulse rounded-3xl" />
+        ) : filtered.length === 0 ? (
+          <EmptyState icon={Wallet} title="No transactions" description="Add your first income or expense — tap the + below."
             learns="ISA will begin learning where your money goes, what a normal week costs you, and how spending affects your goals."
             actionLabel="Add a transaction" onAction={() => openNew("expense")} />
         ) : (
-          <GlassCard className="divide-y divide-white/5 p-0">
-            {filtered.slice(0, 30).map((tx) => {
-              const tag = transactionTag(txns.data, tx);
-              return (
-                <div key={tx.id} className="group flex items-center gap-3 px-5 py-3.5">
-                  {tx.type === "income" ? <ArrowUpCircle size={18} className="shrink-0 text-emerald-400" /> : <ArrowDownCircle size={18} className="shrink-0 text-red-400" />}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{tx.note || tx.category}</p>
-                    <p className="text-xs text-muted">{tx.category} · {tx.date}</p>
-                    {tag && <span className="mt-1 inline-block rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium text-muted">{t(tag)}</span>}
-                  </div>
-                  <span className={`shrink-0 text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-emerald-300" : "text-red-300"}`}>{tx.type === "income" ? "+" : "-"}{formatSom(tx.amount)}</span>
-                  <div className="flex shrink-0 gap-1 opacity-0 transition group-hover:opacity-100">
-                    <button onClick={() => duplicate(tx)} className="rounded-lg p-1.5 text-muted transition hover:text-fg" aria-label="Duplicate"><Copy size={14} /></button>
-                    <button onClick={() => openEdit(tx)} className="rounded-lg p-1.5 text-muted transition hover:text-fg"><Pencil size={14} /></button>
-                    <button onClick={() => setConfirmReq({ title: t("Delete this transaction?"), confirmLabel: t("Delete"), danger: true, onConfirm: () => txns.remove(tx.id) })} className="rounded-lg p-1.5 text-muted transition hover:text-red-400"><Trash2 size={14} /></button>
-                  </div>
-                </div>
-              );
-            })}
-          </GlassCard>
+          <div className="space-y-1.5">
+            {filtered.slice(0, 30).map((tx) => (
+              <TxRow
+                key={tx.id}
+                tx={tx}
+                onTap={() => setDetailTx(tx)}
+                onEdit={() => openEdit(tx)}
+                onDelete={() => setConfirmReq({ title: t("Delete this transaction?"), confirmLabel: t("Delete"), danger: true, onConfirm: () => txns.remove(tx.id) })}
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -300,6 +304,27 @@ export default function MoneyPage() {
         </form>
       </Modal>
 
+      {/* Transaction detail — opens on tap */}
+      <Modal open={!!detailTx} onClose={() => setDetailTx(null)} title={detailTx ? (detailTx.type === "income" ? t("Income") : t("Expense")) : ""}>
+        {detailTx && (
+          <div className="space-y-4">
+            <div className="text-3xl font-bold tabular-nums" style={{ color: detailTx.type === "income" ? INCOME : EXPENSE }}>
+              {detailTx.type === "income" ? "+" : "−"}{formatSom(detailTx.amount)}
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between gap-3"><span className="text-muted">{t("Category")}</span><span>{t(detailTx.category)}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-muted">{t("Date")}</span><span className="tabular-nums">{detailTx.date}</span></div>
+              {detailTx.note && <div className="flex justify-between gap-3"><span className="text-muted">{t("Note (optional)")}</span><span className="text-right">{detailTx.note}</span></div>}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => { openEdit(detailTx); setDetailTx(null); }} className="flex-1 rounded-xl border border-line py-2.5 text-sm font-medium transition hover:bg-white/5">{t("Edit")}</button>
+              <button onClick={() => { duplicate(detailTx); setDetailTx(null); }} className="flex-1 rounded-xl border border-line py-2.5 text-sm font-medium transition hover:bg-white/5">{t("Duplicate")}</button>
+              <button onClick={() => { const tx = detailTx; setDetailTx(null); setConfirmReq({ title: t("Delete this transaction?"), confirmLabel: t("Delete"), danger: true, onConfirm: () => txns.remove(tx.id) }); }} className="flex-1 rounded-xl border border-line py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10">{t("Delete")}</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
 
       {/* Thumb-reachable add — in the bottom zone, opens the money sheet */}
@@ -320,6 +345,42 @@ export default function MoneyPage() {
         onGoal={() => window.dispatchEvent(new CustomEvent("isa:add-savings-goal"))}
         onRecurring={() => window.dispatchEvent(new CustomEvent("isa:add-recurring"))}
       />
+    </div>
+  );
+}
+
+function TxIcon({ icon: Icon, color }: { icon: typeof Coffee; color: string }) {
+  return <Icon size={16} style={{ color }} />;
+}
+
+function TxRow({ tx, onTap, onEdit, onDelete }: { tx: Transaction; onTap: () => void; onEdit: () => void; onDelete: () => void }) {
+  const { t } = useT();
+  const income = tx.type === "income";
+  const color = income ? INCOME : EXPENSE;
+  return (
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* revealed by swiping the row left (mobile) or dragging (desktop) */}
+      <div className="absolute inset-y-0 right-0 flex items-center gap-1.5 pr-3">
+        <button onClick={onEdit} aria-label="Edit" className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] text-fg"><Pencil size={15} /></button>
+        <button onClick={onDelete} aria-label="Delete" className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${EXPENSE} 22%, transparent)`, color: EXPENSE }}><Trash2 size={15} /></button>
+      </div>
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -104, right: 0 }}
+        dragElastic={0.05}
+        dragMomentum={false}
+        onClick={onTap}
+        className="relative flex cursor-pointer items-center gap-3 rounded-2xl border border-line bg-[var(--color-card)] px-4 py-3"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }}>
+          <TxIcon icon={catIcon(tx.category)} color={color} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{tx.note || t(tx.category)}</p>
+          <p className="truncate text-xs text-muted">{t(tx.category)} · {tx.date}</p>
+        </div>
+        <span className="shrink-0 text-sm font-semibold tabular-nums" style={{ color }}>{income ? "+" : "−"}{formatSom(tx.amount)}</span>
+      </motion.div>
     </div>
   );
 }
