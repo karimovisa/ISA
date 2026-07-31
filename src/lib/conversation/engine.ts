@@ -6,9 +6,16 @@
 import { loadIntelligenceContext } from "@/lib/intelligence";
 import { detectIntent } from "./intent";
 import { reason } from "./reasoning";
+import { buildProposalFor } from "./actions";
 import { buildGenerationRequest, composeTurn } from "./compose";
-import { speakViaServer } from "./provider";
-import type { AskResult, ConversationTurn, ProviderMessage } from "./types";
+import { extractActionViaServer, speakViaServer } from "./provider";
+import type { ActionKind, AskResult, ConversationTurn, ProviderMessage } from "./types";
+
+const LLM_ACTION_KIND: Record<"task" | "goal" | "habit", ActionKind> = {
+  task: "create_task",
+  goal: "create_goal",
+  habit: "create_habit",
+};
 
 export type AskOptions = {
   /** Allow the optional LLM phrasing step (Pro). When false, ISA speaks its own
@@ -30,6 +37,23 @@ export async function ask(
   const intent = detectIntent(message);
   const ctx = await loadIntelligenceContext({ force: opts.fresh });
   const answer = await reason(ctx, intent, message);
+
+  // If ISA's deterministic pass found no action, let Gemini (Pro) try to read the
+  // message into a task/goal/habit the user then CONFIRMS. Gemini only proposes —
+  // ISA still does the write, through the same confirm-first template flow.
+  if (opts.allowLLM !== false && !answer.action && !answer.clarification && !answer.navigation) {
+    const llm = await extractActionViaServer(message);
+    if (llm && llm.kind !== "none") {
+      const proposal = buildProposalFor(LLM_ACTION_KIND[llm.kind], llm.title);
+      if (proposal) {
+        answer.action = proposal;
+        answer.headline = proposal.headline;
+        answer.draft = proposal.headline;
+        answer.confidence = proposal.confidence; // < 0.95 → always asks to confirm
+        answer.claim = "recommendation";
+      }
+    }
+  }
 
   // Pure navigation / action-confirmation turns don't need a model — they're
   // exact by construction, and phrasing them risks drift.

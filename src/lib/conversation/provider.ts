@@ -8,6 +8,35 @@
 import { supabase } from "@/lib/supabase/client";
 import type { GenerationRequest, ProviderName } from "./types";
 
+export type LlmActionResult = { kind: "task" | "goal" | "habit" | "none"; title: string };
+
+/**
+ * Ask the server (Gemini) to read a free-form message into a create-action.
+ * Returns null on any failure or when no action is found — the caller then keeps
+ * ISA's deterministic reading. Never throws. Gemini only PROPOSES; the user
+ * still confirms before ISA writes anything.
+ */
+export async function extractActionViaServer(message: string): Promise<LlmActionResult | null> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return null;
+
+    const res = await fetch("/api/ask/action", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as LlmActionResult;
+    return data && data.kind !== "none" && data.title?.trim() ? data : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Is a natural-language model available? (A server route + key.) We optimistically
  *  try the server and fall back to ISA's deterministic voice on any failure, so
  *  this is a hint, not a gate. */
