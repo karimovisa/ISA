@@ -67,6 +67,14 @@ export default function MoneyPage() {
 
   useEffect(() => { try { setFreq(JSON.parse(localStorage.getItem("isa_money_freq") || "{}")); } catch {} }, []);
 
+  // On mobile the bottom bar's centered "+" is the only FAB; on /money it opens
+  // this page's own sheet (income/expense/goal/recurring) via the shared event.
+  useEffect(() => {
+    const onOpen = () => setSheetOpen(true);
+    window.addEventListener("isa:open-capture", onOpen);
+    return () => window.removeEventListener("isa:open-capture", onOpen);
+  }, []);
+
   const thisMonth = currentMonthKey();
   const summary = useMemo(() => summarizeMonth(txns.data, thisMonth), [txns.data, thisMonth]);
   const balance = useMemo(() => overallBalance(txns.data), [txns.data]);
@@ -331,7 +339,7 @@ export default function MoneyPage() {
       <button
         onClick={() => setSheetOpen(true)}
         aria-label={t("Add")}
-        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full text-white shadow-[0_14px_34px_-8px_rgba(0,0,0,0.75)] transition hover:brightness-110 active:scale-95 md:bottom-8"
+        className="fixed bottom-8 left-1/2 z-40 hidden h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full text-white shadow-[0_14px_34px_-8px_rgba(0,0,0,0.75)] transition hover:brightness-110 active:scale-95 md:flex"
         style={{ background: "var(--color-accent)" }}
       >
         <Plus size={28} strokeWidth={2.4} />

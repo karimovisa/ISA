@@ -194,10 +194,12 @@ export function QuickCapture() {
 
   return (
     <>
+      {/* Desktop only — on mobile the bottom bar's centered "+" is the one create
+          action, so we don't stack a second floating FAB. */}
       <button
         onClick={show}
         aria-label={t("Quick add")}
-        className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_12px_32px_-8px_rgba(0,0,0,0.7)] transition hover:brightness-110 active:scale-95 md:bottom-8"
+        className="fixed right-4 bottom-8 z-30 hidden h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_12px_32px_-8px_rgba(0,0,0,0.7)] transition hover:brightness-110 active:scale-95 md:flex"
       >
         <Plus size={26} strokeWidth={2.4} />
       </button>
