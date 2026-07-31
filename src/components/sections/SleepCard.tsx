@@ -1,345 +1,284 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Moon, Sunrise } from "lucide-react";
+// ISA — Sleep, redesigned around real behavior: "wake-up first". People forget to
+// tap "sleeping" before bed, so ISA never asks them to. In the morning the card
+// already shows an ESTIMATE from the user's own pattern; one tap on how they slept
+// records the night in ~2–5s. Bedtime/wake can be corrected, but never has to be.
+// Nothing is fabricated — with too little history the card says so and asks.
+//
+// Priority for a day's truth: health_data > manual > estimated (see lib/sleep.ts).
+
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Moon, Pencil, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { useCollection } from "@/hooks/useCollection";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { PressButton } from "@/components/ui/PressButton";
-import {
-  Modal,
-  fieldClass,
-  labelClass,
-  primaryBtnClass,
-} from "@/components/ui/Modal";
+import { useCollection } from "@/hooks/useCollection";
 import { todayISO } from "@/lib/datetime";
 import { toast } from "@/lib/toast";
 import { useT } from "@/lib/i18n";
 import { captureLifeEvent } from "@/lib/life-events";
+import { cn } from "@/lib/cn";
+import {
+  SLEEP_QUALITIES, clocksToTimestamps, estimateSleep, isoToClock,
+  qualityOption, sourceLabelKey, splitDuration,
+} from "@/lib/sleep";
 import type { SleepLog } from "@/lib/types";
 
-function MoonIcon({ low }: { low: boolean }) {
-  return (
-    <svg width="46" height="46" viewBox="0 0 48 48" aria-hidden>
-      <defs>
-        <mask id="isa-moon">
-          <rect x="0" y="0" width="48" height="48" fill="#fff" />
-          <circle cx="30" cy="21" r="14" fill="#000" />
-        </mask>
-      </defs>
-      <circle cx="24" cy="24" r="16" fill="currentColor" opacity="0.08" />
-      <circle
-        cx="22"
-        cy="24"
-        r="15"
-        fill={low ? "#E0653A" : "var(--color-fg)"}
-        mask="url(#isa-moon)"
-      />
-    </svg>
-  );
-}
-
-type Ongoing = { id: string; sleep_start: string; date: string } | null;
-
-// If "Wake" is never tapped, cap an open session so it doesn't run forever.
-const CAP_HOURS = 16;
-const CAP_MS = CAP_HOURS * 3_600_000;
+type Panel = "closed" | "quality" | "manual";
 
 export function SleepCard() {
   const { t } = useT();
-  const logs = useCollection<SleepLog>("sleep_logs", {
-    orderBy: "date",
-    ascending: false,
-  });
-  const [score, setScore] = useState<number | null>(null);
-  const [ongoing, setOngoing] = useState<Ongoing>(null);
-  const [now, setNow] = useState(Date.now());
+  const { user } = useAuth();
+  const logs = useCollection<SleepLog>("sleep_logs", { orderBy: "date", ascending: false });
+  const today = todayISO();
+
+  const [panel, setPanel] = useState<Panel>("closed");
+  const [bed, setBed] = useState("23:00");
+  const [wake, setWake] = useState("07:00");
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [hours, setHours] = useState("");
-  const [quality, setQuality] = useState(0);
-  const [note, setNote] = useState<string | null>(null);
 
-  const loadScore = useCallback(async () => {
-    const { data } = await supabase
-      .from("daily_energy_scores")
-      .select("score")
-      .order("date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setScore((data?.score as number | undefined) ?? null);
-  }, []);
+  const todayLog = useMemo(
+    () => logs.data.find((l) => l.date === today && l.duration_hours > 0) ?? null,
+    [logs.data, today]
+  );
+  const estimate = useMemo(() => estimateSleep(logs.data), [logs.data]);
 
-  const loadOngoing = useCallback(async () => {
-    // A session is only "ongoing" if the user actually pressed Sleep (sleep_start
-    // set) and hasn't pressed Wake yet (sleep_end null). Rows logged by hours
-    // only — the evening check-in or the "Log sleep" modal — have NO sleep_start,
-    // so they must NOT be mistaken for an active session (that made the timer run
-    // from 1970 → cap at 16h → "you forgot to tap Wake").
-    const { data } = await supabase
-      .from("sleep_logs")
-      .select("id, sleep_start, date")
-      .is("sleep_end", null)
-      .not("sleep_start", "is", null)
-      .order("sleep_start", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setOngoing((data as Ongoing) ?? null);
-  }, []);
+  // A tiny, honest weekly insight — only when there's enough real signal.
+  const weekAvg = useMemo(() => {
+    const cutoff = Date.now() - 7 * 86_400_000;
+    const wk = logs.data.filter((l) => new Date(l.date).getTime() >= cutoff && l.duration_hours > 0);
+    if (wk.length < 3) return null;
+    return wk.reduce((s, l) => s + Number(l.duration_hours), 0) / wk.length;
+  }, [logs.data]);
 
+  // Seed the manual editor from the best times we know (logged → estimate → default).
   useEffect(() => {
-    loadScore();
-    loadOngoing();
-  }, [loadScore, loadOngoing]);
-
-  // tick every 30s while sleeping, for the live elapsed display
-  useEffect(() => {
-    if (!ongoing) return;
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, [ongoing]);
-
-  // Auto-close a forgotten session: if "Wake" wasn't tapped within ~16h, close
-  // it capped at CAP_HOURS. Runs when a session loads and on each 30s tick.
-  useEffect(() => {
-    if (!ongoing) return;
-    const start = new Date(ongoing.sleep_start).getTime();
-    if (Date.now() - start < CAP_MS) return;
-    const o = ongoing;
-    (async () => {
-      await supabase
-        .from("sleep_logs")
-        .update({
-          sleep_end: new Date(start + CAP_MS).toISOString(),
-          duration_hours: CAP_HOURS,
-        })
-        .eq("id", o.id);
-      await supabase.rpc("recompute_my_energy", { p_date: o.date });
-      setOngoing(null);
-      await Promise.all([logs.refresh(), loadScore()]);
-      toast(
-        `Sleep auto-closed at ${CAP_HOURS}h — you forgot to tap Wake.`,
-        "info"
-      );
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ongoing, now]);
-
-  const startSleep = async () => {
-    setBusy(true);
-    setNote(null);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setNote("Not signed in.");
-      setBusy(false);
-      return;
+    if (todayLog?.sleep_start && todayLog?.sleep_end) {
+      setBed(isoToClock(todayLog.sleep_start));
+      setWake(isoToClock(todayLog.sleep_end));
+    } else if (estimate) {
+      setBed(estimate.bedClock);
+      setWake(estimate.wakeClock);
     }
+  }, [todayLog, estimate]);
+
+  const openMark = () => setPanel(estimate ? "quality" : "manual");
+
+  const commit = async (qualityValue: number) => {
+    if (!user || busy) return;
+    setBusy(true);
+    const manual = panel === "manual";
+    const bedClock = manual ? bed : estimate!.bedClock;
+    const wakeClock = manual ? wake : estimate!.wakeClock;
+    const { sleepStart, sleepEnd, durationMin } = clocksToTimestamps(today, bedClock, wakeClock);
+    const dur = durationMin > 0 ? durationMin : durationMin + 1440;
+    const hours = +(dur / 60).toFixed(2);
+
     const { error } = await supabase.from("sleep_logs").upsert(
       {
         user_id: user.id,
-        date: todayISO(),
-        sleep_start: new Date().toISOString(),
-        sleep_end: null,
-        duration_hours: 0,
+        date: today,
+        sleep_start: sleepStart,
+        sleep_end: sleepEnd,
+        duration_hours: hours,
+        quality: qualityValue,
+        source: manual ? "manual" : "estimated",
+        is_estimated: !manual,
+        updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,date" }
     );
     if (error) {
-      setNote(`Couldn't start: ${error.message}`);
-      toast("Couldn't start sleep tracking.", "error");
-    } else await loadOngoing();
-    setBusy(false);
-  };
-
-  const wake = async () => {
-    if (!ongoing) return;
-    setBusy(true);
-    const start = new Date(ongoing.sleep_start).getTime();
-    const duration = +((Date.now() - start) / 3_600_000).toFixed(2);
-    const { error } = await supabase
-      .from("sleep_logs")
-      .update({
-        sleep_end: new Date().toISOString(),
-        duration_hours: duration,
-      })
-      .eq("id", ongoing.id);
-    if (error) {
-      toast("Couldn't save your wake time.", "error");
+      toast(t("Couldn't save your sleep."), "error");
       setBusy(false);
       return;
     }
-    await supabase.rpc("recompute_my_energy", { p_date: ongoing.date });
+    await supabase.rpc("recompute_my_energy", { p_date: today });
     void captureLifeEvent({
       type: "SleepLogged",
-      occurredAt: ongoing.date,
-      payload: { hours: duration },
-      context: { metricValue: duration, outcome: "informational" },
+      occurredAt: today,
+      payload: { hours, quality: qualityValue, estimated: !manual },
+      context: { metricValue: hours, outcome: "informational" },
     });
-    setOngoing(null);
-    await Promise.all([logs.refresh(), loadScore()]);
+    await logs.refresh();
+    setPanel("closed");
     setBusy(false);
   };
 
-  const saveManual = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const d = Number(hours);
-    if (!d || d <= 0) return;
-    setBusy(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("sleep_logs").upsert(
-        {
-          user_id: user.id,
-          date: todayISO(),
-          duration_hours: d,
-          quality: quality || null,
-        },
-        { onConflict: "user_id,date" }
-      );
-      await supabase.rpc("recompute_my_energy", { p_date: todayISO() });
-      void captureLifeEvent({
-        type: "SleepLogged",
-        occurredAt: todayISO(),
-        payload: { hours: d, quality: quality || null },
-        context: { metricValue: d, outcome: "informational" },
-      });
-      await Promise.all([logs.refresh(), loadScore()]);
-    }
-    setBusy(false);
-    setOpen(false);
-    setHours("");
-    setQuality(0);
-  };
+  // ── Derived display ──
+  const loggedQuality = qualityOption(todayLog?.quality);
+  const loggedSrcKey = todayLog ? sourceLabelKey(todayLog.source, todayLog.is_estimated) : null;
+  const shownMin = todayLog
+    ? Math.round(Number(todayLog.duration_hours) * 60)
+    : estimate?.durationMin ?? null;
+  const dur = shownMin != null ? splitDuration(shownMin) : null;
 
-  const cutoff = Date.now() - 7 * 86_400_000;
-  const week = logs.data.filter(
-    (l) => new Date(l.date).getTime() >= cutoff && l.duration_hours > 0
-  );
-  const avg =
-    week.length > 0
-      ? week.reduce((s, l) => s + Number(l.duration_hours), 0) / week.length
+  const times = todayLog?.sleep_start && todayLog?.sleep_end
+    ? `${isoToClock(todayLog.sleep_start)} → ${isoToClock(todayLog.sleep_end)}`
+    : estimate
+      ? `${estimate.bedClock} → ${estimate.wakeClock}`
       : null;
-  const low = score !== null && score < 40;
-
-  const elapsedMs = ongoing
-    ? Math.min(now - new Date(ongoing.sleep_start).getTime(), CAP_MS)
-    : 0;
-  const eh = Math.floor(elapsedMs / 3_600_000);
-  const em = Math.floor((elapsedMs % 3_600_000) / 60_000);
 
   return (
-    <>
-      <GlassCard className="p-5" title={t("Avg sleep this week")}>
-        {logs.loading ? (
-          <div className="flex items-center gap-4">
-            <div className="h-11 w-11 animate-pulse rounded-full bg-white/5" />
-            <div className="h-6 w-16 animate-pulse rounded bg-white/5" />
+    <GlassCard className="p-5 sm:p-6">
+      <div className="flex items-start gap-4">
+        <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.05]">
+          <Moon size={20} className="text-fg/80" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted">
+            {t("Sleep")}
           </div>
-        ) : ongoing ? (
-          <div className="flex items-center gap-4">
-            <div className="text-fg">
-              <MoonIcon low={false} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs uppercase tracking-wider text-muted">
-                {t("Sleeping")}
-              </div>
-              <div className="text-2xl font-bold tabular-nums text-fg">
-                {eh}
-                <span className="text-sm font-medium text-muted">h </span>
-                {em}
-                <span className="text-sm font-medium text-muted">m</span>
-              </div>
-            </div>
-            <PressButton
-              onClick={wake}
-              disabled={busy}
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
-            >
-              <Sunrise size={14} />
-              {t("Wake up")}
-            </PressButton>
-          </div>
-        ) : (
-          <div className="flex items-center gap-4">
-            <div className="text-fg">
-              <MoonIcon low={low} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs uppercase tracking-wider text-muted">
-                {t("Sleep")}
-              </div>
-              {avg !== null ? (
-                <div className="text-2xl font-bold tabular-nums text-fg">
-                  {avg.toFixed(1)}
-                  <span className="text-sm font-medium text-muted">h avg</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setOpen(true)}
-                  className="text-sm text-muted underline-offset-2 hover:underline"
-                >
-                  {t("or log hours")}
-                </button>
+
+          {dur ? (
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+              <span className="text-[28px] font-bold leading-none tabular-nums text-fg">
+                {dur.h}
+                <span className="text-base font-medium text-muted">h </span>
+                {dur.m}
+                <span className="text-base font-medium text-muted">m</span>
+              </span>
+              {(todayLog ? loggedSrcKey : "estimated") && (
+                <span className="text-xs text-muted">· {t(todayLog ? loggedSrcKey! : "estimated")}</span>
               )}
             </div>
-            <PressButton
-              onClick={startSleep}
-              disabled={busy}
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
-            >
-              <Moon size={14} />
-              {t("Sleep")}
-            </PressButton>
-          </div>
-        )}
-        {note && <p className="mt-3 text-xs text-red-300">{note}</p>}
-      </GlassCard>
-
-      <Modal open={open} onClose={() => setOpen(false)} title={t("Log sleep")}>
-        <form onSubmit={saveManual} className="space-y-4">
-          <div>
-            <label className={labelClass}>{t("Hours slept")}</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="24"
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              placeholder="7.5"
-              className={fieldClass}
-              autoFocus
-            />
-          </div>
-          <div>
-            <label className={labelClass}>{t("Quality (optional)")}</label>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => setQuality(q === quality ? 0 : q)}
-                  className={`h-9 flex-1 rounded-lg text-sm transition ${
-                    quality >= q && quality > 0
-                      ? "bg-white/15 text-fg"
-                      : "bg-white/[0.04] text-muted hover:text-fg"
-                  }`}
-                >
-                  {q}
-                </button>
-              ))}
+          ) : (
+            <div className="mt-1.5 text-[15px] leading-snug text-fg/70">
+              {t("Sleep time not set yet")}
             </div>
-          </div>
-          <PressButton type="submit" disabled={busy} className={primaryBtnClass}>
-            {busy ? t("Saving…") : t("Save sleep")}
-          </PressButton>
-        </form>
-      </Modal>
-    </>
+          )}
+
+          {/* quality (logged) or the estimate's time range (not yet logged) */}
+          {todayLog && loggedQuality ? (
+            <div className="mt-1.5 text-sm text-fg/80">
+              <span className="mr-1">{loggedQuality.emoji}</span>
+              {t(loggedQuality.label)}
+            </div>
+          ) : times ? (
+            <div className="mt-1.5 flex items-center gap-2 text-xs text-muted">
+              <span>{t("Estimated")}: <span className="tabular-nums">{times}</span></span>
+              <button
+                onClick={() => setPanel("manual")}
+                className="inline-flex items-center gap-1 text-fg/70 underline-offset-2 transition hover:text-fg hover:underline"
+              >
+                <Pencil size={11} /> {t("Change")}
+              </button>
+            </div>
+          ) : null}
+
+          <div className="mt-1 text-[11px] text-muted/70">{t("Today's sleep")}</div>
+        </div>
+
+        {/* logged → quiet edit; not logged with a panel already open → nothing here */}
+        {todayLog && panel === "closed" && (
+          <button
+            onClick={() => setPanel("manual")}
+            aria-label={t("Edit")}
+            className="shrink-0 rounded-lg p-1.5 text-muted transition hover:text-fg"
+          >
+            <Pencil size={15} />
+          </button>
+        )}
+      </div>
+
+      {/* optional, honest weekly insight */}
+      {weekAvg != null && panel === "closed" && (
+        <p className="mt-3 border-t border-line pt-3 text-xs text-muted">
+          {t("This week you slept {avg} on average.", {
+            avg: `${splitDuration(Math.round(weekAvg * 60)).h}h ${splitDuration(Math.round(weekAvg * 60)).m}m`,
+          })}
+        </p>
+      )}
+
+      {/* ── Interaction — kept at the BOTTOM for one-handed thumb reach ── */}
+      <AnimatePresence initial={false}>
+        {panel === "closed" ? (
+          !todayLog && (
+            <motion.button
+              key="mark"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={openMark}
+              className="mt-4 h-12 w-full rounded-2xl bg-[var(--color-fg)] text-[15px] font-semibold text-[color:var(--color-bg)] transition active:scale-[0.99]"
+            >
+              {t("Mark")}
+            </motion.button>
+          )
+        ) : (
+          <motion.div
+            key="panel"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 border-t border-line pt-4">
+              {panel === "manual" && (
+                <div className="mb-4 grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted">{t("My bedtime")}</span>
+                    <input
+                      type="time"
+                      value={bed}
+                      onChange={(e) => setBed(e.target.value || bed)}
+                      className="w-full rounded-xl border border-line bg-white/[0.04] px-3 py-2.5 text-fg tabular-nums focus:outline-none"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted">{t("My wake time")}</span>
+                    <input
+                      type="time"
+                      value={wake}
+                      onChange={(e) => setWake(e.target.value || wake)}
+                      className="w-full rounded-xl border border-line bg-white/[0.04] px-3 py-2.5 text-fg tabular-nums focus:outline-none"
+                    />
+                  </label>
+                </div>
+              )}
+
+              <div className="text-sm font-medium text-fg/90">{t("How did you sleep?")}</div>
+              <div className="mt-2.5 grid grid-cols-4 gap-2">
+                {SLEEP_QUALITIES.map((q) => (
+                  <button
+                    key={q.value}
+                    disabled={busy}
+                    onClick={() => void commit(q.value)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-2xl border border-line bg-white/[0.03] py-3 transition",
+                      "hover:border-white/15 hover:bg-white/[0.06] active:scale-[0.97] disabled:opacity-50"
+                    )}
+                  >
+                    <span className="text-2xl leading-none">{q.emoji}</span>
+                    <span className="text-[11px] text-muted">{t(q.label)}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                {panel === "quality" ? (
+                  <button
+                    onClick={() => setPanel("manual")}
+                    className="inline-flex items-center gap-1 text-xs text-muted transition hover:text-fg"
+                  >
+                    <Pencil size={12} /> {t("Change")}
+                  </button>
+                ) : (
+                  <span className="text-xs text-muted">{t("One tap saves it.")}</span>
+                )}
+                <button
+                  onClick={() => setPanel("closed")}
+                  className="inline-flex items-center gap-1 text-xs text-muted transition hover:text-fg"
+                >
+                  <Check size={12} /> {t("Cancel")}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </GlassCard>
   );
 }

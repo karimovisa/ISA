@@ -21,6 +21,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Atmosphere } from "@/components/brand/Atmosphere";
 import { TodayPlan } from "@/components/sections/TodayPlan";
 import { TodoList } from "@/components/sections/TodoList";
+import { SleepCard } from "@/components/sections/SleepCard";
 import { DailyCheckin } from "@/components/sections/DailyCheckin";
 import { WeeklyReviewModal } from "@/components/sections/WeeklyReviewModal";
 import { Onboarding } from "@/components/sections/Onboarding";
@@ -352,6 +353,11 @@ export default function DashboardPage() {
       {/* Today's plan — live timeline + habits checklist */}
       <motion.section {...rise(0.2)} className="mt-8">
         <TodayPlan />
+      </motion.section>
+
+      {/* Sleep — morning-first. Small card, low on the page for one-handed reach. */}
+      <motion.section {...rise(0.22)} className="mt-8 sm:max-w-md">
+        <SleepCard />
       </motion.section>
 
       {/* 6 — Goals — large progress cards */}

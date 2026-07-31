@@ -116,15 +116,22 @@ export type FocusSession = {
   created_at: string;
 };
 
+/** Where a sleep record came from. Priority when several could apply:
+ *  health_data > manual > estimated. Future device imports use "health_data". */
+export type SleepSource = "manual" | "estimated" | "health_data";
+
 export type SleepLog = {
   id: string;
   user_id: string;
   date: string;
-  sleep_start: string | null;
-  sleep_end: string | null;
+  sleep_start: string | null; // bedtime (ISO)
+  sleep_end: string | null; // wake time (ISO)
   duration_hours: number;
-  quality: number | null;
+  quality: number | null; // 1..5
+  source: SleepSource | null;
+  is_estimated: boolean;
   created_at: string;
+  updated_at?: string;
 };
 
 export type EnergyScore = {
