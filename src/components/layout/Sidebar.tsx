@@ -17,6 +17,7 @@ import {
   Wallet,
   Sparkles,
   Brain,
+  Plus,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
@@ -24,7 +25,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useT } from "@/lib/i18n";
 import { IsaLogo } from "@/components/brand/IsaLogo";
 import { MosqueIcon } from "@/components/ui/MosqueIcon";
-import { useNavOrder, MOBILE_SLOTS } from "@/components/NavOrderProvider";
+import { useNavOrder } from "@/components/NavOrderProvider";
 import { ROUTE_MODULE, accountAgeDays, isUnlocked, readUnlockOverrides } from "@/lib/unlock";
 
 export const NAV = [
@@ -86,6 +87,43 @@ function NavLink({
   );
 }
 
+type NavEntry = { href: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }> };
+
+function MobileTab({
+  item,
+  active,
+  t,
+}: {
+  item: NavEntry;
+  active: boolean;
+  t: (s: string) => string;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      data-tour={`nav-${item.href}`}
+      className="flex flex-col items-center gap-1 pb-0.5"
+    >
+      <Icon size={20} className={active ? "text-accent" : "text-muted"} />
+      <span
+        className={cn(
+          "max-w-full truncate px-0.5 text-[10px] font-medium leading-none",
+          active ? "text-accent" : "text-muted"
+        )}
+      >
+        {t(item.label)}
+      </span>
+      <span
+        className={cn(
+          "mt-0.5 h-0.5 w-5 rounded-full transition-colors",
+          active ? "bg-accent" : "bg-transparent"
+        )}
+      />
+    </Link>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { signOut, user } = useAuth();
@@ -110,7 +148,9 @@ export function Sidebar() {
     ...NAV.filter((n) => !order.includes(n.href)),
   ];
   const nav = ordered.filter((n) => visible(n.href));
-  const mobileMain = nav.slice(0, MOBILE_SLOTS);
+  // Mobile: three pages flank the centered "+"; everything else lives in ⌘K.
+  const barNav = nav.slice(0, 3);
+  const openCapture = () => window.dispatchEvent(new CustomEvent("isa:open-capture"));
 
   return (
     <>
@@ -159,51 +199,75 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile bottom bar (everything else lives in ⌘K).
-          Docked to the bottom edge and filling the safe area — it never floats
-          above the home indicator and never covers page content. */}
-      <nav
-        data-tour="nav-bar"
-        className="glass fixed inset-x-0 bottom-0 z-40 flex items-center justify-around rounded-t-3xl px-2 pt-1.5 md:hidden"
-        style={{ paddingBottom: "calc(0.4rem + env(safe-area-inset-bottom))" }}
-      >
-        {mobileMain.map((item) => {
-          const active = isActive(item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              data-tour={`nav-${item.href}`}
-              className={cn(
-                "relative flex h-11 flex-1 items-center justify-center rounded-2xl transition-colors",
-                active ? "text-fg" : "text-muted"
-              )}
-            >
-              {active && (
-                <motion.span
-                  layoutId="nav-active-mobile"
-                  className="absolute inset-0 rounded-2xl bg-accent-soft ring-1 ring-inset ring-accent/30"
-                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                />
-              )}
-              <Icon size={20} className="relative z-10" />
-            </Link>
-          );
-        })}
-        {/* Opens the ⌘K palette — the home for every other page + quick-add. */}
-        <button
-          onClick={() =>
-            window.dispatchEvent(new CustomEvent("isa:open-palette"))
-          }
-          aria-label="Menu and search"
-          data-tour="nav-menu"
-          className="relative flex h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl text-muted transition-colors hover:text-fg"
+      {/* Mobile bottom bar — a quiet mountain range with a centered orange "+".
+          Three pages + the ⌘K menu flank the universal create action. The peaks
+          are a subtle silhouette (icons stay fully legible); the raised "+"
+          pokes above the bar's top edge. Everything else lives in ⌘K. */}
+      <div data-tour="nav-bar" className="fixed inset-x-0 bottom-0 z-40 md:hidden">
+        <nav
+          className="glass relative rounded-t-3xl px-2 pt-2.5"
+          style={{ paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))" }}
         >
-          <Command size={19} className="relative z-10" />
-          <span className="text-[9px] font-medium leading-none">{t("Menu")}</span>
-        </button>
-      </nav>
+          {/* subtle mountain-range silhouette, clipped to the bar */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-3xl">
+            <svg
+              aria-hidden
+              viewBox="0 0 500 100"
+              preserveAspectRatio="none"
+              className="absolute inset-x-0 bottom-0 h-14 w-full"
+            >
+              <defs>
+                <linearGradient id="isa-mtn" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="var(--color-fg)" stopOpacity="0.12" />
+                  <stop offset="1" stopColor="var(--color-fg)" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="isa-mtn-peak" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="var(--color-accent)" stopOpacity="0.30" />
+                  <stop offset="1" stopColor="var(--color-accent)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M0,100 L50,46 L100,74 L150,36 L210,70 L250,20 L290,70 L350,38 L400,72 L450,44 L500,74 L500,100 Z"
+                fill="url(#isa-mtn)"
+              />
+              {/* a warm tip on the central peak, echoing a sunlit summit */}
+              <path d="M250,20 L262,42 L238,42 Z" fill="url(#isa-mtn-peak)" />
+            </svg>
+          </div>
+
+          <div className="relative z-10 grid grid-cols-5 items-end">
+            {barNav.slice(0, 2).map((item) => (
+              <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
+            ))}
+
+            {/* Centered orange "+": the universal create action */}
+            <div className="flex justify-center">
+              <button
+                onClick={openCapture}
+                aria-label={t("Add")}
+                data-tour="nav-add"
+                className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] transition active:scale-95"
+                style={{ background: "var(--color-accent)" }}
+              >
+                <Plus size={26} strokeWidth={2.4} />
+              </button>
+            </div>
+
+            {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
+
+            {/* ⌘K palette — every other page + quick search */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
+              aria-label="Menu and search"
+              data-tour="nav-menu"
+              className="flex flex-col items-center gap-1 pb-0.5 text-muted transition-colors hover:text-fg"
+            >
+              <Command size={20} />
+              <span className="max-w-full truncate px-0.5 text-[10px] font-medium leading-none">{t("Menu")}</span>
+            </button>
+          </div>
+        </nav>
+      </div>
     </>
   );
 }
