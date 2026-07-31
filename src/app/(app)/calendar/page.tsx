@@ -1,13 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, Plus, Clock, Trash2, Bell } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Modal } from "@/components/ui/Modal";
+import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
+import { ReminderToggle } from "@/components/ui/ReminderFields";
 import { MOOD_COLORS, MOOD_LABELS } from "@/lib/mood";
 import { formatSom } from "@/lib/money";
+import { todayISO } from "@/lib/datetime";
+import { toast } from "@/lib/toast";
+import { useT } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
+import type { CalendarEvent } from "@/lib/types";
 
 const WD = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -26,6 +34,17 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [day, setDay] = useState<Summary | null>(null);
+
+  const { user } = useAuth();
+  const { t } = useT();
+  const [events, setEvents] = useState<Record<string, CalendarEvent[]>>({});
+  const [addOpen, setAddOpen] = useState(false);
+  const [evTitle, setEvTitle] = useState("");
+  const [evDate, setEvDate] = useState(todayISO());
+  const [evTime, setEvTime] = useState("09:00");
+  const [remDay, setRemDay] = useState(true);
+  const [remHour, setRemHour] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -50,6 +69,46 @@ export default function CalendarPage() {
     setLoading(false);
   }, [year, month, mkey]);
   useEffect(() => { loadMonth(); }, [loadMonth]);
+
+  const loadEvents = useCallback(async () => {
+    const start = iso(new Date(year, month, 1)), end = iso(new Date(year, month + 1, 0));
+    const { data } = await supabase
+      .from("calendar_events")
+      .select("*")
+      .gte("event_date", start)
+      .lte("event_date", end)
+      .order("event_time", { ascending: true, nullsFirst: true });
+    const map: Record<string, CalendarEvent[]> = {};
+    for (const e of (data ?? []) as CalendarEvent[]) (map[e.event_date] ??= []).push(e);
+    setEvents(map);
+  }, [year, month]);
+  useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  const openAdd = (date?: string) => {
+    setEvDate(date ?? selected ?? todayISO());
+    setEvTitle(""); setEvTime("09:00"); setRemDay(true); setRemHour(true);
+    setAddOpen(true);
+  };
+
+  const addEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const title = evTitle.trim();
+    if (!user || !title || saving) return;
+    setSaving(true);
+    const { error } = await supabase.from("calendar_events").insert({
+      user_id: user.id, title, event_date: evDate, event_time: evTime || null,
+      remind_day_before: remDay, remind_hour_before: remHour,
+    });
+    setSaving(false);
+    if (error) { toast(t("Couldn't save the event."), "error"); return; }
+    setAddOpen(false);
+    await loadEvents();
+  };
+
+  const removeEvent = async (id: string) => {
+    await supabase.from("calendar_events").delete().eq("id", id);
+    await loadEvents();
+  };
 
   const loadYear = useCallback(async () => {
     const { data } = await supabase.from("mood_logs").select("date,mood_score").gte("date", `${year}-01-01`).lte("date", `${year}-12-31`);
@@ -82,9 +141,14 @@ export default function CalendarPage() {
             <button onClick={() => setView(view === "month" ? "year" : "month")} className="rounded-full bg-white/5 px-3 py-1 text-xs text-muted transition hover:text-fg">{view === "month" ? year : "Month"}</button>
             <h3 className="text-lg font-semibold">{view === "month" ? cursor.toLocaleDateString([], { month: "long", year: "numeric" }) : year}</h3>
           </div>
-          <div className="flex gap-1">
-            <button onClick={() => view === "month" ? setCursor(new Date(year, month - 1, 1)) : setCursor(new Date(year - 1, month, 1))} className="rounded-lg p-2 text-muted transition hover:text-fg"><ChevronLeft size={18} /></button>
-            <button onClick={() => view === "month" ? setCursor(new Date(year, month + 1, 1)) : setCursor(new Date(year + 1, month, 1))} className="rounded-lg p-2 text-muted transition hover:text-fg"><ChevronRight size={18} /></button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => openAdd()} aria-label={t("Add event")} className="flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-2 text-xs font-medium text-fg transition hover:bg-white/10">
+              <Plus size={15} /> {t("Event")}
+            </button>
+            <div className="flex gap-1">
+              <button onClick={() => view === "month" ? setCursor(new Date(year, month - 1, 1)) : setCursor(new Date(year - 1, month, 1))} className="rounded-lg p-2 text-muted transition hover:text-fg"><ChevronLeft size={18} /></button>
+              <button onClick={() => view === "month" ? setCursor(new Date(year, month + 1, 1)) : setCursor(new Date(year + 1, month, 1))} className="rounded-lg p-2 text-muted transition hover:text-fg"><ChevronRight size={18} /></button>
+            </div>
           </div>
         </div>
 
@@ -104,6 +168,7 @@ export default function CalendarPage() {
                     <div className="absolute bottom-1 flex gap-0.5">
                       {m?.has_journal && <span className="h-1 w-1 rounded-full bg-fg/60" />}
                       {eventDates.has(date) && <span className="h-1 w-1 rounded-full bg-accent" />}
+                      {events[date]?.length ? <span className="h-1 w-1 rounded-full bg-accent" /> : null}
                     </div>
                     {date === todayStr && <span className="absolute inset-0 rounded-xl ring-1 ring-inset ring-fg/40" />}
                   </button>
@@ -149,6 +214,31 @@ export default function CalendarPage() {
         title={selected ? new Date(selected).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }) : ""}>
         {!day ? <div className="h-32 animate-pulse rounded-xl bg-white/5" /> : (
           <div className="space-y-4">
+            {/* Planned events for this day + quick add */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="flex items-center gap-1 text-xs text-muted"><Clock size={11} /> {t("Events")}</p>
+                <button onClick={() => selected && openAdd(selected)} className="inline-flex items-center gap-1 text-xs text-accent transition hover:underline">
+                  <Plus size={12} /> {t("Add event")}
+                </button>
+              </div>
+              {(selected && events[selected]?.length) ? (
+                <div className="space-y-1.5">
+                  {events[selected]!.map((e) => (
+                    <div key={e.id} className="group flex items-center gap-2 rounded-xl bg-white/[0.03] px-3 py-2">
+                      {e.event_time && <span className="shrink-0 text-xs tabular-nums text-muted">{e.event_time}</span>}
+                      <span className="min-w-0 flex-1 truncate text-sm text-fg/90">{e.title}</span>
+                      {(e.remind_day_before || e.remind_hour_before) && <Bell size={12} className="shrink-0 text-muted" />}
+                      <button onClick={() => removeEvent(e.id)} aria-label={t("Delete")} className="shrink-0 text-muted opacity-0 transition hover:text-red-400 group-hover:opacity-100">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted">{t("Nothing planned.")}</p>
+              )}
+            </div>
             {typeof day.mood === "number" && (
               <div className="flex items-center gap-2 text-sm"><span className="h-4 w-4 rounded-full" style={{ backgroundColor: MOOD_COLORS[day.mood as number] }} /><span className="text-muted">{MOOD_LABELS[day.mood as number]}</span></div>
             )}
@@ -176,6 +266,41 @@ export default function CalendarPage() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Add / plan an event */}
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title={t("New event")}>
+        <form onSubmit={addEvent} className="space-y-4">
+          <div>
+            <label className={labelClass}>{t("Title")}</label>
+            <input
+              value={evTitle}
+              onChange={(e) => setEvTitle(e.target.value)}
+              placeholder={t("e.g. Meeting with the team")}
+              className={fieldClass}
+              autoFocus
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>{t("Date")}</label>
+              <input type="date" value={evDate} onChange={(e) => setEvDate(e.target.value || evDate)} className={cn(fieldClass, "tabular-nums")} />
+            </div>
+            <div>
+              <label className={labelClass}>{t("Time")}</label>
+              <input type="time" value={evTime} onChange={(e) => setEvTime(e.target.value)} className={cn(fieldClass, "tabular-nums")} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className={labelClass}>{t("Remind me")}</label>
+            <ReminderToggle on={remDay} onToggle={() => setRemDay((v) => !v)} label={t("1 day before")} />
+            <ReminderToggle on={remHour} onToggle={() => setRemHour((v) => !v)} label={t("1 hour before")} />
+            <p className="text-xs text-muted">{t("Reminders arrive as push notifications.")}</p>
+          </div>
+          <PressButton type="submit" disabled={saving} className={primaryBtnClass}>
+            {saving ? t("Saving…") : t("Save event")}
+          </PressButton>
+        </form>
       </Modal>
     </div>
   );

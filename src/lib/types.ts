@@ -134,6 +134,21 @@ export type SleepLog = {
   updated_at?: string;
 };
 
+export type CalendarEvent = {
+  id: string;
+  user_id: string;
+  title: string;
+  event_date: string; // YYYY-MM-DD (local)
+  event_time: string | null; // "HH:MM" local, or null for all-day
+  notes: string | null;
+  remind_day_before: boolean;
+  remind_hour_before: boolean;
+  notified_day_before: boolean;
+  notified_hour_before: boolean;
+  created_at: string;
+  updated_at?: string;
+};
+
 export type EnergyScore = {
   user_id: string;
   date: string;

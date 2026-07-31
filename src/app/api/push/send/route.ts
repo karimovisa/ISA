@@ -268,11 +268,85 @@ async function sendPrayerReminders(
   return sent;
 }
 
+/**
+ * Calendar-event reminders. Two nudges per event: one DAY before and one HOUR
+ * before the event's local time. Times are stored as local wall-clock ("HH:MM"
+ * + date), so we compare in "wall-clock-as-UTC" instant space: parsing
+ * `${date}T${time}:00Z` yields the stored wall time, and now+offset yields the
+ * user's local wall time. Each nudge fires once (within a 15-min catch window),
+ * deduped by the `notified_*` flags.
+ */
+async function sendEventReminders(admin: SupabaseClient): Promise<number> {
+  const WINDOW_MS = 15 * 60_000;
+  const nowLocalMs = Date.now() + TZ_OFFSET_MIN * 60_000;
+  const todayLocal = new Date(nowLocalMs).toISOString().slice(0, 10);
+
+  const { data: events } = await admin
+    .from("calendar_events")
+    .select("*")
+    .not("event_time", "is", null)
+    .gte("event_date", todayLocal)
+    .or("notified_day_before.eq.false,notified_hour_before.eq.false");
+  if (!events || events.length === 0) return 0;
+
+  let sent = 0;
+  for (const ev of events) {
+    const uid = ev.user_id as string;
+    const time = ev.event_time as string;
+    const eventMs = Date.parse(`${ev.event_date}T${time}:00Z`);
+    if (Number.isNaN(eventMs)) continue;
+
+    const dueDay =
+      ev.remind_day_before && !ev.notified_day_before &&
+      nowLocalMs - (eventMs - 86_400_000) >= 0 &&
+      nowLocalMs - (eventMs - 86_400_000) < WINDOW_MS;
+    const dueHour =
+      ev.remind_hour_before && !ev.notified_hour_before &&
+      nowLocalMs - (eventMs - 3_600_000) >= 0 &&
+      nowLocalMs - (eventMs - 3_600_000) < WINDOW_MS;
+    if (!dueDay && !dueHour) continue;
+
+    const { data: ns } = await admin
+      .from("notification_settings")
+      .select("push_enabled")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (!ns?.push_enabled) continue;
+
+    const name = await firstName(admin, uid);
+    const title = ev.title as string;
+    const body = dueDay
+      ? `${name}, ertaga soat ${time}: ${title}.`
+      : `${name}, 1 soatdan so'ng (${time}): ${title}.`;
+
+    const { data: subs } = await admin
+      .from("push_subscriptions")
+      .select("*")
+      .eq("user_id", uid);
+    for (const s of subs ?? []) {
+      const ok = await sendToSub(admin, s, { title: "ISA", body, url: "/calendar" });
+      if (ok) sent++;
+    }
+
+    // Mark the fired offset(s) so it never repeats. If both windows coincide,
+    // this single tick clears both.
+    await admin
+      .from("calendar_events")
+      .update({
+        ...(dueDay ? { notified_day_before: true } : {}),
+        ...(dueHour ? { notified_hour_before: true } : {}),
+      })
+      .eq("id", ev.id);
+  }
+  return sent;
+}
+
 async function handleCustom(admin: SupabaseClient) {
   const now = localNow();
   let sentAlarms = 0;
   const prayerSent = await sendPrayerNotifications(admin, now);
   const prayerReminders = await sendPrayerReminders(admin, now);
+  const eventReminders = await sendEventReminders(admin);
 
   // Focus alarms: timer finished while the app was closed → one push, then
   // the row is deleted (the app logs the session when reopened).
@@ -410,6 +484,7 @@ async function handleCustom(admin: SupabaseClient) {
     alarms: sentAlarms,
     prayers: prayerSent,
     prayerReminders,
+    eventReminders,
   });
 }
 
