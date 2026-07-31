@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil, Trash2, Wallet, Target } from "lucide-react";
+import { Pencil, Trash2, Wallet, Target, Plus } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { AddButton } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -47,6 +47,9 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
   const [editing, setEditing] = useState<FinanceGoal | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
+  // Direct contribution: add an amount straight to a goal, no full edit.
+  const [contrib, setContrib] = useState<FinanceGoal | null>(null);
+  const [amt, setAmt] = useState("");
 
   const active = data.filter((g) => g.is_active);
 
@@ -101,6 +104,24 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
       }
     } else await add(payload);
     setOpen(false);
+  };
+
+  const addMoney = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contrib) return;
+    const a = Number(amt) || 0;
+    if (a <= 0) return;
+    const newAmount = contrib.current_amount + a;
+    await update(contrib.id, { current_amount: newAmount });
+    const reached = newAmount >= contrib.target_amount;
+    void captureLifeEvent({
+      type: "SavingGoalProgress",
+      payload: { name: contrib.name, added: a, reached },
+      links: { financeGoalIds: [contrib.id] },
+      context: { linkedToActiveGoal: true, outcome: reached ? "achievement" : "progress" },
+    });
+    setContrib(null);
+    setAmt("");
   };
 
   return (
@@ -170,6 +191,14 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
                     <span className="text-muted">{t("Remaining")} <span className="tabular-nums text-fg/85">{formatSom(remaining)}</span></span>
                     <span className={finish.good ? "font-medium" : "text-muted"} style={finish.good ? { color: GREEN } : undefined}>{finish.text}</span>
                   </div>
+                  {!done && (
+                    <button
+                      onClick={() => { setContrib(g); setAmt(""); }}
+                      className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-white/[0.03] py-2 text-sm font-medium text-fg transition hover:bg-white/[0.06] active:scale-[0.99]"
+                    >
+                      <Plus size={15} /> {t("Add money")}
+                    </button>
+                  )}
                   <div className="mt-2 flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100">
                     <button onClick={() => openEdit(g)} className="rounded-lg p-1.5 text-muted transition hover:text-fg"><Pencil size={14} /></button>
                     <button
@@ -245,6 +274,37 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
             {editing ? t("Save changes") : t("Create goal")}
           </PressButton>
         </form>
+      </Modal>
+
+      {/* Direct contribution — add an amount straight to a goal */}
+      <Modal
+        open={!!contrib}
+        onClose={() => setContrib(null)}
+        title={contrib ? t("Add to {name}", { name: contrib.name }) : ""}
+      >
+        {contrib && (
+          <form onSubmit={addMoney} className="space-y-4">
+            <p className="text-sm tabular-nums text-muted">
+              {formatSom(contrib.current_amount)} / {formatSom(contrib.target_amount)}
+            </p>
+            <div>
+              <label className={labelClass}>{t("Amount")}</label>
+              <input
+                required
+                autoFocus
+                type="number"
+                min={1}
+                value={amt}
+                onChange={(e) => setAmt(e.target.value)}
+                placeholder="100000"
+                className={fieldClass}
+              />
+            </div>
+            <PressButton type="submit" className={primaryBtnClass}>
+              {t("Add money")}
+            </PressButton>
+          </form>
+        )}
       </Modal>
 
       <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />

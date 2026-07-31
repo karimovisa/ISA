@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PressButton } from "@/components/ui/PressButton";
-import { enablePush, sendTestPush, pushSupported } from "@/lib/push";
+import { enablePush, disablePush, sendTestPush, pushSupported } from "@/lib/push";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
 import { useNavOrder, MOBILE_SLOTS } from "@/components/NavOrderProvider";
 import { NAV } from "@/components/layout/Sidebar";
@@ -85,6 +85,15 @@ export default function SettingsPage() {
     await sendTestPush();
     setBusy(false);
     setNote("Test notification sent — check your device.");
+  };
+
+  const disable = async () => {
+    setBusy(true);
+    setNote(null);
+    await disablePush();
+    setBusy(false);
+    setEnabled(false);
+    setNote(tr("Notifications turned off."));
   };
 
   const clearCache = () =>
@@ -242,6 +251,13 @@ export default function SettingsPage() {
                     className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
                   >
                     {tr("Send test")}
+                  </PressButton>
+                  <PressButton
+                    onClick={disable}
+                    disabled={busy}
+                    className="flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-medium text-muted transition hover:bg-white/10 hover:text-fg disabled:opacity-50"
+                  >
+                    <BellOff size={15} /> {tr("Turn off")}
                   </PressButton>
                 </>
               )}

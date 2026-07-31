@@ -102,9 +102,19 @@ export default function HabitsPage() {
   // completed sink to the bottom
   const sorted = [...dueToday].sort((a, b) => Number(doneToday(a.id)) - Number(doneToday(b.id)));
 
+  // Completing asks first — the tick is easy to hit by accident, and an
+  // unwanted completion silently inflates streaks.
+  const askComplete = (h: Habit) => {
+    if (doneToday(h.id)) return;
+    setConfirmReq({
+      title: t("Mark \"{name}\" as done?", { name: h.name }),
+      confirmLabel: t("Mark done"),
+      onConfirm: () => void complete(h),
+    });
+  };
+
   const complete = async (h: Habit) => {
     if (doneToday(h.id)) return;
-    // Completing is the primary action — it must be instant, never a confirm box.
     setLogs((prev) => [...prev.filter((l) => !(l.habit_id === h.id && l.date === days[6])),
       { id: `tmp-${h.id}`, habit_id: h.id, user_id: h.user_id, date: days[6], completed: true, value: h.target_value } as HabitLog]);
     await supabase.from("habit_logs").upsert(
@@ -211,7 +221,7 @@ export default function HabitsPage() {
               return (
                 <motion.div key={h.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   <GlassCard className={`flex items-center gap-4 p-4 ${done ? "opacity-70" : ""}`}>
-                    <button onClick={() => complete(h)} disabled={done} aria-label={done ? "Done today" : "Complete"}
+                    <button onClick={() => askComplete(h)} disabled={done} aria-label={done ? "Done today" : "Complete"}
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition ${
                         done ? "border-fg bg-fg text-[color:var(--color-bg)]" : "border-white/25 text-transparent hover:border-white/50 hover:bg-white/5"}`}>
                       <Check size={20} strokeWidth={3} />

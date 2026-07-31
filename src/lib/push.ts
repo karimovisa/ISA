@@ -54,6 +54,28 @@ export async function enablePush(): Promise<{ ok: boolean; error?: string }> {
   return { ok: true };
 }
 
+/** Turn notifications off: unsubscribe the browser, flip the server flag off, and
+ *  drop stored subscriptions so the cron stops sending. Best-effort throughout. */
+export async function disablePush(): Promise<{ ok: boolean }> {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await sub.unsubscribe();
+  } catch {
+    // no service worker / already gone — nothing to unsubscribe
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await supabase
+      .from("notification_settings")
+      .upsert({ user_id: user.id, push_enabled: false }, { onConflict: "user_id" });
+    await supabase.from("push_subscriptions").delete().eq("user_id", user.id);
+  }
+  return { ok: true };
+}
+
 export async function sendTestPush() {
   const token = await jwt();
   await fetch("/api/push/test", {
