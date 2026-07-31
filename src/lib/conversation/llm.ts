@@ -1,16 +1,19 @@
-// ISA — Conversation Layer · LLM providers (SERVER ONLY — never import client-side)
+// ISA — Conversation Layer · LLM provider (SERVER ONLY — never import client-side)
 // The single, replaceable natural-language step. ISA has already done all the
-// thinking; these functions only turn ISA's findings into prose. Provider is
-// chosen by env so the deployment can swap Claude ↔ GPT ↔ Gemini ↔ a local model
-// without touching ISA's architecture (§19). No SDK dependency — plain HTTP keeps
-// the abstraction genuinely provider-agnostic.
+// thinking; this file only turns ISA's findings into prose. The provider is
+// Google Gemini (gemini-2.5-flash) via the official @google/genai SDK — swapping
+// the model is a config change and never touches ISA's architecture (§19).
 //
-// Keys live only here, on the server. This file must only be imported by the
+// The key lives only here, on the server. This file must only be imported by the
 // /api/ask route handler.
 
+import { GoogleGenAI } from "@google/genai";
 import type { GenerationRequest, ProviderMessage, ProviderName } from "./types";
 
 const MAX_TOKENS = 1024;
+// gemini-2.5-flash is 404 / "no longer available to new users" on new API keys;
+// gemini-3.5-flash is its working successor and the current stable flash tier.
+const DEFAULT_MODEL = "gemini-3.5-flash";
 
 /** Ensure the message list starts with a user turn and alternates cleanly. */
 function sanitize(messages: ProviderMessage[]): ProviderMessage[] {
@@ -19,97 +22,48 @@ function sanitize(messages: ProviderMessage[]): ProviderMessage[] {
   return trimmed.length ? trimmed : [{ role: "user", content: "(no message)" }];
 }
 
-/** Which provider to use: explicit request → env → whichever key is present. */
+/** Which provider is speaking. Now always Gemini when a key is present; the
+ *  request may still ask for "deterministic" to force ISA's own voice. Returns
+ *  null when no key is configured (the client then uses ISA's deterministic voice). */
 export function resolveProvider(requested?: ProviderName): ProviderName | null {
-  const pick = requested ?? (process.env.LLM_PROVIDER as ProviderName | undefined);
-  if (pick && pick !== "deterministic") return pick;
-  if (process.env.ANTHROPIC_API_KEY) return "claude";
-  if (process.env.OPENAI_API_KEY) return "openai";
-  if (process.env.GEMINI_API_KEY) return "gemini";
-  return null;
+  if (requested === "deterministic") return null;
+  return process.env.GEMINI_API_KEY ? "gemini" : null;
 }
 
-async function callClaude(req: GenerationRequest): Promise<string> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return "";
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
-      max_tokens: MAX_TOKENS,
-      system: req.system,
-      messages: sanitize(req.messages),
-    }),
-  });
-  if (!res.ok) throw new Error(`claude ${res.status}`);
-  const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-  return (data.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim();
-}
-
-async function callOpenAICompatible(req: GenerationRequest): Promise<string> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return "";
-  const base = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
-  const res = await fetch(`${base}/chat/completions`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-      max_tokens: MAX_TOKENS,
-      messages: [{ role: "system", content: req.system }, ...sanitize(req.messages)],
-    }),
-  });
-  if (!res.ok) throw new Error(`openai ${res.status}`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return (data.choices?.[0]?.message?.content ?? "").trim();
-}
-
-async function callGemini(req: GenerationRequest): Promise<string> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return "";
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: req.system }] },
-        contents: sanitize(req.messages).map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        })),
-        generationConfig: { maxOutputTokens: MAX_TOKENS },
-      }),
-    }
-  );
-  if (!res.ok) throw new Error(`gemini ${res.status}`);
-  const data = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-  };
-  return (data.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("").trim();
+/** Reusable Gemini client — built once per server instance. */
+let client: GoogleGenAI | null = null;
+function gemini(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  if (!client) client = new GoogleGenAI({ apiKey });
+  return client;
 }
 
 /**
- * Generate the natural-language phrasing of ISA's findings. Returns "" when no
- * provider is configured (the client then uses ISA's deterministic voice).
+ * Generate the natural-language phrasing of ISA's findings with Gemini. Returns
+ * "" when no provider is configured (the client then uses ISA's deterministic
+ * voice). The request carries ONLY ISA's computed facts — never a raw data query.
  */
 export async function generate(req: GenerationRequest): Promise<string> {
-  const provider = resolveProvider(req.provider);
-  if (!provider) return "";
-  switch (provider) {
-    case "claude":
-      return callClaude(req);
-    case "openai":
-      return callOpenAICompatible(req);
-    case "gemini":
-      return callGemini(req);
-    default:
-      return "";
-  }
+  if (resolveProvider(req.provider) !== "gemini") return "";
+  const ai = gemini();
+  if (!ai) return "";
+
+  const response = await ai.models.generateContent({
+    model: process.env.GEMINI_MODEL ?? DEFAULT_MODEL,
+    contents: sanitize(req.messages).map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    })),
+    config: {
+      systemInstruction: req.system,
+      maxOutputTokens: MAX_TOKENS,
+      // ISA only needs Gemini to phrase already-computed facts, so disable the
+      // model's own reasoning budget — it keeps the whole token allowance for the
+      // answer and matches the fast, deterministic-shaped responses ISA expects.
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  });
+
+  return (response.text ?? "").trim();
 }
