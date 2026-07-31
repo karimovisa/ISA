@@ -259,7 +259,7 @@ export default function DashboardPage() {
           <QuickAction Icon={Plus} label={t("Add")} onClick={openCapture} />
           <QuickAction Icon={MessageSquare} label={t("Ask ISA")} href="/ask" />
           <QuickAction Icon={Target} label={t("Goal")} href="/goals?new=1" />
-          <QuickAction Icon={PenLine} label={t("Note")} href="/ideas?new=1" />
+          <QuickAction Icon={PenLine} label={t("Note")} href="/journal?tab=ideas" />
           <QuickAction Icon={CalendarDays} label={t("Calendar")} href="/calendar" />
           <QuickAction Icon={Search} label={t("Search")} onClick={openSearch} />
         </div>

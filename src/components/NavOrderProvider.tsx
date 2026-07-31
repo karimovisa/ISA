@@ -21,8 +21,6 @@ export const DEFAULT_NAV_ORDER = [
   "/progress",
   "/knows",
   "/money",
-  "/projects",
-  "/ideas",
   "/calendar",
   "/pray",
 ];

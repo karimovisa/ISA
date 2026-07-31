@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Target,
-  FolderKanban,
-  Lightbulb,
   BarChart3,
   BookOpen,
   Timer,
@@ -35,8 +33,6 @@ export const NAV = [
   { href: "/knows", label: "What ISA knows", icon: Brain },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/money", label: "Money", icon: Wallet },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/ideas", label: "Ideas", icon: Lightbulb },
   { href: "/progress", label: "Progress", icon: BarChart3 },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/focus", label: "Focus", icon: Timer },

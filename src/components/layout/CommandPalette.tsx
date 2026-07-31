@@ -25,14 +25,13 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
     { id: "nav-dash", label: "Dashboard", href: "/", icon: LayoutDashboard, keywords: "home" },
     { id: "nav-goals", label: "Goals", href: "/goals", icon: Target },
     { id: "nav-habits", label: "Tasks & Habits", href: "/habits", icon: Repeat, keywords: "todo task streak" },
-    { id: "nav-projects", label: "Projects", href: "/projects", icon: FolderKanban },
   ]},
   { title: "Personal", items: [
     { id: "nav-journal", label: "Journal", href: "/journal", icon: BookOpen, keywords: "diary" },
     { id: "nav-focus", label: "Focus", href: "/focus", icon: Timer, keywords: "deep work timer" },
     { id: "nav-calendar", label: "Calendar", href: "/calendar", icon: CalendarDays },
     { id: "nav-pray", label: "Prayer", href: "/pray", icon: MosqueIcon, keywords: "namoz salah" },
-    { id: "nav-ideas", label: "Ideas", href: "/ideas", icon: Lightbulb, keywords: "notes" },
+    { id: "nav-ideas", label: "Ideas", href: "/journal?tab=ideas", icon: Lightbulb, keywords: "notes journal" },
   ]},
   { title: "Finance", items: [
     { id: "nav-money", label: "Money", href: "/money", icon: Wallet, keywords: "budget expense income" },
@@ -135,7 +134,7 @@ export function CommandPalette() {
     push(bundle.todos, (x: Todo) => x.title, "Task", "/habits", ListTodo);
     push(bundle.projects, (x: Project) => x.title, "Project", "/projects", FolderKanban);
     push(bundle.habits, (x: Habit) => x.name, "Habit", "/habits", Repeat);
-    push(bundle.ideas, (x: Idea) => x.content, "Idea", "/ideas", Lightbulb);
+    push(bundle.ideas, (x: Idea) => x.content, "Idea", "/journal?tab=ideas", Lightbulb);
     push(bundle.journal, (x: JournalEntry) => `${x.entry_date} ${x.did_today ?? ""} ${x.learned ?? ""}`.trim(), "Journal", "/journal", BookOpen);
     push(bundle.txns, (x: Transaction) => `${x.note ?? x.category} ${x.amount}`, "Money", "/money", Wallet);
     push(bundle.focus, (x: FocusSession) => `${x.label} ${x.note ?? ""}`.trim(), "Focus", "/focus", Timer);

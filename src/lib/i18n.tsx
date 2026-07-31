@@ -538,6 +538,15 @@ const UZ: Record<string, string> = {
   "This removes the project and its steps. It can't be undone.":
     "Bu loyiha va uning qadamlarini o'chiradi. Qaytarib bo'lmaydi.",
   "Delete this idea?": "Bu g'oya o'chirilsinmi?",
+  // ── Ideas (merged into Journal) ──
+  "Capture an idea": "G'oya qo'shish",
+  "Search ideas…": "G'oyalarni qidirish…",
+  "No ideas yet": "Hali g'oya yo'q",
+  "No matching ideas": "Mos g'oya topilmadi",
+  "Tag (optional)": "Teg (ixtiyoriy)",
+  "Drop the next thought before it slips away.": "Fikringiz o'chib ketmasdan yozib qo'ying.",
+  "Catch a spark — it lives here, out of the way of your journal.": "Uchqunni ilib qoling — u shu yerda, kundalikdan alohida turadi.",
+  Favorites: "Sevimlilar",
 
   // ── Daily check-in ──
   "How did today go?": "Bugun qanday o'tdi?",
@@ -1109,6 +1118,15 @@ const RU: Record<string, string> = {
   "This removes the project and its steps. It can't be undone.":
     "Это удалит проект и его шаги. Отменить будет нельзя.",
   "Delete this idea?": "Удалить эту идею?",
+  // ── Ideas (merged into Journal) ──
+  "Capture an idea": "Добавить идею",
+  "Search ideas…": "Поиск идей…",
+  "No ideas yet": "Пока нет идей",
+  "No matching ideas": "Ничего не найдено",
+  "Tag (optional)": "Тег (необязательно)",
+  "Drop the next thought before it slips away.": "Запишите мысль, пока она не ускользнула.",
+  "Catch a spark — it lives here, out of the way of your journal.": "Ловите искру — она живёт здесь, отдельно от дневника.",
+  Favorites: "Избранное",
 
   // ── Daily check-in ──
   "How did today go?": "Как прошёл день?",

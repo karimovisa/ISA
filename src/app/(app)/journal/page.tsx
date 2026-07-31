@@ -20,6 +20,7 @@ import { toast } from "@/lib/toast";
 import { useT } from "@/lib/i18n";
 import { MOOD_LABELS } from "@/lib/mood";
 import { captureLifeEvent } from "@/lib/life-events";
+import { IdeasPanel } from "@/components/sections/IdeasPanel";
 import type { JournalEntry, MoodLog } from "@/lib/types";
 
 const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
@@ -27,7 +28,7 @@ const wordsOf = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 const entryWords = (e: JournalEntry) => wordsOf(`${e.did_today ?? ""} ${e.learned ?? ""} ${e.tomorrow ?? ""}`);
 
 const MOOD_FACES = [Angry, Frown, Meh, Smile, Laugh];
-const TABS = ["Today", "Archive", "Insights", "Statistics"] as const;
+const TABS = ["Today", "Archive", "Ideas", "Insights", "Statistics"] as const;
 type Tab = (typeof TABS)[number];
 
 const CHIPS: { label: string; prompt: string }[] = [
@@ -67,6 +68,14 @@ export default function JournalPage() {
   const { canUse } = useEntitlements();
 
   const [tab, setTab] = useState<Tab>("Today");
+  // Deep-link support: /journal?tab=ideas opens the Ideas tab (merged from the
+  // old Ideas page). Read once on mount from the URL, no router dep needed.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("tab");
+    if (!p) return;
+    const match = TABS.find((tb) => tb.toLowerCase() === p.toLowerCase());
+    if (match) setTab(match);
+  }, []);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [moods, setMoods] = useState<Record<string, number>>({});
   const [draft, setDraft] = useState({ did_today: "", learned: "", tomorrow: "" });
@@ -319,6 +328,8 @@ export default function JournalPage() {
               </div>
             </div>
           )}
+
+          {tab === "Ideas" && <IdeasPanel />}
 
           {tab === "Insights" && (
             <div className={`${CARD} p-6 sm:p-8`}>
