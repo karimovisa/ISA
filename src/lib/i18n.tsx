@@ -544,7 +544,6 @@ const UZ: Record<string, string> = {
   "No ideas yet": "Hali g'oya yo'q",
   "No matching ideas": "Mos g'oya topilmadi",
   "Tag (optional)": "Teg (ixtiyoriy)",
-  "Drop the next thought before it slips away.": "Fikringiz o'chib ketmasdan yozib qo'ying.",
   "Catch a spark — it lives here, out of the way of your journal.": "Uchqunni ilib qoling — u shu yerda, kundalikdan alohida turadi.",
   Favorites: "Sevimlilar",
 
