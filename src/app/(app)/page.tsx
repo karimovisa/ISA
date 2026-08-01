@@ -211,7 +211,7 @@ export default function DashboardPage() {
           </span>
           <span className="h-3.5 w-px bg-[var(--color-line)]" />
           <span className="inline-flex items-center gap-1.5 text-fg/85">
-            <Zap size={15} className="text-accent" /> {t("Energy")} {energy ?? "—"}
+            <Zap size={15} className="text-fg/55" /> {t("Energy")} {energy ?? "—"}
           </span>
         </div>
 
@@ -255,7 +255,9 @@ export default function DashboardPage() {
       {/* 4 — QUICK ACTIONS — compact one-hand tiles */}
       <motion.section {...rise(0.1)} className="mt-7">
         <SectionLabel>{t("Quick actions")}</SectionLabel>
-        <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <div
+          className="mt-2.5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <QuickAction Icon={Plus} label={t("Add")} onClick={openCapture} />
           <QuickAction Icon={MessageSquare} label={t("Ask ISA")} href="/ask" />
           <QuickAction Icon={Target} label={t("Goal")} href="/goals?new=1" />
@@ -413,7 +415,7 @@ function QuickAction({
     </>
   );
   const cls =
-    "flex h-[84px] flex-col items-center justify-center gap-2 rounded-[20px] border border-line bg-[var(--color-card)] transition hover:-translate-y-0.5 hover:border-white/10 active:scale-[0.98]";
+    "flex h-[80px] w-[84px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[18px] border border-line bg-[var(--color-card)] transition hover:-translate-y-0.5 hover:border-white/10 active:scale-[0.98]";
   return href ? (
     <Link href={href} className={cls}>{inner}</Link>
   ) : (

@@ -122,10 +122,10 @@ export function SleepCard() {
       : null;
 
   return (
-    <GlassCard className="p-5 sm:p-6">
-      <div className="flex items-start gap-4">
-        <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.05]">
-          <Moon size={20} className="text-fg/80" />
+    <GlassCard className="p-4 sm:p-5">
+      <div className="flex items-start gap-3.5">
+        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/[0.05]">
+          <Moon size={18} className="text-fg/80" />
         </span>
 
         <div className="min-w-0 flex-1">
@@ -135,7 +135,7 @@ export function SleepCard() {
 
           {dur ? (
             <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-              <span className="text-[28px] font-bold leading-none tabular-nums text-fg">
+              <span className="text-[24px] font-bold leading-none tabular-nums text-fg">
                 {dur.h}
                 <span className="text-base font-medium text-muted">h </span>
                 {dur.m}
@@ -168,8 +168,6 @@ export function SleepCard() {
               </button>
             </div>
           ) : null}
-
-          <div className="mt-1 text-[11px] text-muted/70">{t("Today's sleep")}</div>
         </div>
 
         {/* logged → quiet edit; not logged with a panel already open → nothing here */}

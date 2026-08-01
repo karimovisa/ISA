@@ -113,9 +113,9 @@ export function TodayPlan() {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-2 gap-3">
       {/* ── TODAY'S TIMELINE ── */}
-      <div className="rounded-[28px] border border-line bg-[var(--color-card)] p-5 sm:p-6">
+      <div className="min-w-0 rounded-[22px] border border-line bg-[var(--color-card)] p-3.5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-muted">{t("Today's Timeline")}</h3>
           <button
@@ -149,45 +149,31 @@ export function TodayPlan() {
         </AnimatePresence>
 
         {sorted.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">{t("No events yet — add your day's plan.")}</p>
+          <p className="py-6 text-center text-xs text-muted">{t("No events yet — add your day's plan.")}</p>
         ) : (
           <div className="relative">
             <span className="absolute bottom-4 left-[9px] top-4 w-px bg-[var(--color-line)]" />
             {sorted.map((e) => {
               const isNow = !e.done && e.id === nowEventId;
               return (
-                <div key={e.id} className="relative flex gap-3.5 py-1">
+                <div key={e.id} className="relative flex gap-2.5 py-0.5">
                   <button
                     onClick={() => toggleEvent(e)}
                     aria-label={e.title}
-                    className="relative z-10 mt-3 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border transition"
+                    className="relative z-10 mt-2.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition"
                     style={
                       e.done
                         ? { background: GREEN, borderColor: GREEN }
                         : isNow
-                          ? { background: "var(--color-accent)", borderColor: "var(--color-accent)" }
+                          ? { background: "var(--color-fg)", borderColor: "var(--color-fg)" }
                           : { background: "var(--color-card)", borderColor: "var(--color-line)" }
                     }
                   >
-                    {e.done && <Check size={11} strokeWidth={3} style={{ color: "var(--color-bg)" }} />}
+                    {e.done && <Check size={10} strokeWidth={3} style={{ color: "var(--color-bg)" }} />}
                   </button>
-                  <div className={`flex flex-1 items-center justify-between gap-3 rounded-2xl px-3 py-2 ${isNow ? "bg-white/[0.05]" : ""}`}>
-                    <div className="min-w-0">
-                      <div className="text-xs tabular-nums text-muted">{e.event_time}</div>
-                      <div className={`text-[15px] ${e.done ? "text-muted line-through" : "text-fg"}`}>{e.title}</div>
-                    </div>
-                    {e.done ? (
-                      <span className="shrink-0 text-xs font-medium" style={{ color: GREEN }}>
-                        {t("Completed")}
-                      </span>
-                    ) : isNow ? (
-                      <span
-                        className="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                        style={{ background: "color-mix(in srgb, var(--color-accent) 20%, transparent)", color: "var(--color-accent)" }}
-                      >
-                        {t("Now")}
-                      </span>
-                    ) : null}
+                  <div className={`min-w-0 flex-1 rounded-xl px-2 py-1.5 ${isNow ? "bg-white/[0.05]" : ""}`}>
+                    <div className="text-[11px] tabular-nums text-muted">{e.event_time}</div>
+                    <div className={`truncate text-[13px] ${e.done ? "text-muted line-through" : "text-fg"}`}>{e.title}</div>
                   </div>
                 </div>
               );
@@ -197,25 +183,25 @@ export function TodayPlan() {
       </div>
 
       {/* ── TODAY'S HABITS ── */}
-      <div className="rounded-[28px] border border-line bg-[var(--color-card)] p-5 sm:p-6">
+      <div className="min-w-0 rounded-[22px] border border-line bg-[var(--color-card)] p-3.5">
         <h3 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-muted">{t("Today's Habits")}</h3>
         {activeHabits.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">{t("No habits yet")}</p>
+          <p className="py-6 text-center text-xs text-muted">{t("No habits yet")}</p>
         ) : (
           <div className="space-y-0.5">
             {activeHabits.map((h) => {
               const Icon = habitIcon(h);
               const done = doneHabits.has(h.id);
               return (
-                <button key={h.id} onClick={() => toggleHabit(h)} className="flex w-full items-center gap-3.5 py-2.5 text-left">
-                  <Icon size={19} className="shrink-0 text-fg/70" />
-                  <span className={`flex-1 text-[15px] ${done ? "text-muted line-through" : "text-fg/90"}`}>{h.name}</span>
+                <button key={h.id} onClick={() => toggleHabit(h)} className="flex w-full items-center gap-2 py-2 text-left">
+                  <Icon size={16} className="shrink-0 text-fg/70" />
+                  <span className={`min-w-0 flex-1 truncate text-[13px] ${done ? "text-muted line-through" : "text-fg/90"}`}>{h.name}</span>
                   <motion.span
                     whileTap={{ scale: 0.85 }}
-                    className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border transition-colors"
+                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border transition-colors"
                     style={done ? { borderColor: GREEN } : { borderColor: "var(--color-line)" }}
                   >
-                    {done && <Check size={14} strokeWidth={3} style={{ color: GREEN }} />}
+                    {done && <Check size={12} strokeWidth={3} style={{ color: GREEN }} />}
                   </motion.span>
                 </button>
               );
