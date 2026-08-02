@@ -337,6 +337,7 @@ const UZ: Record<string, string> = {
 
   // ── Ask ISA ──
   "Ask ISA": "ISA'dan so'rang",
+  Ask: "So'rang",
   "Ask your life a question — or add something in a sentence.":
     "Hayotingiz haqida so'rang — yoki bir jumlada qo'shing.",
   "ISA already knows you": "ISA sizni allaqachon biladi",

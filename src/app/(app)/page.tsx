@@ -259,7 +259,7 @@ export default function DashboardPage() {
           className="mt-2.5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <QuickAction Icon={Plus} label={t("Add")} onClick={openCapture} />
-          <QuickAction Icon={MessageSquare} label={t("Ask ISA")} href="/ask" />
+          <QuickAction Icon={MessageSquare} label={t("Ask")} href="/ask" />
           <QuickAction Icon={Target} label={t("Goal")} href="/goals?new=1" />
           <QuickAction Icon={PenLine} label={t("Note")} href="/journal?tab=ideas" />
           <QuickAction Icon={CalendarDays} label={t("Calendar")} href="/calendar" />
@@ -411,7 +411,7 @@ function QuickAction({
       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05]">
         <Icon size={18} className="text-fg/85" />
       </span>
-      <span className="text-[13px] font-medium">{label}</span>
+      <span className="line-clamp-2 px-1 text-center text-[12px] font-medium leading-tight">{label}</span>
     </>
   );
   const cls =

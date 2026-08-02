@@ -5,12 +5,14 @@
 // glyph per habit and a tap-to-check ring. Timed events are a real, lightweight
 // feature (timed_events table) — the user builds their own day, no fake data.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, Plus, X, Droplet, BookOpen, Dumbbell, Leaf, Moon, Repeat } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Check, Plus, Clock, Droplet, BookOpen, Dumbbell, Leaf, Moon, Repeat } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
+import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
+import { PressButton } from "@/components/ui/PressButton";
 import { useT } from "@/lib/i18n";
 import { todayISO } from "@/lib/datetime";
 import { captureLifeEvent } from "@/lib/life-events";
@@ -51,6 +53,7 @@ export function TodayPlan() {
   const [addOpen, setAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newTime, setNewTime] = useState("09:00");
+  const timeRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const [{ data: ev }, { data: hl }] = await Promise.all([
@@ -113,40 +116,20 @@ export function TodayPlan() {
   };
 
   return (
+    <>
     <div className="grid grid-cols-2 gap-3">
       {/* ── TODAY'S TIMELINE ── */}
       <div className="min-w-0 rounded-[22px] border border-line bg-[var(--color-card)] p-3.5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-muted">{t("Today's Timeline")}</h3>
           <button
-            onClick={() => setAddOpen((v) => !v)}
+            onClick={() => setAddOpen(true)}
             aria-label={t("Add event")}
             className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-muted transition hover:text-fg"
           >
-            {addOpen ? <X size={14} /> : <Plus size={15} />}
+            <Plus size={15} />
           </button>
         </div>
-
-        <AnimatePresence initial={false}>
-          {addOpen && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-3 overflow-hidden">
-              <div className="flex items-center gap-2 rounded-2xl border border-line bg-white/[0.02] p-2">
-                <input
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder={t("Event name")}
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Enter" && addEvent()}
-                  className="min-w-0 flex-1 bg-transparent px-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none"
-                />
-                <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="rounded-lg bg-white/[0.05] px-2 py-1.5 text-xs text-fg" />
-                <button onClick={addEvent} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: GREEN }}>
-                  <Check size={15} style={{ color: "var(--color-bg)" }} />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {sorted.length === 0 ? (
           <p className="py-6 text-center text-xs text-muted">{t("No events yet — add your day's plan.")}</p>
@@ -210,5 +193,45 @@ export function TodayPlan() {
         )}
       </div>
     </div>
+
+    {/* Add event — a roomy modal so the name field never gets squeezed */}
+    <Modal open={addOpen} onClose={() => setAddOpen(false)} title={t("Add event")}>
+      <form onSubmit={(e) => { e.preventDefault(); void addEvent(); }} className="space-y-4">
+        <div>
+          <label className={labelClass}>{t("Event name")}</label>
+          <input
+            autoFocus
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder={t("Event name")}
+            className={fieldClass}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>{t("Time")}</label>
+          <button
+            type="button"
+            onClick={() => { const el = timeRef.current; if (el?.showPicker) el.showPicker(); else el?.focus(); }}
+            className={`${fieldClass} flex items-center gap-2 text-left`}
+          >
+            <Clock size={15} className="text-muted" />
+            <span className="tabular-nums">{newTime}</span>
+          </button>
+          <input
+            ref={timeRef}
+            type="time"
+            value={newTime}
+            onChange={(e) => setNewTime(e.target.value || newTime)}
+            tabIndex={-1}
+            aria-hidden
+            className="sr-only"
+          />
+        </div>
+        <PressButton type="submit" disabled={!newTitle.trim()} className={primaryBtnClass}>
+          {t("Save")}
+        </PressButton>
+      </form>
+    </Modal>
+    </>
   );
 }
