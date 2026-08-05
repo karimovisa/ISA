@@ -341,12 +341,55 @@ async function sendEventReminders(admin: SupabaseClient): Promise<number> {
   return sent;
 }
 
+/**
+ * Daily morning sleep nudge. Fires once, in the 08:00–08:05 local window (the
+ * cron runs every 5 min, so exactly one tick lands here), and only for users who
+ * haven't logged today's sleep yet. Tapping it opens the dashboard Sleep card,
+ * which then stays quiet for the day and reopens tomorrow.
+ */
+async function sendSleepReminders(
+  admin: SupabaseClient,
+  now: ReturnType<typeof localNow>
+): Promise<number> {
+  if (now.minutes < 480 || now.minutes >= 485) return 0; // 08:00–08:05 local
+
+  const { data: settings } = await admin
+    .from("notification_settings")
+    .select("user_id")
+    .eq("push_enabled", true);
+
+  let sent = 0;
+  for (const s of settings ?? []) {
+    const uid = s.user_id as string;
+    const { data: sleep } = await admin
+      .from("sleep_logs")
+      .select("id")
+      .eq("user_id", uid)
+      .eq("date", now.date)
+      .maybeSingle();
+    if (sleep) continue; // already logged today — stay quiet
+
+    const name = await firstName(admin, uid);
+    const { data: subs } = await admin.from("push_subscriptions").select("*").eq("user_id", uid);
+    for (const sub of subs ?? []) {
+      const ok = await sendToSub(admin, sub, {
+        title: "Uyqu",
+        body: `${name}, kecha qancha uxladingiz? Bir teginishda belgilang.`,
+        url: "/",
+      });
+      if (ok) sent++;
+    }
+  }
+  return sent;
+}
+
 async function handleCustom(admin: SupabaseClient) {
   const now = localNow();
   let sentAlarms = 0;
   const prayerSent = await sendPrayerNotifications(admin, now);
   const prayerReminders = await sendPrayerReminders(admin, now);
   const eventReminders = await sendEventReminders(admin);
+  const sleepReminders = await sendSleepReminders(admin, now);
 
   // Focus alarms: timer finished while the app was closed → one push, then
   // the row is deleted (the app logs the session when reopened).
@@ -485,6 +528,7 @@ async function handleCustom(admin: SupabaseClient) {
     prayers: prayerSent,
     prayerReminders,
     eventReminders,
+    sleepReminders,
   });
 }
 
