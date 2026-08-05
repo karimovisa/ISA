@@ -97,6 +97,28 @@ body::before {
   pointer-events: none;
 }
 
+/* Per-theme background photo (phone-format art). Sits behind everything, subtle
+   so cards and text stay legible. Swaps with the active theme. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url("/themes/dark.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.45;
+  pointer-events: none;
+}
+:root[data-theme="boys"] body::after {
+  background-image: url("/themes/dark.png");
+}
+:root[data-theme="girls-day"] body::after,
+:root[data-theme="girls-night"] body::after {
+  background-image: url("/themes/rose.png");
+  opacity: 0.55;
+}
+
 /* Premium glass card.
    backdrop-blur is the single biggest scroll cost on mobile Safari, so it's
    desktop-only; phones get an opaque card fill that looks the same but is fast. */

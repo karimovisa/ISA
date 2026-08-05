@@ -21,7 +21,7 @@ export function LanguageToggle() {
           aria-pressed={lang === l}
           className={cn(
             "rounded-full px-2 py-1 uppercase tracking-wide transition-colors",
-            lang === l ? "bg-accent text-white" : "text-muted hover:text-fg"
+            lang === l ? "bg-[var(--color-fg)] text-[color:var(--color-bg)]" : "text-muted hover:text-fg"
           )}
         >
           {l}

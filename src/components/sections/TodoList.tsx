@@ -126,7 +126,7 @@ export function TodoList() {
         <div className="flex items-center gap-2">
           {todayItems.length + doneToday.length > 0 && <span className="text-xs tabular-nums text-muted">{doneToday.length}/{todayItems.length + doneToday.length}</span>}
           <button onClick={() => setRemOpen(true)} aria-label="To-do reminder"
-            className={cn("rounded-lg p-1.5 transition", reminder?.enabled ? "text-accent" : "text-muted hover:text-fg")}><Bell size={15} /></button>
+            className={cn("rounded-lg p-1.5 transition", reminder?.enabled ? "text-fg" : "text-muted hover:text-fg")}><Bell size={15} /></button>
         </div>
       </div>
 
@@ -161,7 +161,7 @@ export function TodoList() {
           aria-label={t("Schedule")}
           className="shrink-0 rounded-lg p-1.5 text-muted transition hover:text-fg"
         >
-          <CalendarDays size={14} className={date !== today ? "text-accent" : ""} />
+          <CalendarDays size={14} className={date !== today ? "text-fg" : ""} />
         </button>
         <input
           ref={dateRef}
