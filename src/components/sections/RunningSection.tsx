@@ -126,14 +126,16 @@ export function RunningSection() {
   const ins = insightsOf(runs);
   const chart = last7Of(runs);
 
+  // Accept a comma decimal too (uz/ru keyboards show "," not "."), e.g. "8,08".
+  const kmNum = parseFloat(String(km).replace(",", ".")) || 0;
   // Live pace so the user sees the result before saving — no mental math.
   const previewSecs = Number(min || 0) * 60 + Number(sec || 0);
   const previewPace =
-    Number(km) > 0 && previewSecs > 0 ? paceFromDuration(Number(km), previewSecs) : null;
+    kmNum > 0 && previewSecs > 0 ? paceFromDuration(kmNum, previewSecs) : null;
 
   const logManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    const distance = Number(km);
+    const distance = kmNum;
     if (!distance || distance <= 0) return;
     await manual.add({
       log_date: date,
@@ -244,13 +246,11 @@ export function RunningSection() {
           </Field>
           <Field label={t("Distance (km)")}>
             <input
-              type="number"
-              step="any"
-              min="0"
+              type="text"
               inputMode="decimal"
               value={km}
               onChange={(e) => setKm(e.target.value)}
-              placeholder="5.05"
+              placeholder="8.08"
               className={`${fieldClass} h-10 w-24 py-1`}
             />
           </Field>
