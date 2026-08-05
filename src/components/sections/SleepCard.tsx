@@ -142,7 +142,9 @@ export function SleepCard() {
                 <span className="text-base font-medium text-muted">m</span>
               </span>
               {(todayLog ? loggedSrcKey : "estimated") && (
-                <span className="text-xs text-muted">· {t(todayLog ? loggedSrcKey! : "estimated")}</span>
+                <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
+                  {t(todayLog ? loggedSrcKey! : "estimated")}
+                </span>
               )}
             </div>
           ) : (
