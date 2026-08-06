@@ -7,7 +7,6 @@
 // for anyone who prefers reduced motion.
 
 import { motion, useReducedMotion } from "framer-motion";
-import { MountainBg } from "./MountainBg";
 
 export function Atmosphere() {
   const reduce = useReducedMotion();
@@ -36,7 +35,6 @@ export function Atmosphere() {
         animate={drift([0, -34, 18, 0], [0, -22, 6, 0])}
         transition={{ duration: 38, repeat: Infinity, ease: "easeInOut" }}
       />
-      <MountainBg />
     </div>
   );
 }

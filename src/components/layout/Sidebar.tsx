@@ -208,33 +208,6 @@ export function Sidebar() {
           className="glass relative rounded-t-3xl px-2 pt-2.5"
           style={{ paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))" }}
         >
-          {/* subtle mountain-range silhouette, clipped to the bar */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-3xl">
-            <svg
-              aria-hidden
-              viewBox="0 0 500 100"
-              preserveAspectRatio="none"
-              className="absolute inset-x-0 bottom-0 h-14 w-full"
-            >
-              <defs>
-                <linearGradient id="isa-mtn" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="var(--color-fg)" stopOpacity="0.12" />
-                  <stop offset="1" stopColor="var(--color-fg)" stopOpacity="0" />
-                </linearGradient>
-                <linearGradient id="isa-mtn-peak" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="var(--color-fg)" stopOpacity="0.22" />
-                  <stop offset="1" stopColor="var(--color-fg)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M0,100 L50,46 L100,74 L150,36 L210,70 L250,20 L290,70 L350,38 L400,72 L450,44 L500,74 L500,100 Z"
-                fill="url(#isa-mtn)"
-              />
-              {/* a warm tip on the central peak, echoing a sunlit summit */}
-              <path d="M250,20 L262,42 L238,42 Z" fill="url(#isa-mtn-peak)" />
-            </svg>
-          </div>
-
           <div className="relative z-10 grid grid-cols-5 items-end">
             {barNav.slice(0, 2).map((item) => (
               <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />

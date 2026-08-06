@@ -10,7 +10,6 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEntitlements } from "@/components/EntitlementProvider";
 import { ask, userTurn } from "./engine";
 import { buildProposalFor, defaultValues, executeAction, undoAction } from "./actions";
 import { noteConversation } from "./memory";
@@ -47,7 +46,6 @@ const assistantTurn = (text: string): ConversationTurn => ({
 
 export function useAskIsa(): UseAskIsa {
   const router = useRouter();
-  const { canUse } = useEntitlements();
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<ActionProposal | null>(null);
@@ -56,7 +54,9 @@ export function useAskIsa(): UseAskIsa {
   const [error, setError] = useState<string | null>(null);
 
   // LLM phrasing is a Pro nicety; the deterministic answer is always available.
-  const allowLLM = canUse("ai_coach") || canUse("nl_search");
+  // ISA always speaks with the model when a key is configured — the natural
+  // phrasing is core to the product, not a Pro upsell. (Server still auth-gates.)
+  const allowLLM = true;
 
   // The one place a write happens — shared by auto-execute and explicit confirm.
   const runAction = useCallback(async (proposal: ActionProposal, values: ActionValues) => {
