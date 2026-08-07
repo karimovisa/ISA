@@ -13,6 +13,7 @@ import { ProWelcome } from "@/components/ProWelcome";
 import { HelpModal } from "@/components/HelpModal";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Toaster } from "@/components/ui/Toaster";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -70,6 +71,7 @@ export default function RootLayout({
             </NavOrderProvider>
           </ThemeProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
