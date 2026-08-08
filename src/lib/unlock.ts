@@ -9,15 +9,16 @@ export type ModuleKey =
   | "goals" | "habits" | "focus" | "journal" | "ideas"
   | "running" | "prayer" | "money" | "calendar" | "projects" | "progress";
 
-/** Day the module appears on (0 = from the first minute). */
+/** Day the module appears on. Everything is open from the first minute now —
+ *  new users get the full product immediately (no progressive gating). */
 export const UNLOCK_DAY: Record<ModuleKey, number> = {
   goals: 0, habits: 0, focus: 0,
-  journal: 1, ideas: 1,
-  running: 2, prayer: 2,
-  money: 3,
-  calendar: 4,
-  projects: 5,
-  progress: 6,
+  journal: 0, ideas: 0,
+  running: 0, prayer: 0,
+  money: 0,
+  calendar: 0,
+  projects: 0,
+  progress: 0,
 };
 
 /** Why this module is worth opening now — shown on the unlock card. */
