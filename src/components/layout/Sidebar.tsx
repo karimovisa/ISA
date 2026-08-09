@@ -247,7 +247,6 @@ export function Sidebar() {
           <span className="max-w-full truncate px-0.5 text-[11px] font-medium leading-none">{t("Menu")}</span>
         </button>
       </nav>
-      </div>
     </>
   );
 }
