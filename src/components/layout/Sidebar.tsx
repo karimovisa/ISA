@@ -105,11 +105,11 @@ function MobileTab({
       data-tour={`nav-${item.href}`}
       className="flex flex-col items-center gap-1 pb-0.5"
     >
-      <Icon size={20} className={active ? "text-accent" : "text-muted"} />
+      <Icon size={20} className={active ? "text-fg" : "text-muted"} />
       <span
         className={cn(
           "max-w-full truncate px-0.5 text-[10px] font-medium leading-none",
-          active ? "text-accent" : "text-muted"
+          active ? "text-fg" : "text-muted"
         )}
       >
         {t(item.label)}
@@ -117,7 +117,7 @@ function MobileTab({
       <span
         className={cn(
           "mt-0.5 h-0.5 w-5 rounded-full transition-colors",
-          active ? "bg-[var(--color-accent)]" : "bg-transparent"
+          active ? "bg-[var(--color-fg)]" : "bg-transparent"
         )}
       />
     </Link>
@@ -149,7 +149,7 @@ export function Sidebar() {
   ];
   const nav = ordered.filter((n) => visible(n.href));
   // Mobile: three pages flank the centered "+"; everything else lives in ⌘K.
-  const barNav = nav.slice(0, 4);
+  const barNav = nav.slice(0, 3);
   const openCapture = () => window.dispatchEvent(new CustomEvent("isa:open-capture"));
 
   return (
@@ -208,26 +208,24 @@ export function Sidebar() {
           className="glass relative rounded-t-3xl px-2 pt-2.5"
           style={{ paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))" }}
         >
-          <div className="relative z-10 grid grid-cols-6 items-end">
+          <div className="relative z-10 grid grid-cols-5 items-end">
             {barNav.slice(0, 2).map((item) => (
               <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
             ))}
 
-            {/* The amber "+" — the universal create action */}
+            {/* Neutral glass "+" — the universal create action (matches the peaks mockup) */}
             <div className="flex justify-center">
               <button
                 onClick={openCapture}
                 aria-label={t("Add")}
                 data-tour="nav-add"
-                className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-accent)] text-[color:var(--color-bg)] shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] transition active:scale-95"
+                className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] backdrop-blur transition active:scale-95"
               >
-                <Plus size={26} strokeWidth={2.4} />
+                <Plus size={26} strokeWidth={2.2} />
               </button>
             </div>
 
-            {barNav.slice(2, 4).map((item) => (
-              <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
-            ))}
+            {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
 
             {/* ⌘K palette — every other page + quick search */}
             <button
