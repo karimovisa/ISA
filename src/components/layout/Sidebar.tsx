@@ -209,27 +209,30 @@ export function Sidebar() {
         style={{
           // Fine-tune the peaks: how far bases sink behind the pill, peak width
           // vs the pill, and the mountain layer height.
-          "--peaks-drop": "34px",
-          "--peaks-scale": "0.9",
-          "--peaks-h": "150px",
+          "--peaks-drop": "18px",
+          "--peaks-scale": "1",
+          "--peaks-h": "128px",
         } as React.CSSProperties}
       >
-        {/* Mountain peaks rising BEHIND the pill. The photo's black background is
-            dropped by the screen blend; the bases hide behind the (mobile-opaque)
-            pill, so only the peaks show above its top edge. */}
+        {/* Mountain peaks rising BEHIND the pill. The photo is pure black behind
+            the peaks; background-blend-mode: screen against the app's own bg
+            colour knocks that black out (no stacking-context issue, unlike
+            mix-blend on a fixed element). Bases hide behind the opaque pill. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2 overflow-hidden"
-          style={{ width: "calc(min(430px, 100vw) * var(--peaks-scale))", height: "var(--peaks-h)" }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/nav/peaks.jpg"
-            alt=""
-            className="h-full w-full object-cover object-bottom"
-            style={{ mixBlendMode: "screen", transform: "translateY(var(--peaks-drop))" }}
-          />
-        </div>
+          className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2"
+          style={{
+            width: "calc(min(430px, 100vw) * var(--peaks-scale))",
+            height: "var(--peaks-h)",
+            transform: "translateY(var(--peaks-drop))",
+            backgroundColor: "var(--color-bg)",
+            backgroundImage: "url('/nav/peaks.jpg')",
+            backgroundBlendMode: "screen",
+            backgroundSize: "100% auto",
+            backgroundPosition: "center bottom",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
         <nav
           className="glass relative z-10 mx-auto max-w-[430px] rounded-t-3xl px-2 pt-2.5"
           style={{ paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))" }}
