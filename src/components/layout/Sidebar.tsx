@@ -203,9 +203,35 @@ export function Sidebar() {
           Three pages + the ⌘K menu flank the universal create action. The peaks
           are a subtle silhouette (icons stay fully legible); the raised "+"
           pokes above the bar's top edge. Everything else lives in ⌘K. */}
-      <div data-tour="nav-bar" className="fixed inset-x-0 bottom-0 z-40 md:hidden">
+      <div
+        data-tour="nav-bar"
+        className="fixed inset-x-0 bottom-0 z-40 md:hidden"
+        style={{
+          // Fine-tune the peaks: how far bases sink behind the pill, peak width
+          // vs the pill, and the mountain layer height.
+          "--peaks-drop": "34px",
+          "--peaks-scale": "0.9",
+          "--peaks-h": "150px",
+        } as React.CSSProperties}
+      >
+        {/* Mountain peaks rising BEHIND the pill. The photo's black background is
+            dropped by the screen blend; the bases hide behind the (mobile-opaque)
+            pill, so only the peaks show above its top edge. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2 overflow-hidden"
+          style={{ width: "calc(min(430px, 100vw) * var(--peaks-scale))", height: "var(--peaks-h)" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/nav/peaks.jpg"
+            alt=""
+            className="h-full w-full object-cover object-bottom"
+            style={{ mixBlendMode: "screen", transform: "translateY(var(--peaks-drop))" }}
+          />
+        </div>
         <nav
-          className="glass relative rounded-t-3xl px-2 pt-2.5"
+          className="glass relative z-10 mx-auto max-w-[430px] rounded-t-3xl px-2 pt-2.5"
           style={{ paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))" }}
         >
           <div className="relative z-10 grid grid-cols-5 items-end">
