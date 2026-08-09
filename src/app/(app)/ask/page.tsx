@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Send, Sparkles, RotateCcw, ArrowUpRight } from "lucide-react";
+import { Send, Sparkles, RotateCcw, ArrowUpRight, Footprints, Wallet, type LucideIcon } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ActionForm } from "@/components/conversation/ActionForm";
@@ -17,12 +17,15 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
 // English keys — the displayed (and sent) text is localised via t() at render.
-const STARTERS = [
-  "What should I focus on today?",
-  "I'll run 5 km tomorrow",
-  "I spent 50,000 on food",
-  "Where is my money going?",
-  "I'm tired",
+// "q" = a question (plain outline pill); "log" = a record/log statement (leading
+// icon + warm-accent border), so the two intents read differently at a glance.
+type Starter = { text: string; kind: "q" | "log"; Icon?: LucideIcon };
+const STARTERS: Starter[] = [
+  { text: "What should I focus on today?", kind: "q" },
+  { text: "Where is my money going?", kind: "q" },
+  { text: "I'm tired", kind: "q" },
+  { text: "I'll run 5 km tomorrow", kind: "log", Icon: Footprints },
+  { text: "I spent 50,000 on food", kind: "log", Icon: Wallet },
 ];
 
 export default function AskPage() {
@@ -54,26 +57,37 @@ export default function AskPage() {
       {/* Conversation */}
       <div className="space-y-3 pb-4">
         {turns.length === 0 && (
-          <GlassCard className="p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles size={16} className="text-accent" />
+          <div className="reflect rounded-3xl border border-white/10 bg-white/[0.05] p-5 backdrop-blur-xl">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles size={16} style={{ color: "var(--color-accent)" }} />
               <h2 className="text-sm font-semibold">{t("ISA already knows you")}</h2>
             </div>
-            <p className="text-sm leading-relaxed text-muted">
-              {t("Ask a question, or just note what you did — ISA understands and records it if needed. It always asks you first.")}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               {STARTERS.map((s) => (
                 <button
-                  key={s}
-                  onClick={() => void send(t(s))}
-                  className="rounded-full border border-line bg-white/[0.03] px-3 py-1.5 text-xs text-fg/80 transition hover:bg-white/[0.07]"
+                  key={s.text}
+                  onClick={() => void send(t(s.text))}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs transition",
+                    s.kind === "log"
+                      ? "border text-fg/90"
+                      : "border border-line bg-white/[0.03] text-fg/80 hover:bg-white/[0.07]"
+                  )}
+                  style={
+                    s.kind === "log"
+                      ? {
+                          borderColor: "color-mix(in srgb, var(--color-accent) 45%, transparent)",
+                          background: "color-mix(in srgb, var(--color-accent) 9%, transparent)",
+                        }
+                      : undefined
+                  }
                 >
-                  {t(s)}
+                  {s.Icon && <s.Icon size={13} style={{ color: "var(--color-accent)" }} />}
+                  {t(s.text)}
                 </button>
               ))}
             </div>
-          </GlassCard>
+          </div>
         )}
 
         {turns.map((turn, i) => {

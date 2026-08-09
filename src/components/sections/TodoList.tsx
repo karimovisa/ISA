@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Plus, Trash2, ListTodo, Bell, Flag, CalendarDays } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -36,7 +36,6 @@ export function TodoList() {
   const [remindTime, setRemindTime] = useState("20:00");
   const [remindDays, setRemindDays] = useState<number[]>(ALL_DAYS);
   const [saving, setSaving] = useState(false);
-  const dateRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase.from("reminders").select("*").eq("kind", "todo").limit(1).maybeSingle().then(({ data }) => {
@@ -148,30 +147,22 @@ export function TodoList() {
         </button>
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t("Add a task…")}
           className="min-w-0 flex-1 bg-transparent py-1 text-sm text-fg/90 placeholder:text-muted/60" />
-        <button
-          type="button"
-          onClick={() => {
-            const el = dateRef.current;
-            // showPicker is the reliable way to open a native date picker from an
-            // icon; fall back to focus where it isn't supported.
-            if (el?.showPicker) el.showPicker();
-            else el?.focus();
-          }}
+        {/* A transparent native date input sits ON the icon — tapping the icon
+            opens the OS date picker directly (reliable on iOS Safari, unlike
+            showPicker() on a hidden input). */}
+        <label
           title={t("Schedule")}
-          aria-label={t("Schedule")}
-          className="shrink-0 rounded-lg p-1.5 text-muted transition hover:text-fg"
+          className="relative flex shrink-0 cursor-pointer items-center rounded-lg p-1.5 text-muted transition hover:text-fg"
         >
           <CalendarDays size={14} className={date !== today ? "text-fg" : ""} />
-        </button>
-        <input
-          ref={dateRef}
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value || today)}
-          tabIndex={-1}
-          aria-hidden
-          className="sr-only"
-        />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value || today)}
+            aria-label={t("Schedule")}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </label>
         <button type="submit" className="shrink-0 rounded-lg bg-white/10 p-1.5 text-fg transition hover:bg-white/15"><Plus size={14} /></button>
       </form>
 

@@ -10,7 +10,7 @@ export function LanguageToggle() {
   const { lang, setLang } = useT();
   return (
     <div
-      className="glass fixed right-3 z-50 flex items-center rounded-full p-0.5 text-[11px] font-semibold"
+      className="glass fixed right-3 z-50 flex items-center rounded-full p-0.5 text-[10px] font-medium opacity-80 transition-opacity hover:opacity-100"
       style={{ top: "calc(0.6rem + env(safe-area-inset-top))" }}
     >
       {LANGS.map((l) => (
@@ -20,8 +20,8 @@ export function LanguageToggle() {
           aria-label={LABEL[l]}
           aria-pressed={lang === l}
           className={cn(
-            "rounded-full px-2 py-1 uppercase tracking-wide transition-colors",
-            lang === l ? "bg-[var(--color-fg)] text-[color:var(--color-bg)]" : "text-muted hover:text-fg"
+            "rounded-full px-1.5 py-0.5 uppercase tracking-wide transition-colors",
+            lang === l ? "bg-white/15 text-fg" : "text-muted/70 hover:text-fg"
           )}
         >
           {l}
