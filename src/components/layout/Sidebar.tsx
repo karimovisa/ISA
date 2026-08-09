@@ -207,67 +207,73 @@ export function Sidebar() {
         data-tour="nav-bar"
         className="fixed inset-x-0 bottom-0 z-40 md:hidden"
         style={{
-          // Fine-tune the peaks: how far bases sink behind the pill, peak width
-          // vs the pill, and the mountain layer height.
-          "--peaks-drop": "2px",
+          // Fine-tune the peaks vs the pill: how far the bases sink behind the
+          // pill, the peak width (as a fraction of the pill), and the layer height.
+          "--peaks-drop": "26px",
           "--peaks-scale": "1",
-          "--peaks-h": "210px",
+          "--peaks-h": "116px",
         } as React.CSSProperties}
       >
-        {/* Mountain peaks rising BEHIND the pill. The photo is pure black behind
-            the peaks; background-blend-mode: screen against the app's own bg
-            colour knocks that black out (no stacking-context issue, unlike
-            mix-blend on a fixed element). Bases hide behind the opaque pill. */}
         <div
-          aria-hidden
-          className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2"
-          style={{
-            width: "calc(min(430px, 100vw) * var(--peaks-scale))",
-            height: "var(--peaks-h)",
-            transform: "translateY(var(--peaks-drop))",
-            backgroundColor: "var(--color-bg)",
-            backgroundImage: "url('/nav/peaks.jpg')",
-            backgroundBlendMode: "screen",
-            backgroundSize: "100% auto",
-            backgroundPosition: "center bottom",
-            backgroundRepeat: "no-repeat",
-          }}
-        />
-        <nav
-          className="glass relative z-10 mx-auto max-w-[430px] rounded-t-3xl px-2 pt-2.5"
-          style={{ paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))" }}
+          className="mx-auto max-w-[430px] px-4"
+          style={{ paddingBottom: "calc(0.6rem + env(safe-area-inset-bottom))" }}
         >
-          <div className="relative z-10 grid grid-cols-5 items-end">
-            {barNav.slice(0, 2).map((item) => (
-              <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
-            ))}
+          <div className="relative">
+            {/* Peaks rise BEHIND the floating pill and line up with the 5 items;
+                bases hide behind the pill. The cropped photo is peaks-on-black —
+                background-blend-mode: screen against the app bg knocks the black
+                out (no stacking-context issue, unlike mix-blend on a fixed el). */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 z-0 -translate-x-1/2"
+              style={{
+                bottom: "var(--peaks-drop)",
+                width: "calc(100% * var(--peaks-scale))",
+                height: "var(--peaks-h)",
+                backgroundColor: "var(--color-bg)",
+                backgroundImage: "url('/nav/peaks.jpg')",
+                backgroundBlendMode: "screen",
+                backgroundSize: "100% auto",
+                backgroundPosition: "center bottom",
+                backgroundRepeat: "no-repeat",
+              }}
+            />
 
-            {/* Neutral glass "+" — the universal create action (matches the peaks mockup) */}
-            <div className="flex justify-center">
-              <button
-                onClick={openCapture}
-                aria-label={t("Add")}
-                data-tour="nav-add"
-                className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] backdrop-blur transition active:scale-95"
-              >
-                <Plus size={26} strokeWidth={2.2} />
-              </button>
-            </div>
+            {/* Floating glass pill */}
+            <nav className="glass relative z-10 rounded-full border border-white/12 px-2 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.85)]">
+              <div className="grid grid-cols-5 items-center py-2">
+                {barNav.slice(0, 2).map((item) => (
+                  <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
+                ))}
 
-            {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
+                {/* Raised neutral glass "+" — the universal create action */}
+                <div className="flex justify-center">
+                  <button
+                    onClick={openCapture}
+                    aria-label={t("Add")}
+                    data-tour="nav-add"
+                    className="-mt-8 flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] backdrop-blur transition active:scale-95"
+                  >
+                    <Plus size={26} strokeWidth={2.2} />
+                  </button>
+                </div>
 
-            {/* ⌘K palette — every other page + quick search */}
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
-              aria-label="Menu and search"
-              data-tour="nav-menu"
-              className="flex flex-col items-center gap-1 pb-0.5 text-muted transition-colors hover:text-fg"
-            >
-              <Command size={20} />
-              <span className="max-w-full truncate px-0.5 text-[10px] font-medium leading-none">{t("Menu")}</span>
-            </button>
+                {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
+
+                {/* ⌘K palette — every other page + quick search */}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
+                  aria-label="Menu and search"
+                  data-tour="nav-menu"
+                  className="flex flex-col items-center gap-1 text-muted transition-colors hover:text-fg"
+                >
+                  <Command size={20} />
+                  <span className="max-w-full truncate px-0.5 text-[10px] font-medium leading-none">{t("Menu")}</span>
+                </button>
+              </div>
+            </nav>
           </div>
-        </nav>
+        </div>
       </div>
     </>
   );
