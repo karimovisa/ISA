@@ -211,7 +211,7 @@ export function Sidebar() {
           // sink behind the pill (must hide the bases). --peaks-scale: strip width.
           "--peaks-h": "78px",
           "--peaks-drop": "46px",
-          "--peaks-scale": "100%",
+          "--peaks-scale": "1",
         } as React.CSSProperties}
       >
         <div
