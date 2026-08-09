@@ -209,9 +209,9 @@ export function Sidebar() {
         style={{
           // Fine-tune the peaks: how far bases sink behind the pill, peak width
           // vs the pill, and the mountain layer height.
-          "--peaks-drop": "18px",
+          "--peaks-drop": "2px",
           "--peaks-scale": "1",
-          "--peaks-h": "128px",
+          "--peaks-h": "210px",
         } as React.CSSProperties}
       >
         {/* Mountain peaks rising BEHIND the pill. The photo is pure black behind
