@@ -149,7 +149,7 @@ export function Sidebar() {
   ];
   const nav = ordered.filter((n) => visible(n.href));
   // Mobile: three pages flank the centered "+"; everything else lives in ⌘K.
-  const barNav = nav.slice(0, 3);
+  const barNav = nav.slice(0, 4);
   const openCapture = () => window.dispatchEvent(new CustomEvent("isa:open-capture"));
 
   return (
@@ -208,12 +208,12 @@ export function Sidebar() {
           className="glass relative rounded-t-3xl px-2 pt-2.5"
           style={{ paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))" }}
         >
-          <div className="relative z-10 grid grid-cols-5 items-end">
+          <div className="relative z-10 grid grid-cols-6 items-end">
             {barNav.slice(0, 2).map((item) => (
               <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
             ))}
 
-            {/* Centered orange "+": the universal create action */}
+            {/* The amber "+" — the universal create action */}
             <div className="flex justify-center">
               <button
                 onClick={openCapture}
@@ -225,7 +225,9 @@ export function Sidebar() {
               </button>
             </div>
 
-            {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
+            {barNav.slice(2, 4).map((item) => (
+              <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
+            ))}
 
             {/* ⌘K palette — every other page + quick search */}
             <button
