@@ -105,11 +105,11 @@ function MobileTab({
       data-tour={`nav-${item.href}`}
       className="flex flex-col items-center gap-1 pb-0.5"
     >
-      <Icon size={20} className={active ? "text-fg" : "text-muted"} />
+      <Icon size={20} className={active ? "text-accent" : "text-muted"} />
       <span
         className={cn(
           "max-w-full truncate px-0.5 text-[10px] font-medium leading-none",
-          active ? "text-fg" : "text-muted"
+          active ? "text-accent" : "text-muted"
         )}
       >
         {t(item.label)}
@@ -117,7 +117,7 @@ function MobileTab({
       <span
         className={cn(
           "mt-0.5 h-0.5 w-5 rounded-full transition-colors",
-          active ? "bg-[var(--color-fg)]" : "bg-transparent"
+          active ? "bg-[var(--color-accent)]" : "bg-transparent"
         )}
       />
     </Link>
@@ -219,7 +219,7 @@ export function Sidebar() {
                 onClick={openCapture}
                 aria-label={t("Add")}
                 data-tour="nav-add"
-                className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-fg)] text-[color:var(--color-bg)] shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] transition active:scale-95"
+                className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-accent)] text-[color:var(--color-bg)] shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] transition active:scale-95"
               >
                 <Plus size={26} strokeWidth={2.4} />
               </button>

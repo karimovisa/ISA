@@ -8,8 +8,8 @@
   --color-line: rgba(255, 255, 255, 0.08);
   --color-fg: #f5f0e8;
   --color-muted: #8b8578;
-  --color-accent: #d97b3f;
-  --color-accent-soft: rgba(217, 123, 63, 0.15);
+  --color-accent: #e5a94e;
+  --color-accent-soft: rgba(229, 169, 78, 0.15);
   /* Opaque card fill used on mobile (no blur, for speed). */
   --color-card: #171e26;
 
@@ -24,8 +24,8 @@
   --color-bg: #101820;
   --color-fg: #f5f0e8;
   --color-muted: #8b8578;
-  --color-accent: #d97b3f;
-  --color-accent-soft: rgba(217, 123, 63, 0.15);
+  --color-accent: #e5a94e;
+  --color-accent-soft: rgba(229, 169, 78, 0.15);
   --color-card: #171e26;
 }
 /* Girls = real-time pair: day 06:00–18:59, night 19:00–05:59 (or manual). */
