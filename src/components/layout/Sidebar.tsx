@@ -203,87 +203,50 @@ export function Sidebar() {
           Three pages + the ⌘K menu flank the universal create action. The peaks
           are a subtle silhouette (icons stay fully legible); the raised "+"
           pokes above the bar's top edge. Everything else lives in ⌘K. */}
-      {/* ─────────────── Mobile bottom nav ───────────────
-          A single floating glass pill holds 5 slots. The 5 mountain peaks
-          (transparent PNG) sit BEHIND the pill and line up over the slots —
-          their tips rise above the pill's top edge, bases tuck just behind it.
-          Tune with the three CSS vars; nothing else needs touching. */}
-      <div
+      {/* Mobile bottom nav — docked flush to the screen's bottom edge. */}
+      <nav
         data-tour="nav-bar"
-        className="fixed inset-x-0 bottom-0 z-40 md:hidden"
+        className="glass fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center md:hidden"
         style={{
-          "--peaks-h": "72px", // peak layer height (crown size)
-          "--peaks-drop": "18px", // how far the bases tuck behind the pill top
-          "--peaks-scale": "1", // peaks strip width vs pill (unitless multiplier)
-        } as React.CSSProperties}
+          paddingTop: "0.5rem",
+          paddingBottom: "calc(0.4rem + env(safe-area-inset-bottom))",
+          borderTop: "1px solid var(--color-line)",
+        }}
       >
-        <div
-          className="mx-auto max-w-[420px] px-4"
-          style={{ paddingBottom: "calc(0.55rem + env(safe-area-inset-bottom))" }}
-        >
-          <div className="relative">
-            {/* Peaks — behind the pill, aligned 1:1 with the 5 slots */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute left-1/2 z-0 -translate-x-1/2"
-              style={{
-                bottom: "calc(100% - var(--peaks-drop))",
-                width: "calc(100% * var(--peaks-scale))",
-                height: "var(--peaks-h)",
-                backgroundImage: "url('/nav/peaks.png')",
-                backgroundSize: "100% 100%",
-                backgroundRepeat: "no-repeat",
-              }}
-            />
+        {barNav.slice(0, 2).map((item) => (
+          <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
+        ))}
 
-            {/* Glass pill */}
-            <nav
-              className="relative z-10 grid grid-cols-5 items-center rounded-full"
-              style={{
-                height: "64px",
-                background: "color-mix(in srgb, var(--color-bg) 66%, transparent)",
-                backdropFilter: "blur(18px) saturate(120%)",
-                WebkitBackdropFilter: "blur(18px) saturate(120%)",
-                border: "1px solid rgba(255,255,255,0.10)",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07)",
-              }}
-            >
-              {barNav.slice(0, 2).map((item) => (
-                <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
-              ))}
-
-              {/* Raised "+" FAB — overlaps the pill top; centre peak behind it */}
-              <div className="flex justify-center">
-                <button
-                  onClick={openCapture}
-                  aria-label={t("Add")}
-                  data-tour="nav-add"
-                  className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full text-fg transition active:scale-95"
-                  style={{
-                    border: "1.5px solid rgba(255,255,255,0.28)",
-                    background:
-                      "radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--color-bg) 80%, #ffffff 7%), var(--color-bg))",
-                    boxShadow: "0 8px 22px rgba(0,0,0,0.55)",
-                  }}
-                >
-                  <Plus size={24} strokeWidth={2.2} />
-                </button>
-              </div>
-
-              {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
-
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
-                aria-label="Menu and search"
-                data-tour="nav-menu"
-                className="flex flex-col items-center gap-1 text-muted transition-colors hover:text-fg"
-              >
-                <Command size={22} />
-                <span className="max-w-full truncate px-0.5 text-[11px] font-medium leading-none">{t("Menu")}</span>
-              </button>
-            </nav>
-          </div>
+        {/* Raised "+" FAB — the universal create action */}
+        <div className="flex justify-center">
+          <button
+            onClick={openCapture}
+            aria-label={t("Add")}
+            data-tour="nav-add"
+            className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full text-fg transition active:scale-95"
+            style={{
+              border: "1.5px solid rgba(255,255,255,0.28)",
+              background:
+                "radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--color-bg) 80%, #ffffff 7%), var(--color-bg))",
+              boxShadow: "0 8px 22px rgba(0,0,0,0.55)",
+            }}
+          >
+            <Plus size={24} strokeWidth={2.2} />
+          </button>
         </div>
+
+        {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
+
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
+          aria-label="Menu and search"
+          data-tour="nav-menu"
+          className="flex flex-col items-center gap-1 text-muted transition-colors hover:text-fg"
+        >
+          <Command size={22} />
+          <span className="max-w-full truncate px-0.5 text-[11px] font-medium leading-none">{t("Menu")}</span>
+        </button>
+      </nav>
       </div>
     </>
   );
