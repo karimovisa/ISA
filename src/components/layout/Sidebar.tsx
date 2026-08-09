@@ -207,72 +207,70 @@ export function Sidebar() {
         data-tour="nav-bar"
         className="fixed inset-x-0 bottom-0 z-40 md:hidden"
         style={{
-          // Fine-tune the peaks vs the pill: how far the bases sink behind the
-          // pill, the peak width (as a fraction of the pill), and the layer height.
-          "--peaks-drop": "26px",
-          "--peaks-scale": "1",
-          "--peaks-h": "116px",
+          // --peaks-h: space above the icons for the peaks to rise into.
+          // --peaks-drop: nudge the mountains up/down. --peaks-scale: peak width.
+          "--peaks-h": "58px",
+          "--peaks-drop": "0px",
+          "--peaks-scale": "100%",
         } as React.CSSProperties}
       >
         <div
           className="mx-auto max-w-[430px] px-4"
           style={{ paddingBottom: "calc(0.6rem + env(safe-area-inset-bottom))" }}
         >
-          <div className="relative">
-            {/* Peaks rise BEHIND the floating pill and line up with the 5 items;
-                bases hide behind the pill. The cropped photo is peaks-on-black —
-                background-blend-mode: screen against the app bg knocks the black
-                out (no stacking-context issue, unlike mix-blend on a fixed el). */}
+          {/* The mountains ARE the nav background (no solid pill fill) — just a
+              faint rounded outline. Items sit OVER the mountains: peaks rise above
+              the icons, bases stay visible at the bottom. Black is knocked out by
+              background-blend-mode: screen against the app bg colour. */}
+          <nav className="relative overflow-hidden rounded-[26px] border border-white/10 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.85)]">
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 z-0 -translate-x-1/2"
+              className="pointer-events-none absolute inset-0 z-0"
               style={{
-                bottom: "var(--peaks-drop)",
-                width: "calc(100% * var(--peaks-scale))",
-                height: "var(--peaks-h)",
                 backgroundColor: "var(--color-bg)",
                 backgroundImage: "url('/nav/peaks.jpg')",
                 backgroundBlendMode: "screen",
-                backgroundSize: "100% auto",
-                backgroundPosition: "center bottom",
+                backgroundSize: "var(--peaks-scale) auto",
+                backgroundPosition: "center top",
                 backgroundRepeat: "no-repeat",
+                transform: "translateY(var(--peaks-drop))",
               }}
             />
 
-            {/* Floating glass pill */}
-            <nav className="glass relative z-10 rounded-full border border-white/12 px-2 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.85)]">
-              <div className="grid grid-cols-5 items-center py-2">
-                {barNav.slice(0, 2).map((item) => (
-                  <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
-                ))}
+            <div
+              className="relative z-10 grid grid-cols-5 items-end gap-1 px-2 pb-2"
+              style={{ paddingTop: "var(--peaks-h)" }}
+            >
+              {barNav.slice(0, 2).map((item) => (
+                <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
+              ))}
 
-                {/* Raised neutral glass "+" — the universal create action */}
-                <div className="flex justify-center">
-                  <button
-                    onClick={openCapture}
-                    aria-label={t("Add")}
-                    data-tour="nav-add"
-                    className="-mt-8 flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_10px_28px_-8px_rgba(0,0,0,0.7)] ring-4 ring-[var(--color-bg)] backdrop-blur transition active:scale-95"
-                  >
-                    <Plus size={26} strokeWidth={2.2} />
-                  </button>
-                </div>
-
-                {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
-
-                {/* ⌘K palette — every other page + quick search */}
+              {/* Neutral glass "+" sitting on the tall centre peak */}
+              <div className="flex justify-center">
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
-                  aria-label="Menu and search"
-                  data-tour="nav-menu"
-                  className="flex flex-col items-center gap-1 text-muted transition-colors hover:text-fg"
+                  onClick={openCapture}
+                  aria-label={t("Add")}
+                  data-tour="nav-add"
+                  className="flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_8px_22px_-6px_rgba(0,0,0,0.7)] backdrop-blur transition active:scale-95"
                 >
-                  <Command size={20} />
-                  <span className="max-w-full truncate px-0.5 text-[10px] font-medium leading-none">{t("Menu")}</span>
+                  <Plus size={26} strokeWidth={2.2} />
                 </button>
               </div>
-            </nav>
-          </div>
+
+              {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
+
+              {/* ⌘K palette — every other page + quick search */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
+                aria-label="Menu and search"
+                data-tour="nav-menu"
+                className="flex flex-col items-center gap-1 pb-0.5 text-muted transition-colors hover:text-fg"
+              >
+                <Command size={20} />
+                <span className="max-w-full truncate px-0.5 text-[10px] font-medium leading-none">{t("Menu")}</span>
+              </button>
+            </div>
+          </nav>
         </div>
       </div>
     </>
