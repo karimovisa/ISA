@@ -209,7 +209,7 @@ export function Sidebar() {
         style={{
           // --peaks-h: space above the icons for the peaks to rise into.
           // --peaks-drop: nudge the mountains up/down. --peaks-scale: peak width.
-          "--peaks-h": "58px",
+          "--peaks-h": "68px",
           "--peaks-drop": "0px",
           "--peaks-scale": "100%",
         } as React.CSSProperties}
@@ -237,6 +237,13 @@ export function Sidebar() {
               }}
             />
 
+            {/* Bottom scrim: darkens the peak bases so the labels stay legible. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-2/3"
+              style={{ background: "linear-gradient(to top, var(--color-bg), transparent)" }}
+            />
+
             <div
               className="relative z-10 grid grid-cols-5 items-end gap-1 px-2 pb-2"
               style={{ paddingTop: "var(--peaks-h)" }}
@@ -251,9 +258,9 @@ export function Sidebar() {
                   onClick={openCapture}
                   aria-label={t("Add")}
                   data-tour="nav-add"
-                  className="flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_8px_22px_-6px_rgba(0,0,0,0.7)] backdrop-blur transition active:scale-95"
+                  className="-mt-1 flex h-[60px] w-[60px] items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_8px_22px_-6px_rgba(0,0,0,0.7)] backdrop-blur transition active:scale-95"
                 >
-                  <Plus size={26} strokeWidth={2.2} />
+                  <Plus size={28} strokeWidth={2.2} />
                 </button>
               </div>
 
