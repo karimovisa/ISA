@@ -105,10 +105,10 @@ function MobileTab({
       data-tour={`nav-${item.href}`}
       className="flex flex-col items-center gap-1 pb-0.5"
     >
-      <Icon size={20} className={active ? "text-fg" : "text-muted"} />
+      <Icon size={22} className={active ? "text-fg" : "text-muted"} />
       <span
         className={cn(
-          "max-w-full truncate px-0.5 text-[10px] font-medium leading-none",
+          "max-w-full truncate px-0.5 text-[11px] font-medium leading-none",
           active ? "text-fg" : "text-muted"
         )}
       >
@@ -207,10 +207,10 @@ export function Sidebar() {
         data-tour="nav-bar"
         className="fixed inset-x-0 bottom-0 z-40 md:hidden"
         style={{
-          // --peaks-h: space above the icons for the peaks to rise into.
-          // --peaks-drop: nudge the mountains up/down. --peaks-scale: peak width.
-          "--peaks-h": "68px",
-          "--peaks-drop": "0px",
+          // --peaks-h: total peak layer height. --peaks-drop: how far the bases
+          // sink behind the pill (must hide the bases). --peaks-scale: strip width.
+          "--peaks-h": "78px",
+          "--peaks-drop": "46px",
           "--peaks-scale": "100%",
         } as React.CSSProperties}
       >
@@ -218,66 +218,74 @@ export function Sidebar() {
           className="mx-auto max-w-[430px] px-4"
           style={{ paddingBottom: "calc(0.6rem + env(safe-area-inset-bottom))" }}
         >
-          {/* The mountains ARE the nav background (no solid pill fill) — just a
-              faint rounded outline. Items sit OVER the mountains: peaks rise above
-              the icons, bases stay visible at the bottom. Black is knocked out by
-              background-blend-mode: screen against the app bg colour. */}
-          <nav className="relative overflow-hidden rounded-[26px] border border-white/10 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.85)]">
+          {/* overflow-visible wrapper so the peaks + raised FAB extend above the pill */}
+          <div className="relative">
+            {/* Small peak "crowns" behind the pill: bases tuck behind the pill's
+                top edge, only the tips show above it. Transparent PNG — no blend. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 z-0"
+              className="pointer-events-none absolute left-1/2 z-0 -translate-x-1/2"
               style={{
-                backgroundColor: "var(--color-bg)",
-                backgroundImage: "url('/nav/peaks.jpg')",
-                backgroundBlendMode: "screen",
-                backgroundSize: "var(--peaks-scale) auto",
-                backgroundPosition: "center top",
+                bottom: "calc(100% - var(--peaks-drop))",
+                width: "calc(100% * var(--peaks-scale))",
+                height: "var(--peaks-h)",
+                backgroundImage: "url('/nav/peaks.png')",
+                backgroundSize: "100% 100%",
                 backgroundRepeat: "no-repeat",
-                transform: "translateY(var(--peaks-drop))",
+                backgroundPosition: "center bottom",
               }}
             />
 
-            {/* Bottom scrim: darkens the peak bases so the labels stay legible. */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-2/3"
-              style={{ background: "linear-gradient(to top, var(--color-bg), transparent)" }}
-            />
-
-            <div
-              className="relative z-10 grid grid-cols-5 items-end gap-1 px-2 pb-2"
-              style={{ paddingTop: "var(--peaks-h)" }}
+            {/* Glass pill */}
+            <nav
+              className="relative z-10 flex items-center rounded-full px-2"
+              style={{
+                height: "66px",
+                background: "color-mix(in srgb, var(--color-bg) 62%, transparent)",
+                backdropFilter: "blur(18px) saturate(120%)",
+                WebkitBackdropFilter: "blur(18px) saturate(120%)",
+                border: "1px solid rgba(255,255,255,0.09)",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)",
+              }}
             >
-              {barNav.slice(0, 2).map((item) => (
-                <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
-              ))}
+              <div className="grid w-full grid-cols-5 items-center">
+                {barNav.slice(0, 2).map((item) => (
+                  <MobileTab key={item.href} item={item} active={isActive(item.href)} t={t} />
+                ))}
 
-              {/* Neutral glass "+" sitting on the tall centre peak */}
-              <div className="flex justify-center">
+                {/* Raised "+" FAB — overlaps the pill top, tall centre peak behind */}
+                <div className="flex justify-center">
+                  <button
+                    onClick={openCapture}
+                    aria-label={t("Add")}
+                    data-tour="nav-add"
+                    className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full text-fg transition active:scale-95"
+                    style={{
+                      border: "1.5px solid rgba(255,255,255,0.28)",
+                      background:
+                        "radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--color-bg) 82%, #ffffff 6%), var(--color-bg))",
+                      boxShadow: "0 8px 22px rgba(0,0,0,0.55)",
+                    }}
+                  >
+                    <Plus size={24} strokeWidth={2.2} />
+                  </button>
+                </div>
+
+                {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
+
+                {/* ⌘K palette — every other page + quick search */}
                 <button
-                  onClick={openCapture}
-                  aria-label={t("Add")}
-                  data-tour="nav-add"
-                  className="-mt-1 flex h-[60px] w-[60px] items-center justify-center rounded-full border border-white/25 bg-[var(--color-surface-strong)] text-fg shadow-[0_8px_22px_-6px_rgba(0,0,0,0.7)] backdrop-blur transition active:scale-95"
+                  onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
+                  aria-label="Menu and search"
+                  data-tour="nav-menu"
+                  className="flex flex-col items-center gap-1 text-muted transition-colors hover:text-fg"
                 >
-                  <Plus size={28} strokeWidth={2.2} />
+                  <Command size={22} />
+                  <span className="max-w-full truncate px-0.5 text-[11px] font-medium leading-none">{t("Menu")}</span>
                 </button>
               </div>
-
-              {barNav[2] && <MobileTab item={barNav[2]} active={isActive(barNav[2].href)} t={t} />}
-
-              {/* ⌘K palette — every other page + quick search */}
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent("isa:open-palette"))}
-                aria-label="Menu and search"
-                data-tour="nav-menu"
-                className="flex flex-col items-center gap-1 pb-0.5 text-muted transition-colors hover:text-fg"
-              >
-                <Command size={20} />
-                <span className="max-w-full truncate px-0.5 text-[10px] font-medium leading-none">{t("Menu")}</span>
-              </button>
-            </div>
-          </nav>
+            </nav>
+          </div>
         </div>
       </div>
     </>
