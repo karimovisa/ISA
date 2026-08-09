@@ -104,19 +104,33 @@ body::after {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-image: url("/themes/dark.png");
+  pointer-events: none;
   background-size: cover;
   background-position: center;
-  opacity: 0.45;
-  pointer-events: none;
+  /* A theme-coloured scrim OVER the photo keeps muted text legible everywhere
+     while the photo stays visible (more reliable than a flat opacity). */
+  background-image: linear-gradient(
+      to bottom,
+      rgba(16, 24, 32, 0.62),
+      rgba(16, 24, 32, 0.8)
+    ),
+    url("/themes/dark.png");
 }
-:root[data-theme="boys"] body::after {
-  background-image: url("/themes/dark.png");
+:root[data-theme="girls-day"] body::after {
+  background-image: linear-gradient(
+      to bottom,
+      rgba(255, 248, 251, 0.55),
+      rgba(255, 248, 251, 0.8)
+    ),
+    url("/themes/rose.png");
 }
-:root[data-theme="girls-day"] body::after,
 :root[data-theme="girls-night"] body::after {
-  background-image: url("/themes/rose.png");
-  opacity: 0.55;
+  background-image: linear-gradient(
+      to bottom,
+      rgba(22, 18, 24, 0.6),
+      rgba(22, 18, 24, 0.82)
+    ),
+    url("/themes/rose.png");
 }
 
 /* Premium glass card.
