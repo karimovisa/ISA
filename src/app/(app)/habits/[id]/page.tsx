@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Flame, Trophy, Percent, Activity, CheckCircle2, Lock } from "lucide-react";
+import { ArrowLeft, Flame, Trophy, Percent, Activity, CheckCircle2, Lock, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useEntitlements } from "@/components/EntitlementProvider";
 import type { Habit, HabitLog } from "@/lib/types";
+import { timeInsightFor } from "@/lib/habitCoach";
+import { aiInsight } from "@/lib/habitInsight";
 
 function ymd(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -42,6 +44,19 @@ function computeStats(logs: HabitLog[], created: string): Stats {
   return { current, longest, completion: Math.min(100, completion), consistency, missedWeek, total: done.size };
 }
 
+function scheduleText(h: Habit): string {
+  const cfg = h.frequency_config ?? {};
+  if (h.frequency_type === "interval") { const e = cfg.every ?? 2; return e <= 1 ? "Daily" : `Every ${e} days`; }
+  if (h.frequency_type === "weekdays") {
+    const days = [...(cfg.days ?? [])].sort((a, b) => a - b);
+    if (days.length === 7) return "Daily";
+    if (days.length === 5 && [1, 2, 3, 4, 5].every((d) => days.includes(d))) return "Weekdays";
+    const N = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return days.length ? days.map((d) => N[d]).join(", ") : "No days";
+  }
+  return "Daily";
+}
+
 export default function HabitDetailPage() {
   const params = useParams();
   const id = String(params.id);
@@ -60,6 +75,47 @@ export default function HabitDetailPage() {
     setLoading(false);
   }, [id]);
   useEffect(() => { load(); }, [load]);
+
+  // Phase 4 (AI): a deeper, LLM-phrased insight from ISA's computed findings.
+  // Pro-only, cached per habit per day, deterministic fallback when the model is
+  // absent or fails. See src/lib/habitInsight.ts.
+  const [insight, setInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  useEffect(() => {
+    if (!habit || !canUse("ai_coach")) return;
+    const key = `isa_habit_insight_${habit.id}_${ymd(new Date())}`;
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) { setInsight((JSON.parse(raw) as { text: string }).text); return; }
+    } catch { /* ignore */ }
+    const st = computeStats(logs, habit.created_at);
+    const ti = timeInsightFor(logs);
+    const completions = logs.filter((l) => l.completed);
+    const minShare = completions.length ? Math.round((completions.filter((l) => l.completion_type === "minimum").length / completions.length) * 100) : 0;
+    const facts = [
+      `Habit: ${habit.name}.`,
+      `Schedule: ${scheduleText(habit)}.`,
+      habit.target_value != null ? `Target: ${habit.target_value}${habit.target_unit ? ` ${habit.target_unit}` : ""}.` : "",
+      `Consistency last 30 days: ${st.consistency}%.`,
+      `Current streak ${st.current} days, longest ${st.longest}, ${st.total} completions total.`,
+      ti ? `Usually completed in the ${ti.part}.` : "",
+      minShare > 0 ? `Hard-day version used in ${minShare}% of completions.` : "",
+      habit.trigger_after ? `Trigger: after ${habit.trigger_after}.` : "",
+    ].filter(Boolean).join(" ");
+    const fallback = ti
+      ? `You tend to finish ${habit.name} in the ${ti.part} — lean into that window.`
+      : st.consistency >= 70
+        ? `You've held ${habit.name} ${st.consistency}% of the last month. Steady.`
+        : st.current >= 2
+          ? `${st.current} days going on ${habit.name}. Small and consistent is the point.`
+          : `Every time you show up for ${habit.name}, the pattern gets a little stronger.`;
+    setInsightLoading(true);
+    aiInsight(facts, fallback).then((r) => {
+      setInsight(r.text); setInsightLoading(false);
+      try { localStorage.setItem(key, JSON.stringify(r)); } catch { /* ignore */ }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habit, logs]);
 
   if (loading) return <div className="glass h-64 animate-pulse rounded-3xl" />;
   if (!habit) return <div className="text-muted">Habit not found. <Link href="/habits" className="text-accent">Back</Link></div>;
@@ -139,15 +195,25 @@ export default function HabitDetailPage() {
       )}
 
       <GlassCard className="p-5">
-        <div className="mb-1 flex items-center gap-2">
-          <h3 className="text-sm font-medium">AI Insights</h3>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Sparkles size={14} style={{ color: "#86A97F" }} />
+          <h3 className="text-sm font-medium">ISA insight</h3>
           {!canUse("ai_coach") && <Lock size={13} className="text-muted" />}
         </div>
-        <p className="text-sm text-muted">
-          {canUse("ai_coach")
-            ? "Building your pattern — best completion time, weakest day, and streak risk appear as ISA gathers more history."
-            : "Deep habit intelligence (best time, weakest day, streak risk, correlations) is a Pro feature."}
-        </p>
+        {canUse("ai_coach") ? (
+          insightLoading && !insight ? (
+            <div className="mt-2 space-y-1.5">
+              <div className="h-3.5 w-3/4 animate-pulse rounded bg-white/10" />
+              <div className="h-3.5 w-1/2 animate-pulse rounded bg-white/10" />
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed text-fg/90">
+              {insight ?? "Building your pattern — an insight appears as ISA gathers a little more history."}
+            </p>
+          )
+        ) : (
+          <p className="text-sm text-muted">Deep habit intelligence — your best time of day, patterns, and gentle nudges — is a Pro feature.</p>
+        )}
       </GlassCard>
     </div>
   );
