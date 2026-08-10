@@ -184,7 +184,7 @@ export type WeeklyReview = {
   created_at: string;
 };
 
-export type HabitFrequency = "daily" | "weekdays" | "x_per_week" | "x_per_month";
+export type HabitFrequency = "daily" | "weekdays" | "x_per_week" | "x_per_month" | "interval";
 
 export type Habit = {
   id: string;
@@ -196,7 +196,9 @@ export type Habit = {
   target_value: number | null;
   target_unit: string | null; // null = simple checkbox habit
   frequency_type: HabitFrequency;
-  frequency_config: { days?: number[]; count?: number };
+  // days: weekday set (0=Sun) for weekdays/specific-days. count: legacy ×/week|month.
+  // every: interval in days for the "custom" every-N-days schedule.
+  frequency_config: { days?: number[]; count?: number; every?: number };
   notes: string | null;
   goal_id: string | null;
   created_at: string;
