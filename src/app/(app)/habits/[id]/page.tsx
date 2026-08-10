@@ -91,6 +91,25 @@ export default function HabitDetailPage() {
         <p className="mb-6 text-sm text-muted">Target: {habit.target_value}{habit.target_unit ? ` ${habit.target_unit}` : ""}</p>
       )}
 
+      {(habit.trigger_after || habit.hard_day) && (
+        <GlassCard className="mb-6 p-5">
+          <dl className="space-y-3 text-sm">
+            {habit.trigger_after && (
+              <div className="flex gap-3">
+                <dt className="w-28 shrink-0 text-muted">Trigger</dt>
+                <dd className="text-fg/90">After {habit.trigger_after}</dd>
+              </div>
+            )}
+            {habit.hard_day && (
+              <div className="flex gap-3">
+                <dt className="w-28 shrink-0 text-muted">Hard-day version</dt>
+                <dd className="text-fg/90">{habit.hard_day}</dd>
+              </div>
+            )}
+          </dl>
+        </GlassCard>
+      )}
+
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {tiles.map((t) => (
           <GlassCard key={t.label} className="p-4">

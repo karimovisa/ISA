@@ -201,8 +201,14 @@ export type Habit = {
   frequency_config: { days?: number[]; count?: number; every?: number };
   notes: string | null;
   goal_id: string | null;
+  // Phase 2. hard_day: the minimum "hard-day" version (free-text, e.g. "1 page").
+  // trigger_after: habit-stacking cue (e.g. "after brushing teeth"). Both null = off.
+  hard_day: string | null;
+  trigger_after: string | null;
   created_at: string;
 };
+
+export type HabitCompletionType = "full" | "minimum";
 
 export type HabitLog = {
   id: string;
@@ -211,6 +217,8 @@ export type HabitLog = {
   date: string;
   completed: boolean;
   value: number | null;
+  // Phase 2. null (legacy) or "full" = normal completion; "minimum" = hard-day version.
+  completion_type: HabitCompletionType | null;
 };
 
 export type MoodLog = {

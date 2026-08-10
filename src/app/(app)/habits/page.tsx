@@ -26,7 +26,7 @@ import { useT } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { todayISO, formatDate } from "@/lib/datetime";
 import { captureLifeEvent } from "@/lib/life-events";
-import type { Habit, Reminder, HabitFrequency, Goal, Todo, TaskPriority } from "@/lib/types";
+import type { Habit, Reminder, HabitFrequency, HabitCompletionType, Goal, Todo, TaskPriority } from "@/lib/types";
 
 const CATEGORIES = ["Health", "Learning", "Productivity", "Finance", "Mindset", "Relationships", "Custom"];
 /** The four Phase-1 scheduling choices (§4). "specific" and "weekdays" both
@@ -51,18 +51,39 @@ function daysBetween(from: Date, to: Date): number {
   return Math.round((b - a) / 86_400_000);
 }
 
-/** Does this habit surface today? weekdays/specific-days check the day set;
- *  interval repeats every N days from its start; the rest always surface. */
-function isDueToday(h: Habit): boolean {
-  const now = new Date();
-  if (h.frequency_type === "weekdays") return (h.frequency_config?.days ?? []).includes(now.getDay());
+/** Local YYYY-MM-DD for any date. */
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Does this habit surface on the given day? weekdays/specific-days check the
+ *  day set; interval repeats every N days from its start; the rest always do. */
+function isDueOn(h: Habit, date: Date): boolean {
+  if (h.frequency_type === "weekdays") return (h.frequency_config?.days ?? []).includes(date.getDay());
   if (h.frequency_type === "interval") {
     const every = h.frequency_config?.every ?? 1;
     if (every <= 1) return true;
-    const elapsed = daysBetween(new Date(h.created_at), now);
+    const elapsed = daysBetween(new Date(h.created_at), date);
     return elapsed >= 0 && elapsed % every === 0;
   }
   return true;
+}
+const isDueToday = (h: Habit): boolean => isDueOn(h, new Date());
+
+/** Done / due across the current week (Sun→today), counting only due days on
+ *  or after the habit was created. The calm consistency signal (§8) — a plain
+ *  count, never a punishing streak. doneKeys holds `${habitId}|${YYYY-MM-DD}`. */
+function weekConsistency(h: Habit, doneKeys: Set<string>): { done: number; due: number } {
+  const today = new Date();
+  let due = 0, done = 0;
+  for (let i = today.getDay(); i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    if (daysBetween(new Date(h.created_at), d) < 0) continue;
+    if (!isDueOn(h, d)) continue;
+    due++;
+    if (doneKeys.has(`${h.id}|${ymd(d)}`)) done++;
+  }
+  return { done, due };
 }
 
 /** A quiet glyph per habit — matched by name/category, with a calm fallback. */
@@ -89,15 +110,27 @@ export default function HabitsPage() {
   const [view, setView] = useState<"today" | "all">("today");
   const [now, setNow] = useState<Date | null>(null);
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
+  const [weekDone, setWeekDone] = useState<Set<string>>(new Set()); // `${habitId}|${date}`
+  const [completeSheet, setCompleteSheet] = useState<Habit | null>(null);
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [showUpcoming, setShowUpcoming] = useState(false);
 
   useEffect(() => { setNow(new Date()); }, []);
 
+  // One query covers both today's status and this week's consistency counts.
   const loadToday = useCallback(async () => {
-    const { data } = await supabase.from("habit_logs").select("habit_id,completed").eq("date", today);
-    setDoneIds(new Set(((data as { habit_id: string; completed: boolean }[]) ?? []).filter((x) => x.completed).map((x) => x.habit_id)));
+    const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
+    const { data } = await supabase.from("habit_logs")
+      .select("habit_id,date,completed").gte("date", ymd(ws));
+    const rows = (data as { habit_id: string; date: string; completed: boolean }[]) ?? [];
+    const done = new Set<string>(); const wk = new Set<string>();
+    for (const r of rows) {
+      if (!r.completed) continue;
+      wk.add(`${r.habit_id}|${r.date}`);
+      if (r.date === today) done.add(r.habit_id);
+    }
+    setDoneIds(done); setWeekDone(wk);
   }, [today]);
   useEffect(() => { loadToday(); }, [loadToday, habits.data.length]);
 
@@ -130,27 +163,34 @@ export default function HabitsPage() {
   const habitDone = (id: string) => doneIds.has(id);
   const sortDone = (list: Habit[]) => [...list].sort((a, b) => Number(habitDone(a.id)) - Number(habitDone(b.id)));
 
-  // Completing asks first — the tick is easy to hit by accident, and an
-  // unwanted completion silently distorts the day's record.
-  const askComplete = (h: Habit) => {
+  // Tap to complete: habits with a hard-day version open a small choice sheet
+  // (Done / Do the minimum); the rest complete in one tap. Tapping a done habit
+  // undoes it — cheap to reverse, so no accidental-tap confirm is needed.
+  const requestComplete = (h: Habit) => {
     if (habitDone(h.id)) return;
-    setConfirmReq({
-      title: t("Mark \"{name}\" as done?", { name: h.name }),
-      confirmLabel: t("Mark done"),
-      onConfirm: () => void completeHabit(h),
-    });
+    if (h.hard_day) { setCompleteSheet(h); return; }
+    void completeHabit(h, "full");
   };
-  const completeHabit = async (h: Habit) => {
+  const completeHabit = async (h: Habit, type: HabitCompletionType) => {
+    setCompleteSheet(null);
     if (habitDone(h.id)) return;
     setDoneIds((prev) => new Set(prev).add(h.id));
+    setWeekDone((prev) => new Set(prev).add(`${h.id}|${today}`));
     await supabase.from("habit_logs").upsert(
-      { habit_id: h.id, user_id: h.user_id, date: today, completed: true, value: h.target_value },
+      { habit_id: h.id, user_id: h.user_id, date: today, completed: true, completion_type: type,
+        value: type === "full" ? h.target_value : null },
       { onConflict: "habit_id,date" });
     void captureLifeEvent({
-      type: "HabitCompleted", occurredAt: today, payload: { habit: h.name, category: h.category },
+      type: "HabitCompleted", occurredAt: today,
+      payload: { habit: h.name, category: h.category, minimum: type === "minimum" },
       links: h.goal_id ? { habitIds: [h.id], goalIds: [h.goal_id] } : { habitIds: [h.id] },
       context: { outcome: "consistency", linkedToActiveGoal: !!h.goal_id },
     });
+  };
+  const uncompleteHabit = async (h: Habit) => {
+    setDoneIds((prev) => { const n = new Set(prev); n.delete(h.id); return n; });
+    setWeekDone((prev) => { const n = new Set(prev); n.delete(`${h.id}|${today}`); return n; });
+    await supabase.from("habit_logs").delete().eq("habit_id", h.id).eq("date", today);
   };
 
   // ── TASKS ──
@@ -189,6 +229,8 @@ export default function HabitsPage() {
   const [showMore, setShowMore] = useState(false);
   const [targetValue, setTargetValue] = useState("");
   const [targetUnit, setTargetUnit] = useState("");
+  const [hardDay, setHardDay] = useState("");
+  const [triggerAfter, setTriggerAfter] = useState("");
   const [notes, setNotes] = useState("");
   const [goalId, setGoalId] = useState("");
   const [remindOn, setRemindOn] = useState(false);
@@ -200,7 +242,7 @@ export default function HabitsPage() {
   const resetForm = () => {
     setName(""); setCategory("Custom");
     setWhen("everyday"); setSpecificDays([new Date().getDay()]); setIntervalEvery(2); setShowMore(false);
-    setTargetValue(""); setTargetUnit(""); setNotes(""); setGoalId("");
+    setTargetValue(""); setTargetUnit(""); setHardDay(""); setTriggerAfter(""); setNotes(""); setGoalId("");
     setRemindOn(false); setRemindTime("20:00"); setRemindDays(ALL_DAYS); setReminderId(null);
   };
   const openNew = () => { setEditing(null); resetForm(); setOpen(true); };
@@ -216,9 +258,10 @@ export default function HabitsPage() {
       else { setWhen("specific"); setSpecificDays(days.length ? days : [new Date().getDay()]); }
     } else { setWhen("everyday"); setSpecificDays([new Date().getDay()]); setIntervalEvery(2); }
     setTargetValue(h.target_value != null ? String(h.target_value) : ""); setTargetUnit(h.target_unit ?? "");
+    setHardDay(h.hard_day ?? ""); setTriggerAfter(h.trigger_after ?? "");
     setNotes(h.notes ?? ""); setGoalId(h.goal_id ?? "");
     // Reveal "More" when the habit already carries optional detail, so it's visible.
-    setShowMore(h.target_value != null || !!h.notes || !!h.goal_id);
+    setShowMore(h.target_value != null || !!h.hard_day || !!h.trigger_after || !!h.notes || !!h.goal_id);
     setRemindOn(false); setRemindTime("20:00"); setRemindDays(ALL_DAYS); setReminderId(null);
     setOpen(true);
     const { data } = await supabase.from("reminders").select("*").eq("kind", "habit").eq("habit_id", h.id).limit(1).maybeSingle();
@@ -235,10 +278,21 @@ export default function HabitsPage() {
       name: name.trim(), category, frequency_type, frequency_config,
       target_value: targetValue ? Number(targetValue) : null,
       target_unit: targetUnit.trim() || null,
+      hard_day: hardDay.trim() || null,
+      trigger_after: triggerAfter.trim() || null,
       notes: notes.trim() || null,
       goal_id: goalId || null,
     };
   };
+
+  // §5 smart default: only nudge a hard-day version for a genuinely big target
+  // (never for "brush teeth"). Suggest roughly a sixth of it as the minimum.
+  const hardDaySuggestion = (() => {
+    const v = Number(targetValue);
+    if (!targetValue || Number.isNaN(v) || v < 15) return "";
+    const small = Math.max(1, Math.round(v / 6));
+    return targetUnit.trim() ? `${small} ${targetUnit.trim()}` : `${small}`;
+  })();
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,6 +324,7 @@ export default function HabitsPage() {
     await supabase.from("habits").insert({
       name: `${h.name} copy`, category: h.category, frequency_type: h.frequency_type,
       frequency_config: h.frequency_config, target_value: h.target_value, target_unit: h.target_unit,
+      hard_day: h.hard_day, trigger_after: h.trigger_after,
       notes: h.notes, is_active: true, user_id: user.id });
     habits.refresh();
   };
@@ -341,6 +396,22 @@ export default function HabitsPage() {
                   <label className={labelClass}>{t("Unit")}</label>
                   <input value={targetUnit} onChange={(e) => setTargetUnit(e.target.value)} placeholder={t("pages / km / min")} className={fieldClass} />
                 </div>
+              </div>
+              <div>
+                <label className={labelClass}>{t("Hard-day version")}</label>
+                <input value={hardDay} onChange={(e) => setHardDay(e.target.value)} placeholder={t("e.g. 5 min walk")} className={fieldClass} />
+                {hardDaySuggestion && !hardDay.trim() ? (
+                  <button type="button" onClick={() => setHardDay(hardDaySuggestion)}
+                    className="mt-1.5 inline-flex items-center gap-1 text-xs text-accent transition hover:opacity-80">
+                    <Plus size={12} /> {t("Suggest {s}", { s: hardDaySuggestion })}
+                  </button>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-muted">{t("The smallest version that still counts, for rough days.")}</p>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>{t("Trigger (optional)")}</label>
+                <input value={triggerAfter} onChange={(e) => setTriggerAfter(e.target.value)} placeholder={t("after brushing teeth")} className={fieldClass} />
               </div>
               <div>
                 <label className={labelClass}>{t("Category")}</label>
@@ -488,7 +559,9 @@ export default function HabitsPage() {
                   <AnimatePresence initial={false}>
                     {sortDone(dueHabits).map((h) => (
                       <HabitRow key={h.id} habit={h} done={habitDone(h.id)} secondary={habitSecondary(h, scheduleLabel)}
-                        onComplete={() => askComplete(h)} onEdit={() => openEdit(h)} onDuplicate={() => duplicate(h)}
+                        weekly={weekConsistency(h, weekDone)}
+                        onComplete={() => requestComplete(h)} onUncomplete={() => uncompleteHabit(h)}
+                        onEdit={() => openEdit(h)} onDuplicate={() => duplicate(h)}
                         onArchive={() => archive(h)} onDelete={() => del(h)} t={t} />
                     ))}
                   </AnimatePresence>
@@ -515,7 +588,8 @@ export default function HabitsPage() {
               <ul className="divide-y divide-[var(--color-line)]">
                 {activeHabits.map((h) => (
                   <HabitRow key={h.id} habit={h} done={habitDone(h.id)} secondary={habitSecondary(h, scheduleLabel)}
-                    dueBadge={!isDueToday(h)} onComplete={() => askComplete(h)} onEdit={() => openEdit(h)}
+                    dueBadge={!isDueToday(h)} weekly={weekConsistency(h, weekDone)}
+                    onComplete={() => requestComplete(h)} onUncomplete={() => uncompleteHabit(h)} onEdit={() => openEdit(h)}
                     onDuplicate={() => duplicate(h)} onArchive={() => archive(h)} onDelete={() => del(h)} t={t} />
                 ))}
               </ul>
@@ -553,6 +627,28 @@ export default function HabitsPage() {
           )}
         </div>
       )}
+
+      {/* Completion choice — only for habits that carry a hard-day version (§7). */}
+      <Modal open={!!completeSheet} onClose={() => setCompleteSheet(null)} title={completeSheet?.name ?? ""}>
+        {completeSheet && (
+          <div className="space-y-2.5">
+            {completeSheet.target_value != null && (
+              <p className="text-sm text-muted">
+                {completeSheet.target_value}{completeSheet.target_unit ? ` ${completeSheet.target_unit}` : ""} · {scheduleLabel(completeSheet)}
+              </p>
+            )}
+            <button onClick={() => completeHabit(completeSheet, "full")}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-fg)] px-4 py-3 text-sm font-semibold text-[color:var(--color-bg)] transition active:scale-[0.98]">
+              <Check size={16} strokeWidth={3} /> {t("Mark done")}
+            </button>
+            <button onClick={() => completeHabit(completeSheet, "minimum")}
+              className="w-full rounded-xl border border-line px-4 py-3 text-sm font-medium text-fg transition hover:bg-[var(--color-surface)]">
+              {t("Do {hard} instead", { hard: completeSheet.hard_day ?? "" })}
+            </button>
+            <p className="pt-0.5 text-center text-[11px] text-muted">{t("Either way, today counts. Never miss twice.")}</p>
+          </div>
+        )}
+      </Modal>
 
       <ConfirmDialog request={confirmReq} onClose={() => setConfirmReq(null)} />
       {habitModal}
@@ -652,16 +748,17 @@ function TaskComposer({
 }
 
 function HabitRow({
-  habit, done, secondary, dueBadge, onComplete, onEdit, onDuplicate, onArchive, onDelete, t,
+  habit, done, secondary, dueBadge, weekly, onComplete, onUncomplete, onEdit, onDuplicate, onArchive, onDelete, t,
 }: {
-  habit: Habit; done: boolean; secondary: string; dueBadge?: boolean;
-  onComplete: () => void; onEdit: () => void; onDuplicate: () => void; onArchive: () => void; onDelete: () => void;
+  habit: Habit; done: boolean; secondary: string; dueBadge?: boolean; weekly?: { done: number; due: number };
+  onComplete: () => void; onUncomplete: () => void; onEdit: () => void; onDuplicate: () => void; onArchive: () => void; onDelete: () => void;
   t: (s: string, v?: Record<string, string | number>) => string;
 }) {
+  const showWeekly = !!weekly && weekly.due > 0;
   return (
     <motion.li layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       className={`flex items-center gap-3 px-2 py-2.5 ${done ? "opacity-60" : ""}`}>
-      <button onClick={onComplete} disabled={done} aria-label={done ? t("Done today") : t("Complete")}
+      <button onClick={done ? onUncomplete : onComplete} aria-label={done ? t("Completed — tap to undo") : t("Complete")}
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors"
         style={done ? { background: GREEN, borderColor: GREEN } : { borderColor: "var(--color-line)" }}>
         <Check size={16} strokeWidth={3} style={{ color: done ? "#fff" : "transparent" }} />
@@ -672,8 +769,13 @@ function HabitRow({
           {habit.name}
         </Link>
         <p className="mt-0.5 truncate text-xs text-muted">
-          {secondary}{dueBadge ? ` · ${t("not today")}` : ""}
+          {secondary}
+          {showWeekly ? ` · ${weekly!.done}/${weekly!.due} ${t("this week")}` : ""}
+          {dueBadge ? ` · ${t("not today")}` : ""}
         </p>
+        {habit.hard_day && (
+          <p className="mt-0.5 truncate text-[11px] text-[color:var(--color-muted)]/80">{t("Hard day")}: {habit.hard_day}</p>
+        )}
       </div>
       <div className="shrink-0">
         <PopMenu ariaLabel={t("Habit menu")}>
