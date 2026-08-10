@@ -8,12 +8,12 @@
 // absent here — consistency is Phase 2. Built on semantic theme tokens so it
 // reads correctly in boys / girls-day (light) / girls-night.
 
-import { createElement, useCallback, useEffect, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Pencil, Copy, Archive, Trash2, Repeat, Check, ChevronDown,
-  Plus, Flag, CalendarDays, Droplet, BookOpen, Dumbbell, Leaf, Moon, ListTodo,
+  Plus, Flag, CalendarDays, Droplet, BookOpen, Dumbbell, Leaf, Moon, ListTodo, Sparkles, X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
@@ -27,6 +27,7 @@ import { toast } from "@/lib/toast";
 import { todayISO, formatDate } from "@/lib/datetime";
 import { captureLifeEvent } from "@/lib/life-events";
 import type { Habit, Reminder, HabitFrequency, HabitCompletionType, Goal, Todo, TaskPriority } from "@/lib/types";
+import { topSuggestion, suggestionKey, timeInsightFor, type Suggestion, type HabitLogLite, type TimeInsight } from "@/lib/habitCoach";
 
 const CATEGORIES = ["Health", "Learning", "Productivity", "Finance", "Mindset", "Relationships", "Custom"];
 /** The four Phase-1 scheduling choices (§4). "specific" and "weekdays" both
@@ -134,6 +135,20 @@ export default function HabitsPage() {
   }, [today]);
   useEffect(() => { loadToday(); }, [loadToday, habits.data.length]);
 
+  // Phase 3 coach — 30 days of history feeds the deterministic nudges.
+  const [recentLogs, setRecentLogs] = useState<HabitLogLite[]>([]);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try { const raw = localStorage.getItem("isa_habit_coach_dismissed"); if (raw) setDismissed(new Set(JSON.parse(raw) as string[])); } catch { /* ignore */ }
+  }, []);
+  const loadRecent = useCallback(async () => {
+    const since = new Date(); since.setDate(since.getDate() - 30);
+    const { data } = await supabase.from("habit_logs")
+      .select("habit_id,date,completed,completion_type,completed_at").gte("date", ymd(since));
+    setRecentLogs((data as HabitLogLite[]) ?? []);
+  }, []);
+  useEffect(() => { loadRecent(); }, [loadRecent, habits.data.length]);
+
   const scheduleLabel = useCallback((h: Habit): string => {
     const cfg = h.frequency_config ?? {};
     switch (h.frequency_type) {
@@ -178,7 +193,7 @@ export default function HabitsPage() {
     setWeekDone((prev) => new Set(prev).add(`${h.id}|${today}`));
     await supabase.from("habit_logs").upsert(
       { habit_id: h.id, user_id: h.user_id, date: today, completed: true, completion_type: type,
-        value: type === "full" ? h.target_value : null },
+        completed_at: new Date().toISOString(), value: type === "full" ? h.target_value : null },
       { onConflict: "habit_id,date" });
     void captureLifeEvent({
       type: "HabitCompleted", occurredAt: today,
@@ -191,6 +206,31 @@ export default function HabitsPage() {
     setDoneIds((prev) => { const n = new Set(prev); n.delete(h.id); return n; });
     setWeekDone((prev) => { const n = new Set(prev); n.delete(`${h.id}|${today}`); return n; });
     await supabase.from("habit_logs").delete().eq("habit_id", h.id).eq("date", today);
+  };
+
+  // ── Coach (Phase 3): one nudge at a time, plus the actions it can offer ──
+  const suggestion = useMemo(
+    () => topSuggestion(activeHabits, recentLogs, dismissed),
+    [activeHabits, recentLogs, dismissed]
+  );
+  const dismissSuggestion = (s: Suggestion) => {
+    setDismissed((prev) => {
+      const n = new Set(prev).add(suggestionKey(s));
+      try { localStorage.setItem("isa_habit_coach_dismissed", JSON.stringify([...n])); } catch { /* ignore */ }
+      return n;
+    });
+  };
+  const adjustTarget = async (h: Habit, value: number) => {
+    await habits.update(h.id, { target_value: value });
+    void loadRecent();
+    toast(t("Target updated to {v}.", { v: `${value}${h.target_unit ? ` ${h.target_unit}` : ""}` }), "success");
+  };
+  const ensureReminder = async (h: Habit, time: string) => {
+    const { data: { user } } = await supabase.auth.getUser(); if (!user) return;
+    const { data } = await supabase.from("reminders").select("id").eq("kind", "habit").eq("habit_id", h.id).limit(1).maybeSingle();
+    if (data?.id) await supabase.from("reminders").update({ remind_time: time, enabled: true }).eq("id", data.id);
+    else await supabase.from("reminders").insert({ user_id: user.id, kind: "habit", habit_id: h.id, title: h.name, remind_time: time, days: ALL_DAYS, enabled: true });
+    toast(t("Reminder set for {time}.", { time }), "success");
   };
 
   // ── TASKS ──
@@ -489,6 +529,21 @@ export default function HabitsPage() {
           </div>
           <span className="shrink-0 text-xs tabular-nums text-muted">{summaryDone} / {summaryTotal} {t("completed")}</span>
         </div>
+      )}
+
+      {/* §9/§10/§14 — one calm nudge, only when something's worth saying */}
+      {view === "today" && suggestion && (
+        <CoachCard
+          key={`${suggestion.habit.id}:${suggestion.kind}`}
+          suggestion={suggestion}
+          insightTime={timeInsightFor(recentLogs.filter((l) => l.habit_id === suggestion.habit.id))}
+          onDismiss={() => dismissSuggestion(suggestion)}
+          onAdjustTarget={(v) => { void adjustTarget(suggestion.habit, v); dismissSuggestion(suggestion); }}
+          onArchive={() => { archive(suggestion.habit); dismissSuggestion(suggestion); }}
+          onMoveReminder={(tm) => { void ensureReminder(suggestion.habit, tm); dismissSuggestion(suggestion); }}
+          onAddReminder={() => { void ensureReminder(suggestion.habit, "20:00"); dismissSuggestion(suggestion); }}
+          t={t}
+        />
       )}
 
       {anyLoading ? (
@@ -798,5 +853,130 @@ function MI({ Icon, label, onClick, danger }: { Icon: typeof Pencil; label: stri
     <button onClick={onClick} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition hover:bg-[var(--color-surface)] ${danger ? "text-red-400" : "text-fg/90"}`}>
       <Icon size={15} /> {label}
     </button>
+  );
+}
+
+// The one calm nudge (§9 recovery / §14 adaptation / §10 insight). Never more
+// than one at a time; every path ends in a single reversible action or a dismiss.
+function CoachCard({ suggestion, insightTime, onDismiss, onAdjustTarget, onArchive, onMoveReminder, onAddReminder, t }: {
+  suggestion: Suggestion; insightTime: TimeInsight | null;
+  onDismiss: () => void; onAdjustTarget: (value: number) => void; onArchive: () => void;
+  onMoveReminder: (time: string) => void; onAddReminder: () => void;
+  t: (s: string, v?: Record<string, string | number>) => string;
+}) {
+  const [reason, setReason] = useState<string | null>(null);
+  const h = suggestion.habit;
+  const unitStr = (v: number, u: string | null) => `${v}${u ? ` ${u}` : ""}`;
+  const primary = "rounded-xl bg-[var(--color-fg)] px-3.5 py-2 text-sm font-semibold text-[color:var(--color-bg)] transition active:scale-[0.98]";
+  const ghost = "rounded-xl border border-line px-3.5 py-2 text-sm font-medium text-fg transition hover:bg-[var(--color-surface)]";
+
+  const shell = (children: React.ReactNode) => (
+    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className={`${CARD} mb-6 p-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+          <Sparkles size={13} style={{ color: GREEN }} /> {t("ISA noticed")}
+        </span>
+        <button onClick={onDismiss} aria-label={t("Dismiss")} className="-m-1 rounded p-1 text-muted transition hover:text-fg"><X size={15} /></button>
+      </div>
+      {children}
+    </motion.div>
+  );
+
+  if (suggestion.kind === "adaptive") {
+    return shell(
+      <div>
+        <p className="text-sm text-fg/90">{t("You've leaned on {name}'s hard-day version {n}× lately — that's okay.", { name: h.name, n: suggestion.minimumCount })}</p>
+        <p className="mt-1 text-sm text-muted">{t("Lower the target to {v}?", { v: unitStr(suggestion.suggestedTarget, suggestion.unit) })}</p>
+        <div className="mt-3 flex gap-2">
+          <button className={primary} onClick={() => onAdjustTarget(suggestion.suggestedTarget)}>{t("Adjust")}</button>
+          <button className={ghost} onClick={onDismiss}>{t("Keep {v}", { v: unitStr(suggestion.currentTarget, suggestion.unit) })}</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (suggestion.kind === "insight") {
+    return shell(
+      <div>
+        <p className="text-sm text-fg/90">{t("{name} works better in the {part} for you.", { name: h.name, part: t(suggestion.part) })}</p>
+        <div className="mt-3 flex gap-2">
+          <button className={primary} onClick={() => onMoveReminder(suggestion.time)}>{t("Move reminder to {time}", { time: suggestion.time })}</button>
+          <button className={ghost} onClick={onDismiss}>{t("Keep")}</button>
+        </div>
+      </div>
+    );
+  }
+
+  // recovery (§9) — a gentle reason, then one concrete, reversible offer.
+  const REASONS = [
+    { id: "too_difficult", label: "Too difficult" },
+    { id: "wrong_time", label: "Wrong time" },
+    { id: "forgot", label: "Forgot" },
+    { id: "environment", label: "Environment" },
+    { id: "no_longer", label: "No longer important" },
+  ];
+  const cur = h.target_value;
+  return shell(
+    <div>
+      <p className="text-sm text-fg/90">{t("{name} has been tricky lately.", { name: h.name })}</p>
+      {!reason ? (
+        <>
+          <p className="mt-1 text-sm text-muted">{t("What's getting in the way?")}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {REASONS.map((r) => (
+              <button key={r.id} onClick={() => setReason(r.id)}
+                className="rounded-full bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-muted transition hover:text-fg">{t(r.label)}</button>
+            ))}
+          </div>
+        </>
+      ) : reason === "too_difficult" ? (
+        cur != null ? (
+          <div className="mt-2">
+            <p className="text-sm text-muted">{t("Make it smaller — {from} → {to}?", { from: unitStr(cur, h.target_unit), to: unitStr(Math.max(1, Math.round(cur / 2)), h.target_unit) })}</p>
+            <div className="mt-3 flex gap-2">
+              <button className={primary} onClick={() => onAdjustTarget(Math.max(1, Math.round(cur / 2)))}>{t("Change")}</button>
+              <button className={ghost} onClick={onDismiss}>{t("Keep")}</button>
+            </div>
+          </div>
+        ) : <ActionAck text={t("Try just a two-minute version next time — showing up is the win.")} onOk={onDismiss} label={t("Got it")} ghost={ghost} />
+      ) : reason === "wrong_time" ? (
+        insightTime ? (
+          <div className="mt-2">
+            <p className="text-sm text-muted">{t("You usually finish in the {part}. Move your reminder to {time}?", { part: t(insightTime.part), time: insightTime.time })}</p>
+            <div className="mt-3 flex gap-2">
+              <button className={primary} onClick={() => onMoveReminder(insightTime.time)}>{t("Move")}</button>
+              <button className={ghost} onClick={onDismiss}>{t("Keep")}</button>
+            </div>
+          </div>
+        ) : <ActionAck text={t("Pick a time that fits your day and give it a week.")} onOk={onDismiss} label={t("Got it")} ghost={ghost} />
+      ) : reason === "forgot" ? (
+        <div className="mt-2">
+          <p className="text-sm text-muted">{t("A reminder would help you remember.")}</p>
+          <div className="mt-3 flex gap-2">
+            <button className={primary} onClick={onAddReminder}>{t("Add reminder")}</button>
+            <button className={ghost} onClick={onDismiss}>{t("Keep")}</button>
+          </div>
+        </div>
+      ) : reason === "no_longer" ? (
+        <div className="mt-2">
+          <p className="text-sm text-muted">{t("Want to archive {name}?", { name: h.name })}</p>
+          <div className="mt-3 flex gap-2">
+            <button className={primary} onClick={onArchive}>{t("Archive")}</button>
+            <button className={ghost} onClick={onDismiss}>{t("Keep")}</button>
+          </div>
+        </div>
+      ) : (
+        <ActionAck text={t("Set up your space so the habit is the easy choice, then try again.")} onOk={onDismiss} label={t("Got it")} ghost={ghost} />
+      )}
+    </div>
+  );
+}
+
+function ActionAck({ text, onOk, label, ghost }: { text: string; onOk: () => void; label: string; ghost: string }) {
+  return (
+    <div className="mt-2">
+      <p className="text-sm text-muted">{text}</p>
+      <div className="mt-3"><button className={ghost} onClick={onOk}>{label}</button></div>
+    </div>
   );
 }

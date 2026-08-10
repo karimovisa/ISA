@@ -219,6 +219,8 @@ export type HabitLog = {
   value: number | null;
   // Phase 2. null (legacy) or "full" = normal completion; "minimum" = hard-day version.
   completion_type: HabitCompletionType | null;
+  // Phase 3. Local timestamp of when it was ticked, for time-of-day patterns.
+  completed_at: string | null;
 };
 
 export type MoodLog = {
