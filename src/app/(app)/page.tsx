@@ -18,6 +18,9 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
+import { useEntitlements } from "@/components/EntitlementProvider";
+import { crossDomainFindings } from "@/lib/crossDomain";
+import { aiInsight } from "@/lib/habitInsight";
 import { Atmosphere } from "@/components/brand/Atmosphere";
 import { TodayPlan } from "@/components/sections/TodayPlan";
 import { TodoList } from "@/components/sections/TodoList";
@@ -37,6 +40,7 @@ const DANGER = "#F26D6D";
 const WARN = "#E0A458";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
+const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 type Activity = { id: string; label: string; when: string; Icon: typeof BookOpen };
 
@@ -69,10 +73,12 @@ const relTime = (iso: string): string => {
 export default function DashboardPage() {
   const { displayName } = useAuth();
   const { t, lang } = useT();
+  const { canUse } = useEntitlements();
   const reduce = useReducedMotion();
 
   const [dateNow, setDateNow] = useState<Date | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
+  const [xdInsight, setXdInsight] = useState<string | null>(null);
   const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleepToday: false });
   const [sleepAvg, setSleepAvg] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
@@ -127,6 +133,38 @@ export default function DashboardPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [habits.data.length, today]);
+
+  // Cross-domain findings (v1): read-only, threshold-gated links across sleep,
+  // energy, habits, spend and activity. The engine interprets; Gemini phrases it
+  // (Pro), else the computed sentence shows as-is. See src/lib/crossDomain.ts.
+  useEffect(() => {
+    void (async () => {
+      const cacheKey = `isa_xd_insight_${lang}_${today}`;
+      try { const raw = localStorage.getItem(cacheKey); if (raw) { setXdInsight(raw); return; } } catch { /* ignore */ }
+      const since = new Date(); since.setDate(since.getDate() - 45);
+      const sinceISO = ymdLocal(since);
+      const [sleepR, energyR, logsR, txR, evR] = await Promise.all([
+        supabase.from("sleep_logs").select("date,duration_hours").gte("date", sinceISO),
+        supabase.from("daily_energy_scores").select("date,score").gte("date", sinceISO),
+        supabase.from("habit_logs").select("date,completed").gte("date", sinceISO),
+        supabase.from("transactions").select("date,amount,category").eq("category", "Food").gte("date", sinceISO),
+        supabase.from("life_events").select("occurred_at").gte("occurred_at", since.toISOString()),
+      ]);
+      const sleep = ((sleepR.data as { date: string; duration_hours: number }[]) ?? [])
+        .map((r) => ({ date: r.date, hours: Number(r.duration_hours) })).filter((r) => r.hours > 0);
+      const energy = ((energyR.data as { date: string; score: number }[]) ?? []).map((r) => ({ date: r.date, score: r.score }));
+      const completions = ((logsR.data as { date: string; completed: boolean }[]) ?? []).filter((r) => r.completed).map((r) => r.date);
+      const food = ((txR.data as { date: string; amount: number }[]) ?? []).map((r) => ({ date: r.date, amount: Number(r.amount) }));
+      const activeDates = [...new Set(((evR.data as { occurred_at: string }[]) ?? []).map((r) => ymdLocal(new Date(r.occurred_at))))];
+
+      const top = crossDomainFindings({ sleep, energy, completions, food, activeDates })[0];
+      if (!top) return;
+      const text = canUse("ai_coach") ? (await aiInsight(top.text, top.text, lang)).text : top.text;
+      setXdInsight(text);
+      try { localStorage.setItem(cacheKey, text); } catch { /* ignore */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Derived facts ──
   const activeGoals = useMemo(() => goals.data.filter((g) => !g.archived), [goals.data]);
@@ -341,9 +379,9 @@ export default function DashboardPage() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold leading-snug text-fg">
-              {insightText ?? t("Keep going — ISA is still learning your rhythm.")}
+              {xdInsight ?? insightText ?? t("Keep going — ISA is still learning your rhythm.")}
             </p>
-            {insight?.detail && insight.title && insight.detail !== insight.title && (
+            {!xdInsight && insight?.detail && insight.title && insight.detail !== insight.title && (
               <p className="mt-1 text-sm leading-relaxed text-muted">{humanize(insight.title)}</p>
             )}
             <Link
