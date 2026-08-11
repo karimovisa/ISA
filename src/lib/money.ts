@@ -38,6 +38,34 @@ export function previousMonthKey(d = new Date()): string {
   return currentMonthKey(prev);
 }
 
+/** Shift a "YYYY-MM" key by whole months (negative = earlier). */
+export function shiftMonthKey(monthKey: string, delta: number): string {
+  const [y, m] = monthKey.split("-").map(Number);
+  return currentMonthKey(new Date(y, (m - 1) + delta, 1));
+}
+
+/** "August 2026" (or "Aug 2026" when short) for a "YYYY-MM" key. */
+export function monthLabel(monthKey: string, opts?: { short?: boolean }): string {
+  const [y, m] = monthKey.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: opts?.short ? "short" : "long", year: "numeric" });
+}
+
+export type MonthBar = { monthKey: string; income: number; expense: number; net: number };
+/** Per-month income/expense/net for the `count` months ending at `endKey`
+ *  (default this month), oldest → newest — the monthly-monitoring series. */
+export function monthlySeries(txns: Transaction[], count = 6, endKey = currentMonthKey()): MonthBar[] {
+  const keys: string[] = [];
+  for (let i = count - 1; i >= 0; i--) keys.push(shiftMonthKey(endKey, -i));
+  const byKey = new Map<string, MonthBar>(keys.map((k) => [k, { monthKey: k, income: 0, expense: 0, net: 0 }]));
+  for (const t of txns) {
+    const bar = byKey.get(monthKeyOf(t.date));
+    if (!bar) continue;
+    if (t.type === "income") bar.income += t.amount; else bar.expense += t.amount;
+    bar.net = bar.income - bar.expense;
+  }
+  return keys.map((k) => byKey.get(k) as MonthBar);
+}
+
 export type MonthSummary = {
   income: number;
   expense: number;
@@ -310,16 +338,17 @@ export type SpendAnalytics = {
   highestDay: { date: string; total: number } | null;
   monthPct: number | null;
 };
-export function spendAnalytics(txns: Transaction[]): SpendAnalytics {
-  const month = currentMonthKey();
+export function spendAnalytics(txns: Transaction[], month = currentMonthKey()): SpendAnalytics {
   const cats = categoryBreakdown(txns, month, "expense");
   const monthTx = txns.filter((t) => t.type === "expense" && monthKeyOf(t.date) === month);
   const totalExp = monthTx.reduce((s, t) => s + t.amount, 0);
-  const dayNum = new Date().getDate();
+  // Divide by days elapsed for the current month, or the full month otherwise.
+  const [yy, mm] = month.split("-").map(Number);
+  const dayNum = month === currentMonthKey() ? new Date().getDate() : new Date(yy, mm, 0).getDate();
   const byDay = new Map<string, number>();
   for (const t of monthTx) byDay.set(t.date, (byDay.get(t.date) ?? 0) + t.amount);
   const hd = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0];
-  const prevTotal = categoryBreakdown(txns, previousMonthKey(), "expense").reduce((s, c) => s + c.total, 0);
+  const prevTotal = categoryBreakdown(txns, shiftMonthKey(month, -1), "expense").reduce((s, c) => s + c.total, 0);
   return {
     largest: cats[0] ?? null,
     dailyAvg: dayNum > 0 ? Math.round(totalExp / dayNum) : 0,

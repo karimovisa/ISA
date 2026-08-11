@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Wallet, Sparkles, Pencil, Trash2, Plus,
-  ArrowUpRight, ArrowDownRight, Search, Lock,
+  Search, Lock, ChevronLeft, ChevronRight,
   Coffee, UtensilsCrossed, Fuel, Car, ShoppingBag, GraduationCap,
 } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
@@ -25,7 +25,7 @@ import { useEntitlements } from "@/components/EntitlementProvider";
 import { captureLifeEvent } from "@/lib/life-events";
 import {
   EXPENSE_CATEGORIES, INCOME_CATEGORIES, currentMonthKey, summarizeMonth,
-  overallBalance, healthWithReasons, generateInsights, formatSom,
+  shiftMonthKey, monthLabel, monthlySeries, healthWithReasons, generateInsights, formatSom,
   suggestCategory, recentCategories, spendAnalytics,
 } from "@/lib/money";
 import type { Transaction, FinanceGoal, TxType } from "@/lib/types";
@@ -76,12 +76,18 @@ export default function MoneyPage() {
   }, []);
 
   const thisMonth = currentMonthKey();
-  const summary = useMemo(() => summarizeMonth(txns.data, thisMonth), [txns.data, thisMonth]);
-  const balance = useMemo(() => overallBalance(txns.data), [txns.data]);
+  const [selectedMonth, setSelectedMonth] = useState(thisMonth);
+  // Hero / metrics / analytics follow the selected month; goals + health stay
+  // anchored to the current month (they're forward-looking).
+  const monthSummary = useMemo(() => summarizeMonth(txns.data, selectedMonth), [txns.data, selectedMonth]);
+  const curSummary = useMemo(() => summarizeMonth(txns.data, thisMonth), [txns.data, thisMonth]);
+  const series = useMemo(() => monthlySeries(txns.data, 6), [txns.data]);
+  const maxSpend = Math.max(1, ...series.map((b) => b.expense));
   const health = useMemo(() => healthWithReasons(txns.data, fgoals.data), [txns.data, fgoals.data]);
   const insights = useMemo(() => generateInsights(txns.data, fgoals.data), [txns.data, fgoals.data]);
-  const analytics = useMemo(() => spendAnalytics(txns.data), [txns.data]);
-  const animatedBalance = useCountUp(balance);
+  const analytics = useMemo(() => spendAnalytics(txns.data, selectedMonth), [txns.data, selectedMonth]);
+  const animatedBalance = useCountUp(monthSummary.balance);
+  const isThisMonth = selectedMonth === thisMonth;
   const activeGoals = fgoals.data.filter((g) => g.is_active);
 
   const orderedPresets = useMemo(() => [...QUICK_PRESETS].sort((a, b) => (freq[b.label] ?? 0) - (freq[a.label] ?? 0)), [freq]);
@@ -156,37 +162,68 @@ export default function MoneyPage() {
         <div className="relative overflow-hidden rounded-[28px] border border-line bg-[var(--color-card)] p-6 sm:p-7">
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full" style={{ background: "radial-gradient(circle, var(--color-accent), transparent 70%)", opacity: 0.12, filter: "blur(42px)" }} />
           <div className="relative">
-            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted"><Wallet size={13} /> {t("Current Balance")}</p>
-            <div className="mt-2 truncate text-[42px] font-bold leading-none tabular-nums sm:text-5xl" style={balance < 0 ? { color: EXPENSE } : undefined}>{formatSom(animatedBalance)}</div>
-            <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="inline-flex items-center gap-1 text-sm">
-                {summary.balance >= 0 ? <ArrowUpRight size={15} style={{ color: INCOME }} /> : <ArrowDownRight size={15} style={{ color: EXPENSE }} />}
-                <span className="font-medium tabular-nums" style={{ color: summary.balance >= 0 ? INCOME : EXPENSE }}>{summary.balance >= 0 ? "+" : "−"}{formatSom(Math.abs(summary.balance))}</span>
-                <span className="text-muted">{t("this month")}</span>
-              </span>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                style={
-                  health.score >= 70
-                    ? { background: `color-mix(in srgb, ${INCOME} 15%, transparent)`, color: INCOME }
-                    : health.score >= 40
-                      ? { background: "color-mix(in srgb, var(--color-accent) 15%, transparent)", color: "var(--color-accent)" }
-                      : { background: `color-mix(in srgb, ${EXPENSE} 15%, transparent)`, color: EXPENSE }
-                }
-              >
-                {t("Savings Health")} {health.score}/100 · {t(health.label)}
-              </span>
+            {/* Month switcher — the balance below is scoped to this month only */}
+            <div className="flex items-center justify-between">
+              <button onClick={() => setSelectedMonth(shiftMonthKey(selectedMonth, -1))} aria-label={t("Previous month")}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-white/5 hover:text-fg"><ChevronLeft size={18} /></button>
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted"><Wallet size={13} /> {monthLabel(selectedMonth)}</span>
+              <button onClick={() => { if (!isThisMonth) setSelectedMonth(shiftMonthKey(selectedMonth, 1)); }} disabled={isThisMonth} aria-label={t("Next month")}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition enabled:hover:bg-white/5 enabled:hover:text-fg disabled:opacity-30"><ChevronRight size={18} /></button>
             </div>
+            <div className="mt-2 truncate text-center text-[42px] font-bold leading-none tabular-nums sm:text-5xl" style={monthSummary.balance < 0 ? { color: EXPENSE } : undefined}>
+              {monthSummary.balance < 0 ? "−" : ""}{formatSom(Math.abs(animatedBalance))}
+            </div>
+            <p className="mt-1.5 text-center text-xs text-muted">{isThisMonth ? t("Net this month") : t("Net that month")}</p>
+            {isThisMonth && (
+              <div className="mt-4 flex justify-center">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                  style={
+                    health.score >= 70
+                      ? { background: `color-mix(in srgb, ${INCOME} 15%, transparent)`, color: INCOME }
+                      : health.score >= 40
+                        ? { background: "color-mix(in srgb, var(--color-accent) 15%, transparent)", color: "var(--color-accent)" }
+                        : { background: `color-mix(in srgb, ${EXPENSE} 15%, transparent)`, color: EXPENSE }
+                  }
+                >
+                  {t("Savings Health")} {health.score}/100 · {t(health.label)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
 
-      {/* Metrics — this month */}
+      {/* Metrics — the selected month */}
       <div className="mb-5 grid grid-cols-3 gap-3">
-        <Metric label="Income" value={formatSom(summary.income)} color={INCOME} />
-        <Metric label="Expenses" value={formatSom(summary.expense)} color={EXPENSE} />
-        <Metric label="Saving rate" value={`${Math.max(-100, Math.round(summary.savingRate))}%`} />
+        <Metric label="Income" value={formatSom(monthSummary.income)} color={INCOME} />
+        <Metric label="Expenses" value={formatSom(monthSummary.expense)} color={EXPENSE} />
+        <Metric label="Saving rate" value={`${Math.max(-100, Math.round(monthSummary.savingRate))}%`} />
       </div>
+
+      {/* Monthly monitoring — spend per month; tap a bar to focus that month */}
+      <GlassCard className="mb-6 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted">{t("Monthly spending")}</h3>
+          <span className="text-xs tabular-nums text-muted">{monthLabel(selectedMonth, { short: true })}: {formatSom(monthSummary.expense)}</span>
+        </div>
+        <div className="flex items-end justify-between gap-2" style={{ height: 116 }}>
+          {series.map((b) => {
+            const h = Math.round((b.expense / maxSpend) * 100);
+            const active = b.monthKey === selectedMonth;
+            return (
+              <button key={b.monthKey} onClick={() => setSelectedMonth(b.monthKey)}
+                className="flex h-full flex-1 flex-col items-center justify-end gap-1.5" aria-label={`${monthLabel(b.monthKey)}: ${formatSom(b.expense)}`}>
+                <div className="flex w-full flex-1 items-end justify-center">
+                  <div className="w-full max-w-[34px] rounded-t-md transition-all"
+                    style={{ height: `${Math.max(3, h)}%`, background: active ? "var(--color-accent)" : "color-mix(in srgb, var(--color-fg) 16%, transparent)" }} />
+                </div>
+                <span className={`text-[10px] ${active ? "font-semibold text-fg" : "text-muted"}`}>{monthLabel(b.monthKey, { short: true }).split(" ")[0]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </GlassCard>
 
       {/* Quick Insight — AI, one sentence, right at the top */}
       <div className="mb-6 flex items-start gap-3 rounded-[28px] border border-line bg-[var(--color-card)] p-5">
@@ -195,7 +232,7 @@ export default function MoneyPage() {
       </div>
 
       {/* Savings goals — what the money is FOR */}
-      <div className="mb-6"><MoneyGoals monthlyNet={summary.balance} /></div>
+      <div className="mb-6"><MoneyGoals monthlyNet={curSummary.balance} /></div>
 
       {/* Quick add — bigger, 2-column, icons above (frequency-ordered) */}
       <div className="mb-6">
