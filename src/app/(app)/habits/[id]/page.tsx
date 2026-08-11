@@ -7,6 +7,7 @@ import { ArrowLeft, Flame, Trophy, Percent, Activity, CheckCircle2, Lock, Sparkl
 import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useEntitlements } from "@/components/EntitlementProvider";
+import { useT } from "@/lib/i18n";
 import type { Habit, HabitLog } from "@/lib/types";
 import { timeInsightFor } from "@/lib/habitCoach";
 import { aiInsight } from "@/lib/habitInsight";
@@ -44,6 +45,13 @@ function computeStats(logs: HabitLog[], created: string): Stats {
   return { current, longest, completion: Math.min(100, completion), consistency, missedWeek, total: done.size };
 }
 
+function partOf(hour: number): string {
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  if (hour < 22) return "evening";
+  return "night";
+}
+
 function scheduleText(h: Habit): string {
   const cfg = h.frequency_config ?? {};
   if (h.frequency_type === "interval") { const e = cfg.every ?? 2; return e <= 1 ? "Daily" : `Every ${e} days`; }
@@ -61,6 +69,7 @@ export default function HabitDetailPage() {
   const params = useParams();
   const id = String(params.id);
   const { canUse } = useEntitlements();
+  const { lang } = useT();
   const [habit, setHabit] = useState<Habit | null>(null);
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,39 +92,63 @@ export default function HabitDetailPage() {
   const [insightLoading, setInsightLoading] = useState(false);
   useEffect(() => {
     if (!habit || !canUse("ai_coach")) return;
-    const key = `isa_habit_insight_${habit.id}_${ymd(new Date())}`;
+    const key = `isa_habit_insight_${habit.id}_${lang}_${ymd(new Date())}`;
     try {
       const raw = localStorage.getItem(key);
       if (raw) { setInsight((JSON.parse(raw) as { text: string }).text); return; }
     } catch { /* ignore */ }
     const st = computeStats(logs, habit.created_at);
-    const ti = timeInsightFor(logs);
     const completions = logs.filter((l) => l.completed);
-    const minShare = completions.length ? Math.round((completions.filter((l) => l.completion_type === "minimum").length / completions.length) * 100) : 0;
-    const facts = [
-      `Habit: ${habit.name}.`,
-      `Schedule: ${scheduleText(habit)}.`,
-      habit.target_value != null ? `Target: ${habit.target_value}${habit.target_unit ? ` ${habit.target_unit}` : ""}.` : "",
-      `Consistency last 30 days: ${st.consistency}%.`,
-      `Current streak ${st.current} days, longest ${st.longest}, ${st.total} completions total.`,
-      ti ? `Usually completed in the ${ti.part}.` : "",
-      minShare > 0 ? `Hard-day version used in ${minShare}% of completions.` : "",
-      habit.trigger_after ? `Trigger: after ${habit.trigger_after}.` : "",
-    ].filter(Boolean).join(" ");
-    const fallback = ti
-      ? `You tend to finish ${habit.name} in the ${ti.part} — lean into that window.`
-      : st.consistency >= 70
-        ? `You've held ${habit.name} ${st.consistency}% of the last month. Steady.`
-        : st.current >= 2
-          ? `${st.current} days going on ${habit.name}. Small and consistent is the point.`
-          : `Every time you show up for ${habit.name}, the pattern gets a little stronger.`;
+
+    let facts: string; let fallback: string;
+    if (st.total < 3) {
+      // Thin data — tell the model plainly so it doesn't fabricate a trend.
+      facts = `Habit: ${habit.name}. Schedule: ${scheduleText(habit)}. Only ${st.total} completion(s) so far — not enough history to see a pattern.`;
+      fallback = "Not enough data yet to see a pattern — keep showing up and it'll appear.";
+    } else {
+      // Interpretive findings: each carries a direction or comparison, never a
+      // naked number (nothing for the model to analyze).
+      const minShare = Math.round((completions.filter((l) => l.completion_type === "minimum").length / completions.length) * 100);
+      const stamped = completions.filter((l) => l.completed_at);
+      let timeFinding = "";
+      if (stamped.length >= 4) {
+        const counts: Record<string, number> = {};
+        for (const l of stamped) { const p = partOf(new Date(l.completed_at as string).getHours()); counts[p] = (counts[p] ?? 0) + 1; }
+        const [part, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        timeFinding = `Most completions land in the ${part} (${n} of ${stamped.length} timestamped).`;
+      }
+      const wkStart = ymd(daysAgo(new Date().getDay()));
+      const prevStart = ymd(daysAgo(new Date().getDay() + 7));
+      const doneDates = completions.map((l) => l.date);
+      const thisWk = doneDates.filter((d) => d >= wkStart).length;
+      const lastWk = doneDates.filter((d) => d >= prevStart && d < wkStart).length;
+      const ti = timeInsightFor(logs);
+      facts = [
+        `Habit: ${habit.name}.`,
+        `Schedule: ${scheduleText(habit)}.`,
+        habit.target_value != null ? `Target: ${habit.target_value}${habit.target_unit ? ` ${habit.target_unit}` : ""}.` : "",
+        `Consistency last 30 days: ${st.consistency}%.`,
+        (thisWk || lastWk) ? `Completed ${thisWk} time(s) this week versus ${lastWk} last week.` : "",
+        `Current streak ${st.current} day(s); longest ${st.longest}; ${st.total} completions total.`,
+        timeFinding,
+        minShare > 0 ? `Hard-day (minimum) version used in ${minShare}% of completions.` : "",
+        habit.trigger_after ? `Trigger: after ${habit.trigger_after}.` : "",
+      ].filter(Boolean).join(" ");
+      fallback = ti
+        ? `You tend to finish ${habit.name} in the ${ti.part} — lean into that window.`
+        : st.consistency >= 70
+          ? `You've held ${habit.name} ${st.consistency}% of the last month. Steady.`
+          : st.current >= 2
+            ? `${st.current} days going on ${habit.name}. Small and consistent is the point.`
+            : `Every time you show up for ${habit.name}, the pattern gets a little stronger.`;
+    }
     setInsightLoading(true);
-    aiInsight(facts, fallback).then((r) => {
+    aiInsight(facts, fallback, lang).then((r) => {
       setInsight(r.text); setInsightLoading(false);
       try { localStorage.setItem(key, JSON.stringify(r)); } catch { /* ignore */ }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habit, logs]);
+  }, [habit, logs, lang]);
 
   if (loading) return <div className="glass h-64 animate-pulse rounded-3xl" />;
   if (!habit) return <div className="text-muted">Habit not found. <Link href="/habits" className="text-accent">Back</Link></div>;
