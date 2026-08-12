@@ -10,8 +10,14 @@
   --color-muted: #8b8578;
   --color-accent: #6e93c7;
   --color-accent-soft: rgba(110, 147, 199, 0.16);
-  /* Opaque card fill used on mobile (no blur, for speed). */
-  --color-card: #171e26;
+  /* Unified card material — one translucent-dark recipe in 3 opacity tiers over
+     the mountain photo. Wired per theme below so the dual-theme never breaks. */
+  --color-card: rgba(18, 22, 30, 0.55);
+  --color-card-dense: rgba(18, 22, 30, 0.8);
+  --color-card-ambient: rgba(18, 22, 30, 0.45);
+  --card-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.55);
+  /* Opaque fill for OVERLAYS only (modals, menus, toasts) — never see-through. */
+  --overlay: #171e26;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "SF Pro Display", "Segoe UI", sans-serif;
@@ -26,7 +32,11 @@
   --color-muted: #8b8578;
   --color-accent: #6e93c7;
   --color-accent-soft: rgba(110, 147, 199, 0.16);
-  --color-card: #171e26;
+  --color-card: rgba(18, 22, 30, 0.55);
+  --color-card-dense: rgba(18, 22, 30, 0.8);
+  --color-card-ambient: rgba(18, 22, 30, 0.45);
+  --card-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.55);
+  --overlay: #171e26;
 }
 /* Girls = real-time pair: day 06:00–18:59, night 19:00–05:59 (or manual). */
 :root[data-theme="girls-day"] {
@@ -39,7 +49,12 @@
   --color-surface: rgba(255, 255, 255, 0.82);
   --color-surface-strong: #ffffff;
   --color-line: rgba(43, 27, 36, 0.09);
-  --color-card: #ffffff;
+  /* Light theme: the card material is LIGHT translucent (a dark card would invert). */
+  --color-card: rgba(255, 255, 255, 0.78);
+  --color-card-dense: rgba(255, 255, 255, 0.9);
+  --color-card-ambient: rgba(255, 255, 255, 0.66);
+  --card-shadow: 0 8px 30px -14px rgba(43, 27, 36, 0.18);
+  --overlay: #ffffff;
 }
 :root[data-theme="girls-night"] {
   color-scheme: dark;
@@ -51,13 +66,18 @@
   --color-surface: #221a24;
   --color-surface-strong: #2a2130;
   --color-line: rgba(255, 255, 255, 0.08);
-  --color-card: #221a24;
+  --color-card: rgba(22, 18, 24, 0.55);
+  --color-card-dense: rgba(22, 18, 24, 0.8);
+  --color-card-ambient: rgba(22, 18, 24, 0.45);
+  --card-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.5);
+  --overlay: #221a24;
 }
 
 /* Smooth theme switch — scoped to the surfaces that actually change color
    (a universal `*` transition is a major scroll/interaction cost on mobile). */
 body,
 .glass,
+.card,
 button,
 a,
 input,
@@ -111,40 +131,52 @@ body::after {
      while the photo stays visible (more reliable than a flat opacity). */
   background-image: linear-gradient(
       to bottom,
-      rgba(16, 24, 32, 0.62),
-      rgba(16, 24, 32, 0.8)
+      rgba(16, 24, 32, 0.72),
+      rgba(16, 24, 32, 0.88)
     ),
     url("/themes/dark.png");
 }
 :root[data-theme="girls-day"] body::after {
   background-image: linear-gradient(
       to bottom,
-      rgba(255, 248, 251, 0.55),
-      rgba(255, 248, 251, 0.8)
+      rgba(255, 248, 251, 0.68),
+      rgba(255, 248, 251, 0.85)
     ),
     url("/themes/rose.png");
 }
 :root[data-theme="girls-night"] body::after {
   background-image: linear-gradient(
       to bottom,
-      rgba(22, 18, 24, 0.6),
-      rgba(22, 18, 24, 0.82)
+      rgba(22, 18, 24, 0.72),
+      rgba(22, 18, 24, 0.88)
     ),
     url("/themes/rose.png");
 }
 
-/* Premium glass card.
-   backdrop-blur is the single biggest scroll cost on mobile Safari, so it's
-   desktop-only; phones get an opaque card fill that looks the same but is fast. */
+/* OVERLAYS ONLY (modals, dropdown menus, toasts, nav) — always opaque so page
+   content never bleeds through them. Distinct from the translucent card material. */
 .glass {
-  background: var(--color-card);
+  background: var(--overlay);
   border: 1px solid var(--color-line);
 }
+
+/* THE card material — one recipe, three opacity tiers, over the mountain photo.
+   Defines only the MATERIAL (fill/blur/border/radius/shadow); size comes from
+   content and the grid, never from here. backdrop-blur is the biggest scroll
+   cost on mobile Safari, so it's desktop-only; the dark translucent fill (plus
+   the page overlay) carries legibility on phones without it. */
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+}
+.card-dense { background: var(--color-card-dense); }     /* data-dense: charts, stat grids */
+.card-ambient { background: var(--color-card-ambient); } /* quiet, ambient cards */
 @media (min-width: 768px) {
-  .glass {
-    background: var(--color-surface);
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  .card {
+    backdrop-filter: blur(20px) saturate(115%);
+    -webkit-backdrop-filter: blur(20px) saturate(115%);
   }
 }
 
@@ -155,7 +187,7 @@ body::after {
 .glass-hover:hover {
   transform: translateY(-4px);
   border-color: rgba(255, 255, 255, 0.16);
-  background: var(--color-surface-strong);
+  background: var(--color-card-dense);
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
 }
 

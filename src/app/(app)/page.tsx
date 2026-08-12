@@ -39,7 +39,7 @@ const GREEN = "#86A97F";
 const DANGER = "#F26D6D";
 const WARN = "#E0A458";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
+const CARD = "card";
 const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 type Activity = { id: string; label: string; when: string; Icon: typeof BookOpen };

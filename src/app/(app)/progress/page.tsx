@@ -224,7 +224,7 @@ export default function ProgressPage() {
       {/* 1 — The weekly report card. Life Coverage is the product's one score
           (Dashboard / What ISA knows); this page shows how the week actually WENT,
           so it reports movement and areas — never a second competing number. */}
-      <GlassCard className="mb-4 p-5">
+      <GlassCard tier="dense" className="mb-4 p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wider text-muted">{t("This week")}</p>
@@ -267,7 +267,7 @@ export default function ProgressPage() {
       {/* 2 — Quick stats */}
       <div className="mb-4 grid grid-cols-3 gap-2.5 sm:grid-cols-6">
         {stats.map((s) => (
-          <GlassCard key={s.label} className="p-3">
+          <GlassCard tier="dense" key={s.label} className="p-3">
             <s.Icon size={14} className="mb-1.5 text-muted" />
             <div className="truncate text-lg font-bold tabular-nums">{s.value}</div>
             <div className="truncate text-[10px] text-muted">{s.label}</div>
@@ -276,7 +276,7 @@ export default function ProgressPage() {
       </div>
 
       {/* 3 — Weekly activity: one chart, readable in 2 seconds */}
-      <GlassCard className="mb-4 p-5">
+      <GlassCard tier="dense" className="mb-4 p-5">
         <div className="mb-1 flex items-baseline justify-between">
           <h3 className="text-sm font-medium">{t("Weekly activity")}</h3>
           <span className="text-xs text-muted">
@@ -330,7 +330,7 @@ export default function ProgressPage() {
 
       {/* 4 — Goals: progress + time + prediction */}
       {activeGoals.length > 0 && (
-        <GlassCard className="mb-4 p-5">
+        <GlassCard tier="dense" className="mb-4 p-5">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
             <Target size={15} className="text-muted" /> {t("Goals")}
           </h3>
@@ -371,7 +371,7 @@ export default function ProgressPage() {
       )}
 
       {/* 5 — Projects: compact cards, not a giant chart */}
-      <GlassCard className="mb-4 p-5">
+      <GlassCard tier="dense" className="mb-4 p-5">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
           <FolderKanban size={15} className="text-muted" /> {t("Projects")}
         </h3>
@@ -428,7 +428,7 @@ export default function ProgressPage() {
       <div className="mb-4"><RunningSection /></div>
 
       {/* 7 — AI insights: sentences, not numbers */}
-      <GlassCard className="mb-4 p-5">
+      <GlassCard tier="dense" className="mb-4 p-5">
         <div className="mb-3 flex items-center gap-2">
           <Sparkles size={15} className="text-accent" />
           <h3 className="text-sm font-medium">{t("AI insights")}</h3>
@@ -461,7 +461,7 @@ export default function ProgressPage() {
 
       {/* 8 — Timeline */}
       {timeline.length > 0 && (
-        <GlassCard className="mb-4 p-5">
+        <GlassCard tier="dense" className="mb-4 p-5">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
             <BookOpen size={15} className="text-muted" /> {t("Life Timeline")}
           </h3>

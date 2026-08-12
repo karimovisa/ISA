@@ -33,7 +33,7 @@ const empty: Draft = {
   target_date: "",
 };
 
-const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
+const CARD = "card";
 const ACCENT_SOFT = "color-mix(in srgb, var(--color-accent) 15%, transparent)";
 const GREEN = "#86A97F";
 const fmtMonth = (d: string | number) => new Date(d).toLocaleDateString([], { month: "short", year: "numeric" });

@@ -42,7 +42,7 @@ const WHEN_OPTIONS: { id: When; label: string }[] = [
 const WD = ["S", "M", "T", "W", "T", "F", "S"];
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const GREEN = "#86A97F";
-const CARD = "rounded-[24px] border border-line bg-[var(--color-card)]";
+const CARD = "card";
 const PRIORITY_CYCLE: TaskPriority[] = ["normal", "high", "low"];
 
 /** Whole days between two dates, by local calendar (DST-safe via UTC midnights). */

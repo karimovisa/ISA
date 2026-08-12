@@ -23,7 +23,7 @@ import { captureLifeEvent } from "@/lib/life-events";
 import { IdeasPanel } from "@/components/sections/IdeasPanel";
 import type { JournalEntry, MoodLog } from "@/lib/types";
 
-const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
+const CARD = "card";
 const wordsOf = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 const entryWords = (e: JournalEntry) => wordsOf(`${e.did_today ?? ""} ${e.learned ?? ""} ${e.tomorrow ?? ""}`);
 

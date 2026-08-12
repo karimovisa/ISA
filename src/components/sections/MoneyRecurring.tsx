@@ -27,7 +27,7 @@ const empty: Draft = {
   day_of_month: "1",
 };
 
-const CARD = "rounded-[24px] border border-line bg-[var(--color-card)]";
+const CARD = "card";
 
 export function MoneyRecurring() {
   const { t } = useT();

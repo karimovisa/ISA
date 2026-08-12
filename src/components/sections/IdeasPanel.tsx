@@ -16,7 +16,7 @@ import { captureLifeEvent } from "@/lib/life-events";
 import { prepareIdeaMeta } from "@/lib/ideas";
 import type { Idea } from "@/lib/types";
 
-const CARD = "rounded-[28px] border border-line bg-[var(--color-card)]";
+const CARD = "card";
 
 export function IdeasPanel() {
   const { t } = useT();
