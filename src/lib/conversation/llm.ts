@@ -25,6 +25,23 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // Errors worth moving on from: overloaded, quota, retired model, transient.
 const RETRYABLE = new Set([404, 429, 500, 502, 503]);
+// A slow model is treated like a busy one: cap each call, and the whole Gemini
+// pass, so the user never waits long before Groq answers instead.
+const MODEL_TIMEOUT_MS = 10_000;
+const GEMINI_BUDGET_MS = 10_000;
+// Models that hit their daily quota (429) or were retired (404) are skipped for
+// an hour on this server instance; an overloaded one (503) for two minutes.
+const COOLDOWN_MS = 60 * 60 * 1000;
+const BUSY_COOLDOWN_MS = 2 * 60 * 1000;
+const cooldownUntil = new Map<string, number>();
+const coolingDown = (model: string) => (cooldownUntil.get(model) ?? 0) > Date.now();
+const coolDown = (model: string, status: number) => {
+  if (status === 429 || status === 404) cooldownUntil.set(model, Date.now() + COOLDOWN_MS);
+  else if (status === 503) cooldownUntil.set(model, Date.now() + BUSY_COOLDOWN_MS);
+};
+// One line per failed model in the server logs (never the key or the prompt).
+const logFail = (model: string, status: number | string, detail: string) =>
+  console.warn(`[isa-llm] ${model} failed: ${status} ${detail.replace(/\s+/g, " ").slice(0, 160)}`);
 
 type Completion = {
   system: string;
@@ -52,7 +69,11 @@ function gemini(): GoogleGenAI | null {
 async function viaGemini(c: Completion): Promise<string | null> {
   const ai = gemini();
   if (!ai) return null;
+  const deadline = Date.now() + GEMINI_BUDGET_MS;
   for (const model of GEMINI_MODELS) {
+    if (coolingDown(model)) continue;
+    const left = deadline - Date.now();
+    if (left < 1_000) break;
     try {
       const response = await ai.models.generateContent({
         model,
@@ -66,24 +87,34 @@ async function viaGemini(c: Completion): Promise<string | null> {
           ...(c.json ? { responseMimeType: "application/json" } : {}),
           // Keep the whole token allowance for the answer — fast, direct replies.
           thinkingConfig: { thinkingBudget: 0 },
+          abortSignal: AbortSignal.timeout(Math.min(MODEL_TIMEOUT_MS, left)),
         },
       });
       const text = (response.text ?? "").trim();
       if (text) return text;
     } catch (e) {
-      if (!RETRYABLE.has((e as { status?: number }).status ?? 0)) return null;
+      const status = (e as { status?: number }).status ?? 0;
+      logFail(model, status || "timeout", e instanceof Error ? e.message : String(e));
+      coolDown(model, status);
+      // A timeout/abort has no status — treat it as busy and move on.
+      if (status && !RETRYABLE.has(status)) return null;
     }
   }
   return null;
 }
 
 async function viaGroq(c: Completion): Promise<string | null> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
+  const apiKey = process.env.GROQ_API_KEY?.trim();
+  if (!apiKey) {
+    console.warn("[isa-llm] GROQ_API_KEY is not set");
+    return null;
+  }
   for (const model of GROQ_MODELS) {
+    if (coolingDown(model)) continue;
     try {
       const res = await fetch(GROQ_URL, {
         method: "POST",
+        signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
         headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           model,
@@ -93,14 +124,17 @@ async function viaGroq(c: Completion): Promise<string | null> {
         }),
       });
       if (!res.ok) {
+        logFail(model, res.status, await res.text().catch(() => ""));
+        coolDown(model, res.status);
         if (RETRYABLE.has(res.status)) continue;
         return null;
       }
       const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
       const text = (data.choices?.[0]?.message?.content ?? "").trim();
       if (text) return text;
-    } catch {
-      // network error → try the next model
+    } catch (e) {
+      // network error or timeout → try the next model
+      logFail(model, "network", e instanceof Error ? e.message : String(e));
     }
   }
   return null;
