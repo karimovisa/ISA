@@ -7,12 +7,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Sparkles, Check, Plus, Brain, Clock } from "lucide-react";
+import { Sparkles, Check, Plus, Brain, Clock, MessageCircle, X } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
 import { computeCoverage, coverageVerdict } from "@/lib/coverage";
+import { retrieve, archive, type MemoryRecord } from "@/lib/memory";
 import {
   loadIntelligenceContext, buildPersonalization, computeAllScores, crossModuleLinks,
   type IntelligenceContext,
@@ -34,6 +35,8 @@ export default function KnowsPage() {
   const { t } = useT();
   const [ctx, setCtx] = useState<IntelligenceContext | null>(null);
   const [counts, setCounts] = useState({ sleepLogs: 0, moodLogs: 0, runs: 0 });
+  // Facts ISA picked up from Ask ISA chats — shown so the user can see and prune them.
+  const [chatFacts, setChatFacts] = useState<MemoryRecord[]>([]);
 
   const goals = useCollection<Goal>("goals");
   const journal = useCollection<JournalEntry>("journal_entries");
@@ -43,6 +46,7 @@ export default function KnowsPage() {
 
   useEffect(() => {
     void loadIntelligenceContext().then(setCtx);
+    void retrieve({ type: "user_fact", status: "active", limit: 80 }).then(setChatFacts);
     (async () => {
       const [{ data: sl }, { data: ml }, { data: rl }, { data: sa }] = await Promise.all([
         supabase.from("sleep_logs").select("id"),
@@ -103,6 +107,11 @@ export default function KnowsPage() {
     for (const l of crossModuleLinks(ctx).slice(0, 1))
       facts.push({ text: l.detail, confidence: l.strength });
   }
+  const forget = async (id: string) => {
+    setChatFacts((f) => f.filter((m) => m.id !== id));
+    await archive(id);
+  };
+
   // Keep it simple — a few strong facts, not an exhaustive dump.
   const topFacts = facts.slice(0, 4);
 
@@ -177,6 +186,38 @@ export default function KnowsPage() {
                   <p className="text-sm leading-relaxed text-fg/90">{f.text}</p>
                   <p className="mt-0.5 text-[11px] text-muted">{confLabel(f.confidence, t)}</p>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </GlassCard>
+
+      {/* What ISA remembers from your chats — each one removable */}
+      <GlassCard className="mt-4 p-5">
+        <div className="mb-1 flex items-center gap-2">
+          <MessageCircle size={15} className="text-accent" />
+          <h2 className="text-sm font-semibold">{t("From your chats")}</h2>
+        </div>
+        <p className="mb-3 text-xs text-muted">
+          {t("ISA uses these to make its advice personal. Remove anything that's wrong or private.")}
+        </p>
+        {chatFacts.length === 0 ? (
+          <p className="text-sm leading-relaxed text-muted">
+            {t("Nothing yet — tell ISA about your goals and routines in Ask ISA.")}
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {chatFacts.map((m) => (
+              <li key={m.id} className="flex items-start gap-2.5">
+                <Check size={14} className="mt-0.5 shrink-0 text-accent" />
+                <p className="min-w-0 flex-1 text-sm leading-relaxed text-fg/90">{m.summary}</p>
+                <button
+                  onClick={() => void forget(m.id)}
+                  aria-label={t("Forget")}
+                  className="shrink-0 rounded-lg p-1 text-muted transition hover:bg-white/[0.06] hover:text-fg"
+                >
+                  <X size={14} />
+                </button>
               </li>
             ))}
           </ul>

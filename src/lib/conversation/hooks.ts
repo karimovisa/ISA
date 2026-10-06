@@ -8,11 +8,13 @@
 //   • <70%  → offer a few interpretations as buttons, never a re-type
 // The user feels understood with the least possible typing.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ask, userTurn } from "./engine";
 import { buildProposalFor, defaultValues, executeAction, undoAction } from "./actions";
-import { noteConversation } from "./memory";
+import { appendMessage, loadLatestConversation, startConversation } from "./history";
+import { learnViaServer } from "./provider";
+import { invalidateContext } from "@/lib/intelligence";
 import type {
   ActionKind, ActionProposal, ActionValues, Clarification, ClarifyOption, ConversationTurn,
 } from "./types";
@@ -33,6 +35,7 @@ export type UseAskIsa = {
   cancelAction: () => void;
   chooseClarification: (option: ClarifyOption) => void;
   undo: () => Promise<void>;
+  /** Start a fresh thread (the old one stays saved). */
   reset: () => void;
 };
 
@@ -52,6 +55,34 @@ export function useAskIsa(): UseAskIsa {
   const [clarification, setClarification] = useState<Clarification | null>(null);
   const [undoable, setUndoable] = useState<Undoable | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The persisted thread this chat writes to; null until the first message.
+  const convId = useRef<string | null>(null);
+
+  // Resume the latest thread so a refresh never wipes the conversation.
+  useEffect(() => {
+    let alive = true;
+    void loadLatestConversation().then((c) => {
+      if (!alive || !c) return;
+      convId.current = c.id;
+      setTurns((t) => (t.length ? t : c.turns));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Best-effort write of one message to the current thread. Writes are queued so
+  // the first message opens exactly one thread and order is preserved.
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const persist = useCallback((role: "user" | "assistant", content: string) => {
+    queue.current = queue.current
+      .then(async () => {
+        if (!convId.current) convId.current = await startConversation(content);
+        if (convId.current) await appendMessage(convId.current, role, content);
+      })
+      .catch(() => {});
+    return queue.current;
+  }, []);
 
   // LLM phrasing is a Pro nicety; the deterministic answer is always available.
   // ISA always speaks with the model when a key is configured — the natural
@@ -62,9 +93,10 @@ export function useAskIsa(): UseAskIsa {
   const runAction = useCallback(async (proposal: ActionProposal, values: ActionValues) => {
     const res = await executeAction(proposal, values);
     setTurns((t) => [...t, assistantTurn(res.message)]);
+    void persist("assistant", res.message);
     setUndoable(res.ok && res.createdId ? { kind: proposal.kind, id: res.createdId } : null);
     if (!res.ok) setError(res.error);
-  }, []);
+  }, [persist]);
 
   const send = useCallback(
     async (message: string) => {
@@ -76,10 +108,10 @@ export function useAskIsa(): UseAskIsa {
       setBusy(true);
       const history = turns;
       setTurns((t) => [...t, userTurn(text)]);
+      void persist("user", text);
       try {
         const result = await ask(text, history, { allowLLM });
         const a = result.answer;
-        void noteConversation(text, a);
 
         // Only jump to a page when the user actually asked to open one ("open
         // money"). A question or coaching reply may CARRY a deep link, but ISA
@@ -87,15 +119,26 @@ export function useAskIsa(): UseAskIsa {
         // (That link is still offered as a tappable chip under the answer.)
         if (a.navigation && a.intent === "navigate") {
           setTurns((t) => [...t, result.turn]);
+          void persist("assistant", result.turn.text);
           router.push(a.navigation.deepLink);
         } else if (a.action && a.action.confidence >= AUTO_EXECUTE) {
           // High confidence: act now, skip the "detected" label, keep Undo.
           await runAction(a.action, defaultValues(a.action));
         } else {
           setTurns((t) => [...t, result.turn]);
+          void persist("assistant", result.turn.text);
           if (a.action) setPendingAction(a.action);
           else if (a.clarification) setClarification(a.clarification);
         }
+
+        // Let ISA learn durable facts from this exchange so the next answer
+        // already knows them. Background, best-effort.
+        void learnViaServer([
+          { role: "user", content: text },
+          { role: "assistant", content: result.turn.text },
+        ]).then((n) => {
+          if (n > 0) invalidateContext();
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
         setTurns((t) => [...t, assistantTurn("I hit a snag reaching your data. Try again in a moment.")]);
@@ -103,7 +146,7 @@ export function useAskIsa(): UseAskIsa {
         setBusy(false);
       }
     },
-    [busy, turns, allowLLM, router, runAction]
+    [busy, turns, allowLLM, router, runAction, persist]
   );
 
   const confirmAction = useCallback(async (values: ActionValues) => {
@@ -123,8 +166,10 @@ export function useAskIsa(): UseAskIsa {
   const cancelAction = useCallback(() => {
     if (!pendingAction) return;
     setPendingAction(null);
-    setTurns((t) => [...t, assistantTurn("No problem — I won't record that.")]);
-  }, [pendingAction]);
+    const msg = "No problem — I won't record that.";
+    setTurns((t) => [...t, assistantTurn(msg)]);
+    void persist("assistant", msg);
+  }, [pendingAction, persist]);
 
   // A tapped interpretation becomes a pre-filled confirmation — never a re-type.
   const chooseClarification = useCallback((option: ClarifyOption) => {
@@ -147,6 +192,7 @@ export function useAskIsa(): UseAskIsa {
   }, [undoable, busy]);
 
   const reset = useCallback(() => {
+    convId.current = null;
     setTurns([]);
     setPendingAction(null);
     setClarification(null);

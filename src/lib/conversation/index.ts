@@ -24,8 +24,9 @@ export { detectAction, executeAction } from "./actions";
 export { buildGenerationRequest, composeTurn, deterministicText } from "./compose";
 export { speakViaServer, REMOTE_ENDPOINT } from "./provider";
 
-// Conversation memory
-export { noteConversation } from "./memory";
+// Conversation history & learning
+export { loadLatestConversation, startConversation, appendMessage } from "./history";
+export { learnViaServer } from "./provider";
 
 // React
 export { useAskIsa } from "./hooks";

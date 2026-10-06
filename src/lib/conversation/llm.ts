@@ -68,6 +68,57 @@ export async function generate(req: GenerationRequest): Promise<string> {
   return (response.text ?? "").trim();
 }
 
+export type LearnedFact = { key: string; fact: string; importance: "high" | "medium" | "low" };
+
+const LEARN_SYSTEM = [
+  "You maintain ISA's long-term memory about ONE user, built from their chats with ISA (a personal life-OS coach).",
+  "Read the latest exchange and return only DURABLE facts about the USER that will help ISA coach them later:",
+  "goals and deadlines, exams/studies/work, routines and schedule, preferences, constraints, recurring struggles, decisions, commitments.",
+  "Do NOT store: what ISA said, one-off small talk, momentary moods (unless they say it's recurring), or secrets (passwords, card/ID numbers, addresses).",
+  "Each fact is ONE short sentence in the user's own language, written about the user (\"Prepares for IELTS, target 7.0 by March\").",
+  "Reuse an existing key when the new info updates that fact; otherwise create a short snake_case key (e.g. ielts_goal, wake_time).",
+  'Respond with JSON only: {"facts":[{"key":string,"fact":string,"importance":"high"|"medium"|"low"}]}. Return {"facts":[]} when nothing durable was said.',
+].join("\n");
+
+/**
+ * Read a chat exchange into durable facts about the user. Server-only. Returns []
+ * when no provider is configured, nothing is worth keeping, or on any failure.
+ */
+export async function extractFacts(
+  exchange: ProviderMessage[],
+  known: { key: string; fact: string }[]
+): Promise<LearnedFact[]> {
+  const ai = gemini();
+  if (!ai) return [];
+  const knownBlock = known.length
+    ? known.map((k) => `- ${k.key}: ${k.fact}`).join("\n")
+    : "(nothing yet)";
+  const transcript = exchange.map((m) => `${m.role === "user" ? "USER" : "ISA"}: ${m.content}`).join("\n");
+  const response = await ai.models.generateContent({
+    model: process.env.GEMINI_MODEL ?? DEFAULT_MODEL,
+    contents: [{ role: "user", parts: [{ text: `KNOWN FACTS:\n${knownBlock}\n\nLATEST EXCHANGE:\n${transcript}` }] }],
+    config: {
+      systemInstruction: LEARN_SYSTEM,
+      responseMimeType: "application/json",
+      maxOutputTokens: 600,
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  });
+  try {
+    const parsed = JSON.parse((response.text ?? "").trim()) as { facts?: Partial<LearnedFact>[] };
+    return (parsed.facts ?? [])
+      .map((f): LearnedFact => ({
+        key: String(f.key ?? "").toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 60),
+        fact: String(f.fact ?? "").trim().slice(0, 300),
+        importance: f.importance === "high" || f.importance === "low" ? f.importance : "medium",
+      }))
+      .filter((f) => f.key && f.fact)
+      .slice(0, 5);
+  } catch {
+    return [];
+  }
+}
+
 export type LlmActionKind = "task" | "goal" | "habit" | "none";
 export type LlmAction = { kind: LlmActionKind; title: string };
 

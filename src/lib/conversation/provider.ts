@@ -6,7 +6,7 @@
 // coupled to one model — swapping providers is a server config change.
 
 import { supabase } from "@/lib/supabase/client";
-import type { GenerationRequest, ProviderName } from "./types";
+import type { GenerationRequest, ProviderMessage, ProviderName } from "./types";
 
 export type LlmActionResult = { kind: "task" | "goal" | "habit" | "none"; title: string };
 
@@ -34,6 +34,32 @@ export async function extractActionViaServer(message: string): Promise<LlmAction
     return data && data.kind !== "none" && data.title?.trim() ? data : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Let the server read the latest exchange into durable facts about the user
+ * (ai_memory, memory_type='user_fact'). Fire-and-forget: resolves to how many
+ * facts were learned, 0 on any failure. Never throws.
+ */
+export async function learnViaServer(messages: ProviderMessage[]): Promise<number> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return 0;
+
+    const res = await fetch("/api/ask/learn", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ messages }),
+    });
+    if (!res.ok) return 0;
+    const data = (await res.json()) as { learned?: number };
+    return data.learned ?? 0;
+  } catch {
+    return 0;
   }
 }
 

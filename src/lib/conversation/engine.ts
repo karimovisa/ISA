@@ -64,7 +64,11 @@ export async function ask(
     !(answer.action && answer.sections.length <= 1);
 
   if (needsPhrasing) {
-    const req = buildGenerationRequest(answer, toProviderMessages(history), message);
+    const userFacts = ctx.memories
+      .filter((m) => m.memory_type === "user_fact" && m.status !== "archived")
+      .slice(0, 40)
+      .map((m) => m.summary);
+    const req = buildGenerationRequest(answer, toProviderMessages(history), message, userFacts);
     const { text, provider } = await speakViaServer(req);
     if (text) return composeTurn(answer, text, provider ?? "claude");
   }

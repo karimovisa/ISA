@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Send, Sparkles, RotateCcw, ArrowUpRight, Footprints, Wallet, type LucideIcon } from "lucide-react";
+import { Send, Sparkles, RotateCcw, ArrowUpRight, Footprints, Wallet, SquarePen, type LucideIcon } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ActionForm } from "@/components/conversation/ActionForm";
@@ -31,7 +31,7 @@ const STARTERS: Starter[] = [
 export default function AskPage() {
   const {
     turns, busy, pendingAction, clarification, undoable,
-    send, confirmAction, cancelAction, chooseClarification, undo,
+    send, confirmAction, cancelAction, chooseClarification, undo, reset,
   } = useAskIsa();
   const { t } = useT();
   const router = useRouter();
@@ -52,7 +52,21 @@ export default function AskPage() {
 
   return (
     <div>
-      <PageHeader title="Ask ISA" subtitle="Ask your life a question — or add something in a sentence." />
+      <PageHeader
+        title="Ask ISA"
+        subtitle="Ask your life a question — or add something in a sentence."
+        action={
+          turns.length > 0 ? (
+            <button
+              onClick={reset}
+              disabled={busy}
+              className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-muted transition hover:text-fg disabled:opacity-40"
+            >
+              <SquarePen size={13} /> {t("New chat")}
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* Conversation */}
       <div className="space-y-3 pb-4">
