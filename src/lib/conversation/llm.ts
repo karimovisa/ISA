@@ -1,7 +1,7 @@
 // ISA — Conversation Layer · LLM provider (SERVER ONLY — never import client-side)
 // The single, replaceable natural-language step. Providers are tried in order:
 // Google Gemini (best Uzbek; free tier ≈20 requests/day per model) and then Groq
-// (OpenAI-compatible; free tier ≈1,000/day on llama-3.3-70b). A model that is
+// (OpenAI-compatible; free tier ≈1,000/day on gpt-oss-120b). A model that is
 // overloaded, out of quota or retired is skipped for the next, so ISA keeps
 // talking; only when every provider fails does the client fall back to ISA's
 // deterministic voice.
@@ -20,8 +20,40 @@ const GEMINI_MODELS = [
       .filter((m): m is string => !!m)
   ),
 ];
-const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+// Groq retires models often, so the preference list is matched against the live
+// /models list (cached) — a retired name is simply skipped, never a hard failure.
+const GROQ_PREFERRED = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"];
+const GROQ_API = "https://api.groq.com/openai/v1";
+const NOT_CHAT = /whisper|tts|guard|safeguard|compound|orpheus|playai|embed/i;
+let groqModelsCache: { at: number; ids: string[] } | null = null;
+
+/** The chat models to try, best first: preferred ones that are live, then any
+ *  other live chat model as a last resort. */
+async function groqModels(apiKey: string): Promise<string[]> {
+  if (groqModelsCache && Date.now() - groqModelsCache.at < COOLDOWN_MS) return groqModelsCache.ids;
+  try {
+    const res = await fetch(`${GROQ_API}/models`, {
+      headers: { authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) throw new Error(`models ${res.status}`);
+    const live = ((await res.json()) as { data?: { id: string }[] }).data?.map((m) => m.id) ?? [];
+    const chat = live.filter((id) => !NOT_CHAT.test(id));
+    const ids = [...GROQ_PREFERRED.filter((id) => chat.includes(id)), ...chat.filter((id) => !GROQ_PREFERRED.includes(id))].slice(0, 4);
+    groqModelsCache = { at: Date.now(), ids };
+    return ids;
+  } catch (e) {
+    logFail("groq/models", "list", e instanceof Error ? e.message : String(e));
+    return GROQ_PREFERRED;
+  }
+}
+
+/** Reasoning models spend tokens thinking — keep that short and out of the reply. */
+function groqReasoning(model: string): Record<string, unknown> {
+  if (model.startsWith("openai/gpt-oss")) return { reasoning_effort: "low", include_reasoning: false };
+  if (model.startsWith("qwen/")) return { reasoning_format: "hidden" };
+  return {};
+}
 
 // Errors worth moving on from: overloaded, quota, retired model, transient.
 const RETRYABLE = new Set([404, 429, 500, 502, 503]);
@@ -109,16 +141,17 @@ async function viaGroq(c: Completion): Promise<string | null> {
     console.warn("[isa-llm] GROQ_API_KEY is not set");
     return null;
   }
-  for (const model of GROQ_MODELS) {
+  for (const model of await groqModels(apiKey)) {
     if (coolingDown(model)) continue;
     try {
-      const res = await fetch(GROQ_URL, {
+      const res = await fetch(`${GROQ_API}/chat/completions`, {
         method: "POST",
         signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
         headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           model,
           max_tokens: c.maxTokens,
+          ...groqReasoning(model),
           messages: [{ role: "system", content: c.system }, ...sanitize(c.messages)],
           ...(c.json ? { response_format: { type: "json_object" } } : {}),
         }),
@@ -126,8 +159,8 @@ async function viaGroq(c: Completion): Promise<string | null> {
       if (!res.ok) {
         logFail(model, res.status, await res.text().catch(() => ""));
         coolDown(model, res.status);
-        if (RETRYABLE.has(res.status)) continue;
-        return null;
+        if (res.status === 401 || res.status === 403) return null; // bad key — no model will work
+        continue;
       }
       const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
       const text = (data.choices?.[0]?.message?.content ?? "").trim();
