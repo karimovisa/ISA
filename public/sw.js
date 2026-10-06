@@ -1,6 +1,6 @@
 /* ISA service worker — offline caching + push notifications */
 
-const VERSION = "isa-v2";
+const VERSION = "isa-v3";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
