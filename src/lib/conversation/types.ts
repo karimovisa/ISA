@@ -163,7 +163,7 @@ export type ConversationTurn = {
  *  facts as its ONLY source and is instructed never to add anything. */
 export type ProviderMessage = { role: Role; content: string };
 
-export type ProviderName = "claude" | "openai" | "gemini" | "deterministic";
+export type ProviderName = "claude" | "openai" | "gemini" | "groq" | "deterministic";
 
 /** What the composer hands the (optional) LLM: a strict system prompt built from
  *  ISA's answer, plus the conversation. */

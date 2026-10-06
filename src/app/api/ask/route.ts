@@ -6,7 +6,7 @@
 // subscription-gated client-side before the request is ever made.
 
 import { adminClient } from "@/lib/strava";
-import { generate, resolveProvider } from "@/lib/conversation/llm";
+import { generate } from "@/lib/conversation/llm";
 import type { GenerationRequest, ProviderMessage } from "@/lib/conversation/types";
 
 export const dynamic = "force-dynamic";
@@ -41,12 +41,11 @@ export async function POST(request: Request) {
   const size = body.system.length + body.messages.reduce((n, m) => n + m.content.length, 0);
   if (size > 24_000) return new Response("payload too large", { status: 413 });
 
-  const provider = resolveProvider(body.provider);
   try {
-    const text = await generate(body);
+    const { text, provider } = await generate(body);
     return new Response(text, {
       status: 200,
-      headers: { "content-type": "text/plain; charset=utf-8", "x-isa-provider": provider ?? "deterministic" },
+      headers: { "content-type": "text/plain; charset=utf-8", "x-isa-provider": provider },
     });
   } catch {
     // Any model failure → empty body; the client speaks ISA's deterministic voice.

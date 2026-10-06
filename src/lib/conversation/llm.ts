@@ -1,53 +1,43 @@
 // ISA — Conversation Layer · LLM provider (SERVER ONLY — never import client-side)
-// The single, replaceable natural-language step. ISA has already done all the
-// thinking; this file only turns ISA's findings into prose. The provider is
-// Google Gemini (gemini-2.5-flash) via the official @google/genai SDK — swapping
-// the model is a config change and never touches ISA's architecture (§19).
+// The single, replaceable natural-language step. Providers are tried in order:
+// Google Gemini (best Uzbek; free tier ≈20 requests/day per model) and then Groq
+// (OpenAI-compatible; free tier ≈1,000/day on llama-3.3-70b). A model that is
+// overloaded, out of quota or retired is skipped for the next, so ISA keeps
+// talking; only when every provider fails does the client fall back to ISA's
+// deterministic voice.
 //
-// The key lives only here, on the server. This file must only be imported by the
-// /api/ask route handler.
+// Keys live only here, on the server. This file must only be imported by the
+// /api/ask route handlers.
 
 import { GoogleGenAI } from "@google/genai";
 import type { GenerationRequest, ProviderMessage, ProviderName } from "./types";
 
 const MAX_TOKENS = 1024;
-// Flash models tried in order. A model that is overloaded (503), out of quota
-// (429 — the free tier allows ~20 requests/day PER MODEL) or retired (404) is
-// skipped for the next one, so one busy model never silences ISA. GEMINI_MODEL,
-// when set, is tried first.
-const FALLBACK_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3-flash-preview"];
-const MODELS = [...new Set([process.env.GEMINI_MODEL, ...FALLBACK_MODELS].filter((m): m is string => !!m))];
+// GEMINI_MODEL, when set, is tried first.
+const GEMINI_MODELS = [
+  ...new Set(
+    [process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3-flash-preview"]
+      .filter((m): m is string => !!m)
+  ),
+];
+const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-type GenerateParams = Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">;
+// Errors worth moving on from: overloaded, quota, retired model, transient.
+const RETRYABLE = new Set([404, 429, 500, 502, 503]);
 
-/** Run one generation, falling through MODELS on a retryable error. */
-async function generateWithFallback(ai: GoogleGenAI, params: GenerateParams) {
-  let lastError: unknown;
-  for (const model of MODELS) {
-    try {
-      return await ai.models.generateContent({ ...params, model });
-    } catch (e) {
-      lastError = e;
-      const status = (e as { status?: number }).status;
-      if (status !== 503 && status !== 429 && status !== 404 && status !== 500) throw e;
-    }
-  }
-  throw lastError;
-}
+type Completion = {
+  system: string;
+  messages: ProviderMessage[];
+  maxTokens: number;
+  json?: boolean;
+};
 
 /** Ensure the message list starts with a user turn and alternates cleanly. */
 function sanitize(messages: ProviderMessage[]): ProviderMessage[] {
   const trimmed = [...messages];
   while (trimmed.length && trimmed[0].role !== "user") trimmed.shift();
   return trimmed.length ? trimmed : [{ role: "user", content: "(no message)" }];
-}
-
-/** Which provider is speaking. Now always Gemini when a key is present; the
- *  request may still ask for "deterministic" to force ISA's own voice. Returns
- *  null when no key is configured (the client then uses ISA's deterministic voice). */
-export function resolveProvider(requested?: ProviderName): ProviderName | null {
-  if (requested === "deterministic") return null;
-  return process.env.GEMINI_API_KEY ? "gemini" : null;
 }
 
 /** Reusable Gemini client — built once per server instance. */
@@ -59,32 +49,100 @@ function gemini(): GoogleGenAI | null {
   return client;
 }
 
-/**
- * Generate the natural-language phrasing of ISA's findings with Gemini. Returns
- * "" when no provider is configured (the client then uses ISA's deterministic
- * voice). The request carries ONLY ISA's computed facts — never a raw data query.
- */
-export async function generate(req: GenerationRequest): Promise<string> {
-  if (resolveProvider(req.provider) !== "gemini") return "";
+async function viaGemini(c: Completion): Promise<string | null> {
   const ai = gemini();
-  if (!ai) return "";
+  if (!ai) return null;
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: sanitize(c.messages).map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+        config: {
+          systemInstruction: c.system,
+          maxOutputTokens: c.maxTokens,
+          ...(c.json ? { responseMimeType: "application/json" } : {}),
+          // Keep the whole token allowance for the answer — fast, direct replies.
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      });
+      const text = (response.text ?? "").trim();
+      if (text) return text;
+    } catch (e) {
+      if (!RETRYABLE.has((e as { status?: number }).status ?? 0)) return null;
+    }
+  }
+  return null;
+}
 
-  const response = await generateWithFallback(ai, {
-    contents: sanitize(req.messages).map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    })),
-    config: {
-      systemInstruction: req.system,
-      maxOutputTokens: MAX_TOKENS,
-      // ISA only needs Gemini to phrase already-computed facts, so disable the
-      // model's own reasoning budget — it keeps the whole token allowance for the
-      // answer and matches the fast, deterministic-shaped responses ISA expects.
-      thinkingConfig: { thinkingBudget: 0 },
-    },
-  });
+async function viaGroq(c: Completion): Promise<string | null> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+  for (const model of GROQ_MODELS) {
+    try {
+      const res = await fetch(GROQ_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          max_tokens: c.maxTokens,
+          messages: [{ role: "system", content: c.system }, ...sanitize(c.messages)],
+          ...(c.json ? { response_format: { type: "json_object" } } : {}),
+        }),
+      });
+      if (!res.ok) {
+        if (RETRYABLE.has(res.status)) continue;
+        return null;
+      }
+      const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const text = (data.choices?.[0]?.message?.content ?? "").trim();
+      if (text) return text;
+    } catch {
+      // network error → try the next model
+    }
+  }
+  return null;
+}
 
-  return (response.text ?? "").trim();
+/** Run one completion through the provider chain. Null when every provider
+ *  failed or none is configured. */
+async function complete(c: Completion): Promise<{ text: string; provider: ProviderName } | null> {
+  const g = await viaGemini(c);
+  if (g) return { text: g, provider: "gemini" };
+  const q = await viaGroq(c);
+  if (q) return { text: q, provider: "groq" };
+  return null;
+}
+
+/** Is any model configured? The request may still ask for "deterministic" to
+ *  force ISA's own voice. */
+export function resolveProvider(requested?: ProviderName): ProviderName | null {
+  if (requested === "deterministic") return null;
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  if (process.env.GROQ_API_KEY) return "groq";
+  return null;
+}
+
+/**
+ * Phrase ISA's answer with the first provider that responds. Returns empty text
+ * and provider "deterministic" when none is configured or all fail (the client
+ * then uses ISA's deterministic voice).
+ */
+export async function generate(req: GenerationRequest): Promise<{ text: string; provider: ProviderName }> {
+  if (!resolveProvider(req.provider)) return { text: "", provider: "deterministic" };
+  const out = await complete({ system: req.system, messages: req.messages, maxTokens: MAX_TOKENS });
+  return out ?? { text: "", provider: "deterministic" };
+}
+
+/** Parse a model's JSON reply, tolerating a ```json fence. */
+function parseJson<T>(text: string): T | null {
+  try {
+    return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim()) as T;
+  } catch {
+    return null;
+  }
 }
 
 export type LearnedFact = { key: string; fact: string; importance: "high" | "medium" | "low" };
@@ -107,34 +165,25 @@ export async function extractFacts(
   exchange: ProviderMessage[],
   known: { key: string; fact: string }[]
 ): Promise<LearnedFact[]> {
-  const ai = gemini();
-  if (!ai) return [];
   const knownBlock = known.length
     ? known.map((k) => `- ${k.key}: ${k.fact}`).join("\n")
     : "(nothing yet)";
   const transcript = exchange.map((m) => `${m.role === "user" ? "USER" : "ISA"}: ${m.content}`).join("\n");
-  const response = await generateWithFallback(ai, {
-    contents: [{ role: "user", parts: [{ text: `KNOWN FACTS:\n${knownBlock}\n\nLATEST EXCHANGE:\n${transcript}` }] }],
-    config: {
-      systemInstruction: LEARN_SYSTEM,
-      responseMimeType: "application/json",
-      maxOutputTokens: 600,
-      thinkingConfig: { thinkingBudget: 0 },
-    },
+  const out = await complete({
+    system: LEARN_SYSTEM,
+    messages: [{ role: "user", content: `KNOWN FACTS:\n${knownBlock}\n\nLATEST EXCHANGE:\n${transcript}` }],
+    maxTokens: 600,
+    json: true,
   });
-  try {
-    const parsed = JSON.parse((response.text ?? "").trim()) as { facts?: Partial<LearnedFact>[] };
-    return (parsed.facts ?? [])
-      .map((f): LearnedFact => ({
-        key: String(f.key ?? "").toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 60),
-        fact: String(f.fact ?? "").trim().slice(0, 300),
-        importance: f.importance === "high" || f.importance === "low" ? f.importance : "medium",
-      }))
-      .filter((f) => f.key && f.fact)
-      .slice(0, 5);
-  } catch {
-    return [];
-  }
+  const parsed = out ? parseJson<{ facts?: Partial<LearnedFact>[] }>(out.text) : null;
+  return (parsed?.facts ?? [])
+    .map((f): LearnedFact => ({
+      key: String(f.key ?? "").toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 60),
+      fact: String(f.fact ?? "").trim().slice(0, 300),
+      importance: f.importance === "high" || f.importance === "low" ? f.importance : "medium",
+    }))
+    .filter((f) => f.key && f.fact)
+    .slice(0, 5);
 }
 
 export type LlmActionKind = "task" | "goal" | "habit" | "none";
@@ -150,32 +199,23 @@ const ACTION_SYSTEM =
   "(no 'add'/'create'/'qo\\'sh'/'yarat'). If kind is 'none', title is an empty string.";
 
 /**
- * Ask Gemini to read a free-form message into a create-action ISA can pre-fill.
- * Server-only. Returns null when no provider is configured or on any failure —
- * the caller then falls back to ISA's deterministic detection. Gemini only
- * PROPOSES; the user still confirms before anything is written.
+ * Ask the model to read a free-form message into a create-action ISA can
+ * pre-fill. Server-only. Returns null when no provider is configured or on any
+ * failure — the caller then falls back to ISA's deterministic detection. The
+ * model only PROPOSES; the user still confirms before anything is written.
  */
 export async function extractAction(message: string): Promise<LlmAction | null> {
-  const ai = gemini();
-  if (!ai) return null;
-  const response = await generateWithFallback(ai, {
-    contents: [{ role: "user", parts: [{ text: message }] }],
-    config: {
-      systemInstruction: ACTION_SYSTEM,
-      responseMimeType: "application/json",
-      maxOutputTokens: 200,
-      thinkingConfig: { thinkingBudget: 0 },
-    },
+  const out = await complete({
+    system: ACTION_SYSTEM,
+    messages: [{ role: "user", content: message }],
+    maxTokens: 200,
+    json: true,
   });
-  try {
-    const parsed = JSON.parse((response.text ?? "").trim()) as Partial<LlmAction>;
-    const kind = parsed.kind;
-    if (kind === "task" || kind === "goal" || kind === "habit") {
-      const title = String(parsed.title ?? "").trim();
-      return title ? { kind, title } : null;
-    }
-  } catch {
-    // non-JSON reply → treat as "no action"
+  const parsed = out ? parseJson<Partial<LlmAction>>(out.text) : null;
+  const kind = parsed?.kind;
+  if (kind === "task" || kind === "goal" || kind === "habit") {
+    const title = String(parsed?.title ?? "").trim();
+    return title ? { kind, title } : null;
   }
   return null;
 }
