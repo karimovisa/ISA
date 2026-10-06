@@ -38,7 +38,7 @@ export function MoneySheet({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-black/70 md:backdrop-blur-sm" onClick={onClose} />
           <motion.div
             className="glass relative z-10 w-full rounded-t-[28px] p-4 sm:max-w-md sm:rounded-[28px]"
             initial={{ y: "100%" }}

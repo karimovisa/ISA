@@ -35,7 +35,7 @@ export function HelpModal() {
     <AnimatePresence>
       {steps && (
         <motion.div className="fixed inset-0 z-[80] flex items-end justify-center p-3 sm:items-center sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={close} />
+          <div className="absolute inset-0 bg-black/70 md:backdrop-blur-sm" onClick={close} />
           <motion.div className="glass relative z-10 w-full max-w-md rounded-3xl p-6"
             style={{ background: "color-mix(in srgb, var(--color-bg) 94%, transparent)" }}
             initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12 }}

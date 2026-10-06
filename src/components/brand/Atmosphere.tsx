@@ -14,7 +14,7 @@ export function Atmosphere() {
     reduce ? undefined : { x: a, y: b };
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 hidden overflow-hidden md:block">
       <motion.div
         className="absolute left-1/2 top-[-18%] h-[540px] w-[540px] -translate-x-1/2 rounded-full will-change-transform"
         style={{

@@ -212,7 +212,7 @@ export function QuickCapture() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeAll} />
+            <div className="absolute inset-0 bg-black/70 md:backdrop-blur-sm" onClick={closeAll} />
             <motion.div
               className="glass relative z-10 w-full rounded-t-3xl p-5 sm:max-w-md sm:rounded-3xl"
               initial={{ y: "100%" }}

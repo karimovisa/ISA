@@ -57,7 +57,7 @@ export default function AskPage() {
       {/* Conversation */}
       <div className="space-y-3 pb-4">
         {turns.length === 0 && (
-          <div className="reflect rounded-3xl border border-white/10 bg-white/[0.05] p-5 backdrop-blur-xl">
+          <div className="reflect rounded-3xl border border-white/10 bg-white/[0.05] p-5 md:backdrop-blur-xl">
             <div className="mb-4 flex items-center gap-2">
               <Sparkles size={16} style={{ color: "var(--color-accent)" }} />
               <h2 className="text-sm font-semibold">{t("ISA already knows you")}</h2>

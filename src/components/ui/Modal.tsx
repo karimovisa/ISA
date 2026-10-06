@@ -47,7 +47,7 @@ export function Modal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-black/70 md:backdrop-blur-sm" onClick={onClose} />
 
           <motion.div
             className="glass relative z-10 flex max-h-[88dvh] w-full flex-col rounded-t-3xl sm:max-w-md sm:rounded-3xl"

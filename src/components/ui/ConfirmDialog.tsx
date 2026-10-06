@@ -47,7 +47,7 @@ export function ConfirmDialog({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-black/70 md:backdrop-blur-sm" onClick={onClose} />
           <motion.div
             className="glass relative z-10 w-full max-w-sm rounded-3xl p-5"
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
