@@ -25,7 +25,10 @@ export { buildGenerationRequest, composeTurn, deterministicText } from "./compos
 export { speakViaServer, REMOTE_ENDPOINT } from "./provider";
 
 // Conversation history & learning
-export { loadLatestConversation, startConversation, appendMessage } from "./history";
+export {
+  loadLatestConversation, listConversations, loadMessages, startConversation, appendMessage, deleteConversation,
+} from "./history";
+export type { ConversationSummary } from "./history";
 export { learnViaServer } from "./provider";
 
 // React

@@ -12,26 +12,42 @@ const LOAD_LIMIT = 100;
 
 type MessageRow = { id: string; role: Role; content: string; created_at: string };
 
-/** The most recent thread, oldest message first. Null when there is none. */
-export async function loadLatestConversation(): Promise<{ id: string; turns: ConversationTurn[] } | null> {
-  const { data: conv } = await supabase
-    .from(CONV)
-    .select("id")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!conv) return null;
+export type ConversationSummary = { id: string; title: string; updated_at: string };
 
+/** Past threads, newest first — the Ask ISA archive. */
+export async function listConversations(limit = 30): Promise<ConversationSummary[]> {
+  const { data } = await supabase
+    .from(CONV)
+    .select("id,title,updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  return (data as ConversationSummary[] | null) ?? [];
+}
+
+/** One thread's messages, oldest first. */
+export async function loadMessages(conversationId: string): Promise<ConversationTurn[]> {
   const { data } = await supabase
     .from(MSG)
     .select("id,role,content,created_at")
-    .eq("conversation_id", conv.id)
+    .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(LOAD_LIMIT);
-  const turns = ((data as MessageRow[] | null) ?? [])
+  return ((data as MessageRow[] | null) ?? [])
     .reverse()
     .map((m) => ({ id: m.id, role: m.role, text: m.content, at: m.created_at }));
-  return { id: conv.id as string, turns };
+}
+
+/** The most recent thread, oldest message first. Null when there is none. */
+export async function loadLatestConversation(): Promise<{ id: string; turns: ConversationTurn[] } | null> {
+  const [latest] = await listConversations(1);
+  if (!latest) return null;
+  return { id: latest.id, turns: await loadMessages(latest.id) };
+}
+
+/** Delete a thread and its messages (cascade). */
+export async function deleteConversation(conversationId: string): Promise<boolean> {
+  const { error } = await supabase.from(CONV).delete().eq("id", conversationId);
+  return !error;
 }
 
 /** Open a new thread titled by its first message. Returns its id, or null. */

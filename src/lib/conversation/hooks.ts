@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ask, userTurn } from "./engine";
 import { buildProposalFor, defaultValues, executeAction, undoAction } from "./actions";
-import { appendMessage, loadLatestConversation, startConversation } from "./history";
+import { appendMessage, loadLatestConversation, loadMessages, startConversation } from "./history";
 import { learnViaServer } from "./provider";
 import { invalidateContext } from "@/lib/intelligence";
 import type {
@@ -37,6 +37,10 @@ export type UseAskIsa = {
   undo: () => Promise<void>;
   /** Start a fresh thread (the old one stays saved). */
   reset: () => void;
+  /** The thread currently shown (null for a new, unsaved chat). */
+  conversationId: string | null;
+  /** Switch to a saved thread from the archive. */
+  openConversation: (id: string) => Promise<void>;
 };
 
 let seq = 0;
@@ -56,20 +60,26 @@ export function useAskIsa(): UseAskIsa {
   const [undoable, setUndoable] = useState<Undoable | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The persisted thread this chat writes to; null until the first message.
+  // Mirrored in state so the archive can highlight the open thread.
   const convId = useRef<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const setConv = useCallback((id: string | null) => {
+    convId.current = id;
+    setConversationId(id);
+  }, []);
 
   // Resume the latest thread so a refresh never wipes the conversation.
   useEffect(() => {
     let alive = true;
     void loadLatestConversation().then((c) => {
-      if (!alive || !c) return;
-      convId.current = c.id;
+      if (!alive || !c || convId.current) return;
+      setConv(c.id);
       setTurns((t) => (t.length ? t : c.turns));
     });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [setConv]);
 
   // Best-effort write of one message to the current thread. Writes are queued so
   // the first message opens exactly one thread and order is preserved.
@@ -77,12 +87,12 @@ export function useAskIsa(): UseAskIsa {
   const persist = useCallback((role: "user" | "assistant", content: string) => {
     queue.current = queue.current
       .then(async () => {
-        if (!convId.current) convId.current = await startConversation(content);
+        if (!convId.current) setConv(await startConversation(content));
         if (convId.current) await appendMessage(convId.current, role, content);
       })
       .catch(() => {});
     return queue.current;
-  }, []);
+  }, [setConv]);
 
   // LLM phrasing is a Pro nicety; the deterministic answer is always available.
   // ISA always speaks with the model when a key is configured — the natural
@@ -192,16 +202,24 @@ export function useAskIsa(): UseAskIsa {
   }, [undoable, busy]);
 
   const reset = useCallback(() => {
-    convId.current = null;
+    setConv(null);
     setTurns([]);
     setPendingAction(null);
     setClarification(null);
     setUndoable(null);
     setError(null);
-  }, []);
+  }, [setConv]);
+
+  const openConversation = useCallback(async (id: string) => {
+    if (busy) return;
+    reset();
+    setConv(id);
+    setTurns(await loadMessages(id));
+  }, [busy, reset, setConv]);
 
   return {
     turns, busy, pendingAction, clarification, undoable, error,
     send, confirmAction, cancelAction, chooseClarification, undo, reset,
+    conversationId, openConversation,
   };
 }

@@ -8,11 +8,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Send, Sparkles, RotateCcw, ArrowUpRight, Footprints, Wallet, SquarePen, type LucideIcon } from "lucide-react";
+import { Send, Sparkles, RotateCcw, ArrowUpRight, Footprints, Wallet, SquarePen, History, X, type LucideIcon } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ActionForm } from "@/components/conversation/ActionForm";
-import { useAskIsa } from "@/lib/conversation";
+import { useAskIsa, listConversations, deleteConversation, type ConversationSummary } from "@/lib/conversation";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
@@ -32,10 +32,32 @@ export default function AskPage() {
   const {
     turns, busy, pendingAction, clarification, undoable,
     send, confirmAction, cancelAction, chooseClarification, undo, reset,
+    conversationId, openConversation,
   } = useAskIsa();
   const { t } = useT();
   const router = useRouter();
   const [text, setText] = useState("");
+  // Archive of past chats — loaded each time it's opened so it's never stale.
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archive, setArchive] = useState<ConversationSummary[] | null>(null);
+
+  const toggleArchive = () => {
+    const next = !archiveOpen;
+    setArchiveOpen(next);
+    if (next) {
+      setArchive(null);
+      void listConversations().then(setArchive);
+    }
+  };
+  const pick = (id: string) => {
+    setArchiveOpen(false);
+    void openConversation(id);
+  };
+  const remove = async (id: string) => {
+    setArchive((a) => a?.filter((c) => c.id !== id) ?? null);
+    await deleteConversation(id);
+    if (id === conversationId) reset();
+  };
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,17 +78,66 @@ export default function AskPage() {
         title="Ask ISA"
         subtitle="Ask your life a question — or add something in a sentence."
         action={
-          turns.length > 0 ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={reset}
-              disabled={busy}
-              className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-muted transition hover:text-fg disabled:opacity-40"
+              onClick={toggleArchive}
+              aria-expanded={archiveOpen}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs transition hover:text-fg",
+                archiveOpen ? "text-fg" : "text-muted"
+              )}
             >
-              <SquarePen size={13} /> {t("New chat")}
+              <History size={13} /> {t("Chats")}
             </button>
-          ) : undefined
+            {turns.length > 0 && (
+              <button
+                onClick={reset}
+                disabled={busy}
+                className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-muted transition hover:text-fg disabled:opacity-40"
+              >
+                <SquarePen size={13} /> {t("New chat")}
+              </button>
+            )}
+          </div>
         }
       />
+
+      {/* Archive — past chats, newest first */}
+      {archiveOpen && (
+        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
+          <GlassCard className="p-2">
+            {archive === null ? (
+              <p className="px-3 py-2 text-sm text-muted">{t("Loading…")}</p>
+            ) : archive.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-muted">{t("No saved chats yet.")}</p>
+            ) : (
+              <ul className="max-h-72 overflow-y-auto">
+                {archive.map((c) => (
+                  <li key={c.id} className="flex items-center gap-1">
+                    <button
+                      onClick={() => pick(c.id)}
+                      className={cn(
+                        "min-w-0 flex-1 rounded-xl px-3 py-2 text-left transition hover:bg-white/[0.05]",
+                        c.id === conversationId && "bg-white/[0.06]"
+                      )}
+                    >
+                      <p className="truncate text-sm text-fg/90">{c.title || t("Untitled chat")}</p>
+                      <p className="text-[11px] text-muted">{new Date(c.updated_at).toLocaleDateString()}</p>
+                    </button>
+                    <button
+                      onClick={() => void remove(c.id)}
+                      aria-label={t("Delete chat")}
+                      className="shrink-0 rounded-lg p-2 text-muted transition hover:bg-white/[0.06] hover:text-fg"
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </GlassCard>
+        </motion.div>
+      )}
 
       {/* Conversation */}
       <div className="space-y-3 pb-4">

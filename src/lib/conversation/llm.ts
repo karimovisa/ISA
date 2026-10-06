@@ -11,9 +11,29 @@ import { GoogleGenAI } from "@google/genai";
 import type { GenerationRequest, ProviderMessage, ProviderName } from "./types";
 
 const MAX_TOKENS = 1024;
-// gemini-2.5-flash is 404 / "no longer available to new users" on new API keys;
-// gemini-3.5-flash is its working successor and the current stable flash tier.
-const DEFAULT_MODEL = "gemini-3.5-flash";
+// Flash models tried in order. A model that is overloaded (503), out of quota
+// (429 — the free tier allows ~20 requests/day PER MODEL) or retired (404) is
+// skipped for the next one, so one busy model never silences ISA. GEMINI_MODEL,
+// when set, is tried first.
+const FALLBACK_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3-flash-preview"];
+const MODELS = [...new Set([process.env.GEMINI_MODEL, ...FALLBACK_MODELS].filter((m): m is string => !!m))];
+
+type GenerateParams = Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">;
+
+/** Run one generation, falling through MODELS on a retryable error. */
+async function generateWithFallback(ai: GoogleGenAI, params: GenerateParams) {
+  let lastError: unknown;
+  for (const model of MODELS) {
+    try {
+      return await ai.models.generateContent({ ...params, model });
+    } catch (e) {
+      lastError = e;
+      const status = (e as { status?: number }).status;
+      if (status !== 503 && status !== 429 && status !== 404 && status !== 500) throw e;
+    }
+  }
+  throw lastError;
+}
 
 /** Ensure the message list starts with a user turn and alternates cleanly. */
 function sanitize(messages: ProviderMessage[]): ProviderMessage[] {
@@ -49,8 +69,7 @@ export async function generate(req: GenerationRequest): Promise<string> {
   const ai = gemini();
   if (!ai) return "";
 
-  const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL ?? DEFAULT_MODEL,
+  const response = await generateWithFallback(ai, {
     contents: sanitize(req.messages).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
@@ -94,8 +113,7 @@ export async function extractFacts(
     ? known.map((k) => `- ${k.key}: ${k.fact}`).join("\n")
     : "(nothing yet)";
   const transcript = exchange.map((m) => `${m.role === "user" ? "USER" : "ISA"}: ${m.content}`).join("\n");
-  const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL ?? DEFAULT_MODEL,
+  const response = await generateWithFallback(ai, {
     contents: [{ role: "user", parts: [{ text: `KNOWN FACTS:\n${knownBlock}\n\nLATEST EXCHANGE:\n${transcript}` }] }],
     config: {
       systemInstruction: LEARN_SYSTEM,
@@ -140,8 +158,7 @@ const ACTION_SYSTEM =
 export async function extractAction(message: string): Promise<LlmAction | null> {
   const ai = gemini();
   if (!ai) return null;
-  const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL ?? DEFAULT_MODEL,
+  const response = await generateWithFallback(ai, {
     contents: [{ role: "user", parts: [{ text: message }] }],
     config: {
       systemInstruction: ACTION_SYSTEM,
