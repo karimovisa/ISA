@@ -29,7 +29,8 @@ function daysBetween(from: Date, to: Date): number {
 function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function isDueOn(h: Habit, date: Date): boolean {
+/** Is this habit due on `date` (daily / chosen weekdays / every N days)? */
+export function isDueOn(h: Habit, date: Date): boolean {
   if (h.frequency_type === "weekdays") return (h.frequency_config?.days ?? []).includes(date.getDay());
   if (h.frequency_type === "interval") {
     const every = h.frequency_config?.every ?? 1;

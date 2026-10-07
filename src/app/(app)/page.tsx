@@ -13,13 +13,14 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   Target, Plus, Search, Sparkles, MessageSquare, CalendarDays,
   BookOpen, Footprints, Timer, Wallet, Repeat, ListTodo, Moon, ChevronRight,
-  Flame, Zap, PenLine,
+  Flame, Zap, PenLine, Check, Circle,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCollection } from "@/hooks/useCollection";
 import { supabase } from "@/lib/supabase/client";
 import { useEntitlements } from "@/components/EntitlementProvider";
 import { crossDomainFindings } from "@/lib/crossDomain";
+import { isDueOn } from "@/lib/habitCoach";
 import { aiInsight } from "@/lib/habitInsight";
 import { Atmosphere } from "@/components/brand/Atmosphere";
 import { TodayPlan } from "@/components/sections/TodayPlan";
@@ -80,8 +81,13 @@ export default function DashboardPage() {
   const [insight, setInsight] = useState<Insight | null>(null);
   const [xdInsight, setXdInsight] = useState<string | null>(null);
   const [today2, setToday2] = useState({ habitsDone: 0, habitsDue: 0, sleepToday: false });
-  const [sleepAvg, setSleepAvg] = useState<number | null>(null);
+  // Last night's sleep and the energy computed from THAT night — the hero and the
+  // Today strip must describe the same day, never a weekly average beside a
+  // single night's score.
+  const [sleepHours, setSleepHours] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
+  const [activeStreak, setActiveStreak] = useState(0);
+  const [showDay, setShowDay] = useState(false);
   const [activity, setActivity] = useState<Activity[]>([]);
 
   const goals = useCollection<Goal>("goals");
@@ -114,22 +120,49 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void (async () => {
-      const [{ data: hl }, { data: sl }, { data: es }] = await Promise.all([
+      const [{ data: hl }, { data: sl }, { data: es }, { data: ev }] = await Promise.all([
         supabase.from("habit_logs").select("habit_id,completed,date").eq("date", today),
-        supabase.from("sleep_logs").select("date,duration_hours"),
-        supabase.from("daily_energy_scores").select("score,date").order("date", { ascending: false }).limit(1),
+        supabase.from("sleep_logs").select("duration_hours").eq("date", today).maybeSingle(),
+        supabase.from("daily_energy_scores").select("score").eq("date", today).maybeSingle(),
+        supabase.from("life_events").select("occurred_at")
+          .gte("occurred_at", new Date(Date.now() - 120 * 86_400_000).toISOString()),
       ]);
       const logs = (hl as { habit_id: string; completed: boolean }[]) ?? [];
-      const sleeps = (sl as { date: string; duration_hours: number }[]) ?? [];
-      setEnergy((es as { score: number }[] | null)?.[0]?.score ?? null);
+      const now = new Date();
+      // Only habits actually due today count — a Mon/Wed/Fri habit isn't "missed" on Tuesday.
+      const due = habits.data.filter((h) => h.is_active && isDueOn(h, now));
+      const dueIds = new Set(due.map((h) => h.id));
       setToday2({
-        habitsDone: logs.filter((x) => x.completed).length,
-        habitsDue: habits.data.filter((h) => h.is_active).length,
-        sleepToday: sleeps.some((x) => x.date === today),
+        habitsDone: logs.filter((x) => x.completed && dueIds.has(x.habit_id)).length,
+        habitsDue: due.length,
+        sleepToday: !!sl,
       });
-      const cutoff = Date.now() - 7 * 86_400_000;
-      const week = sleeps.filter((s) => new Date(s.date).getTime() >= cutoff && s.duration_hours > 0);
-      setSleepAvg(week.length ? week.reduce((a, s) => a + Number(s.duration_hours), 0) / week.length : null);
+
+      const hours = sl ? Number((sl as { duration_hours: number }).duration_hours) : null;
+      setSleepHours(hours);
+      let score = (es as { score: number } | null)?.score ?? null;
+      // Sleep logged but its energy never computed (e.g. written by another path) —
+      // compute it now instead of showing a stale day's score.
+      if (hours != null && score == null) {
+        await supabase.rpc("recompute_my_energy", { p_date: today });
+        const { data: again } = await supabase.from("daily_energy_scores").select("score").eq("date", today).maybeSingle();
+        score = (again as { score: number } | null)?.score ?? null;
+      }
+      setEnergy(score);
+
+      // Streak = consecutive days with ANY logged activity (habits, focus, journal,
+      // money, tasks…), not just journaling. Today still counts as open.
+      const active = new Set(
+        ((ev as { occurred_at: string }[] | null) ?? []).map((e) => new Date(e.occurred_at).toDateString())
+      );
+      const cursor = new Date();
+      if (!active.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1);
+      let streak = 0;
+      while (active.has(cursor.toDateString())) {
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      setActiveStreak(streak);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [habits.data.length, today]);
@@ -179,24 +212,34 @@ export default function DashboardPage() {
   const todaysTodos = todos.data.filter((x) => x.date === today);
   const tasksDone = todaysTodos.filter((x) => x.done).length;
   const tasksRemaining = todaysTodos.length - tasksDone;
-  const focusToday = focus.data.filter(
-    (s) => new Date(s.created_at).toDateString() === new Date().toDateString()
-  ).length;
+  const focusMinToday = Math.round(
+    focus.data
+      .filter((s) => new Date(s.created_at).toDateString() === new Date().toDateString())
+      .reduce((m, s) => m + s.duration_seconds, 0) / 60
+  );
   const journaledToday = journal.data.some((j) => j.entry_date === today);
   const deadline = nearestDeadline(activeGoals);
 
-  // "% of today": a calm blend of the day's rhythm (habits, one task, focus,
-  // journal, sleep) — the answer to "how am I doing?".
+  // "% of today": a calm blend of the day's rhythm. Only what's actually on
+  // today's plate counts — an empty to-do list or no habits due is not a "done"
+  // item that quietly inflates the number. Tap the bar to see the breakdown.
   const dayParts = [
-    today2.habitsDue > 0 ? today2.habitsDone >= today2.habitsDue : true,
-    todaysTodos.length > 0 ? tasksRemaining === 0 : true,
-    focusToday > 0,
-    journaledToday,
-    today2.sleepToday,
-  ];
-  const todayPct = Math.round((dayParts.filter(Boolean).length / dayParts.length) * 100);
+    today2.habitsDue > 0 && {
+      label: t("Habits"),
+      done: today2.habitsDone >= today2.habitsDue,
+      detail: `${today2.habitsDone}/${today2.habitsDue}`,
+    },
+    todaysTodos.length > 0 && {
+      label: t("Tasks"),
+      done: tasksRemaining === 0,
+      detail: `${tasksDone}/${todaysTodos.length}`,
+    },
+    { label: t("Focus"), done: focusMinToday > 0, detail: focusMinToday ? t("{n} min", { n: focusMinToday }) : "" },
+    { label: t("Journal"), done: journaledToday, detail: "" },
+    { label: t("Sleep logged"), done: today2.sleepToday, detail: sleepHours != null ? `${sleepHours.toFixed(1)}h` : "" },
+  ].filter((p): p is { label: string; done: boolean; detail: string } => !!p);
+  const todayPct = Math.round((dayParts.filter((p) => p.done).length / dayParts.length) * 100);
 
-  const streak = Number(journalStreakDisplay(journal.data));
   const goalsForCards = useMemo(
     () =>
       [...activeGoals]
@@ -245,7 +288,7 @@ export default function DashboardPage() {
 
         <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <span className="inline-flex items-center gap-1.5 text-fg/85">
-            <Flame size={15} style={{ color: GREEN }} /> {streak} {t("day streak")}
+            <Flame size={15} style={{ color: GREEN }} /> {activeStreak} {t("day streak")}
           </span>
           <span className="h-3.5 w-px bg-[var(--color-line)]" />
           <span className="inline-flex items-center gap-1.5 text-fg/85">
@@ -253,7 +296,12 @@ export default function DashboardPage() {
           </span>
         </div>
 
-        <div className="mt-4 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setShowDay((v) => !v)}
+          aria-expanded={showDay}
+          className="mt-4 flex w-full items-center gap-3 text-left"
+        >
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
             <motion.div
               className="h-full rounded-full"
@@ -264,7 +312,18 @@ export default function DashboardPage() {
             />
           </div>
           <span className="shrink-0 text-xs tabular-nums text-muted">{todayPct}% {t("today")}</span>
-        </div>
+        </button>
+        {showDay && (
+          <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
+            {dayParts.map((p) => (
+              <li key={p.label} className={`flex items-center gap-1.5 ${p.done ? "text-fg/85" : "text-muted"}`}>
+                {p.done ? <Check size={13} style={{ color: GREEN }} /> : <Circle size={11} className="opacity-60" />}
+                {p.label}
+                {p.detail && <span className="tabular-nums text-muted">· {p.detail}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
       </motion.header>
 
       {/* Evening-only, once a day — the one thing ISA can't sense: sleep + why. */}
@@ -277,10 +336,10 @@ export default function DashboardPage() {
         <SectionLabel>{t("Today")}</SectionLabel>
         <div className={`${CARD} mt-2.5 p-4`}>
           <div className="grid grid-cols-4 gap-2">
-            <MiniStat value={today2.habitsDone} label={t("Habits")} />
-            <MiniStat value={tasksDone} label={t("Tasks")} />
-            <MiniStat value={focusToday} label={t("Focus")} />
-            <MiniStat value={sleepAvg != null ? `${sleepAvg.toFixed(1)}h` : "—"} label={t("Sleep")} />
+            <MiniStat value={today2.habitsDue ? `${today2.habitsDone}/${today2.habitsDue}` : "—"} label={t("Habits")} />
+            <MiniStat value={todaysTodos.length ? `${tasksDone}/${todaysTodos.length}` : "—"} label={t("Tasks")} />
+            <MiniStat value={focusMinToday ? t("{n} min", { n: focusMinToday }) : "—"} label={t("Focus")} />
+            <MiniStat value={sleepHours != null ? `${sleepHours.toFixed(1)}h` : "—"} label={t("Sleep")} />
           </div>
         </div>
       </motion.section>
@@ -420,19 +479,6 @@ function humanize(s: string): string {
   return s
     .replace(/\b([A-Z][a-z]+)([A-Z][a-z]+)+\b/g, (m) => m.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase())
     .replace(/^./, (c) => c.toUpperCase());
-}
-
-function journalStreakDisplay(entries: JournalEntry[]): string {
-  const days = new Set(entries.map((e) => new Date(e.entry_date).toDateString()));
-  const DAY = 86_400_000;
-  let cursor = new Date();
-  if (!days.has(cursor.toDateString())) cursor = new Date(Date.now() - DAY);
-  let streak = 0;
-  while (days.has(cursor.toDateString())) {
-    streak++;
-    cursor = new Date(cursor.getTime() - DAY);
-  }
-  return String(streak);
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
