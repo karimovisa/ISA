@@ -15,7 +15,7 @@ import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/
 import { PressButton } from "@/components/ui/PressButton";
 import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { captureLifeEvent } from "@/lib/life-events";
-import { analyzeGoal, type GoalPace } from "@/lib/goals";
+import { analyzeGoal, type GoalPace, type GoalForecast } from "@/lib/goals";
 import { useT } from "@/lib/i18n";
 import type { Goal, GoalMilestone } from "@/lib/types";
 
@@ -31,7 +31,7 @@ const paceChip: Record<GoalPace, string> = {
 };
 
 export default function GoalsPage() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const goals = useCollection<Goal>("goals");
   const ms = useCollection<GoalMilestone>("goal_milestones", { orderBy: "position", ascending: true });
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
@@ -160,10 +160,12 @@ export default function GoalsPage() {
                   <div className="mt-3 flex items-end justify-between">
                     <span className="text-3xl font-bold tabular-nums">{a.pct}%</span>
                     <div className="text-right">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${paceChip[a.pace]}`}>{a.paceLabel}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${paceChip[a.pace]}`}>{t(a.paceLabel)}</span>
                       {a.daysLeft != null && (
                         <p className={`mt-1 text-xs ${a.daysLeft < 0 ? "text-red-300" : a.daysLeft <= 3 ? "text-amber-300" : "text-muted"}`}>
-                          {a.daysLeft < 0 ? `${Math.abs(a.daysLeft)} days overdue` : `${a.daysLeft} days left`}
+                          {a.daysLeft < 0
+                            ? t("{n} days overdue", { n: Math.abs(a.daysLeft) })
+                            : t("{n} days left", { n: a.daysLeft })}
                         </p>
                       )}
                     </div>
@@ -174,19 +176,22 @@ export default function GoalsPage() {
                   <div className="mt-4 space-y-1.5 text-sm">
                     <p className="flex items-center gap-2 text-fg/85">
                       <TrendingUp size={14} className="shrink-0 text-accent" />
-                      {a.nextStep ? <span><span className="text-muted">Next: </span>{a.nextStep}</span>
-                        : <span className="text-muted">Add a milestone to begin.</span>}
+                      {a.nextStep ? <span><span className="text-muted">{t("Next:")} </span>{a.nextStep}</span>
+                        : <span className="text-muted">{t("Add a milestone to begin.")}</span>}
                     </p>
-                    <p className="flex items-center gap-2 text-xs text-muted">
-                      <Sparkles size={13} className="shrink-0 text-accent/70" />{a.prediction}
-                    </p>
-                    {a.insight && <p className="text-xs font-medium text-amber-300/90">{a.insight}</p>}
+                    {a.forecast && (
+                      <p className="flex items-start gap-2 text-xs text-muted">
+                        <Sparkles size={13} className="mt-px shrink-0 text-accent/70" />
+                        <ForecastLine forecast={a.forecast} t={t} lang={lang} />
+                      </p>
+                    )}
+                    {a.insight && <p className="text-xs font-medium text-amber-300/90">{t(a.insight.text, a.insight.vars)}</p>}
                   </div>
 
                   {/* milestones */}
                   <button onClick={() => setExpanded(isOpen ? null : g.id)}
                     className="mt-4 flex w-full items-center justify-between border-t border-line pt-3 text-xs text-muted transition hover:text-fg">
-                    <span>{list.length ? `${list.filter((m) => m.done).length}/${list.length} milestones` : "Milestones"}</span>
+                    <span>{list.length ? t("{done}/{n} milestones", { done: list.filter((m) => m.done).length, n: list.length }) : t("Milestones")}</span>
                     <motion.span animate={{ rotate: isOpen ? 180 : 0 }}><ChevronDown size={15} /></motion.span>
                   </button>
                   <AnimatePresence initial={false}>
@@ -262,5 +267,37 @@ function MenuItem({ Icon, label, onClick, danger }: { Icon: typeof Pencil; label
       className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition hover:bg-white/5 ${danger ? "text-red-400" : "text-fg/90"}`}>
       <Icon size={15} /> {label}
     </button>
+  );
+}
+
+const FORECAST_LOCALE: Record<string, string> = { en: "en-US", uz: "uz-UZ", ru: "ru-RU" };
+
+/** "At this pace you'll finish on 12 December — 5 days before your deadline." */
+function ForecastLine({ forecast, t, lang }: {
+  forecast: GoalForecast;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+  lang: string;
+}) {
+  if (forecast.kind === "stalled") return <span>{t("Not enough movement to predict yet.")}</span>;
+  const date = forecast.finish.toLocaleDateString(FORECAST_LOCALE[lang] ?? "en-US", {
+    day: "numeric",
+    month: "long",
+    ...(forecast.finish.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {}),
+  });
+  const d = forecast.vsDeadline;
+  return (
+    <span>
+      {t("At this pace you'll finish on {date}", { date })}
+      {d != null && (
+        <span className={d > 0 ? "text-amber-300/90" : "text-emerald-300/90"}>
+          {" — "}
+          {d > 0
+            ? t("{n} days after your deadline", { n: d })
+            : d < 0
+              ? t("{n} days before your deadline", { n: -d })
+              : t("right on your deadline")}
+        </span>
+      )}
+    </span>
   );
 }
