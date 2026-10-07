@@ -29,6 +29,7 @@ import {
   suggestCategory, recentCategories, spendAnalytics,
 } from "@/lib/money";
 import type { Transaction, FinanceGoal, TxType } from "@/lib/types";
+import { BudgetCard } from "@/components/sections/BudgetCard";
 
 const QUICK_PRESETS = [
   { label: "Coffee", Icon: Coffee, category: "Food" },
@@ -200,6 +201,9 @@ export default function MoneyPage() {
         <Metric label="Expenses" value={formatSom(monthSummary.expense)} color={EXPENSE} />
         <Metric label="Saving rate" value={`${Math.max(-100, Math.round(monthSummary.savingRate))}%`} />
       </div>
+
+      {/* Category budgets — optional; ISA proposes limits from real spending */}
+      <BudgetCard txns={txns.data} />
 
       {/* Monthly monitoring — spend per month; tap a bar to focus that month */}
       <GlassCard className="mb-6 p-6">
