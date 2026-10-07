@@ -28,7 +28,7 @@ import { retrieveTimeline, type TimelineEntry } from "@/lib/memory";
 import { retrieveInsights, type Insight } from "@/lib/insights";
 import { useT } from "@/lib/i18n";
 import {
-  compare, windowsFor, windowDays, inWindow, earliestDate,
+  compareRows, windowDays, earliestDate,
   type Period, type DomainKey, type Verdict, type Window,
 } from "@/lib/progressCompare";
 import type { FocusSession, Project, Goal, JournalEntry, Habit, RunLog } from "@/lib/types";
@@ -178,37 +178,22 @@ export default function ProgressPage() {
   const goalAvg = activeGoals.length ? activeGoals.reduce((s, g) => s + g.percentage, 0) / activeGoals.length : 0;
 
   // ── The report card: equal windows, per-day rates, a vote across used areas ──
-  const comparison = useMemo(() => {
-    const { current, previous } = windowsFor(period);
-    const count = (dates: string[], w: Window) => dates.filter((d) => inWindow(d, w)).length / windowDays(w);
-    const total = (items: { date: string; v: number }[], w: Window) =>
-      items.filter((i) => inWindow(i.date, w)).reduce((s, i) => s + i.v, 0) / windowDays(w);
-    const focusItems = focus.data.map((f) => ({ date: ymd(new Date(f.created_at)), v: f.duration_seconds / 60 }));
-    const journalDates = [...new Set(journal.data.map((e) => e.entry_date))];
-    const runItems = runs.map((r) => ({ date: r.date, v: r.km }));
-    // "Not logged" isn't "slept badly" — no entries means no sleep comparison.
-    const sleepAvg = (w: Window) => {
-      const s = rows.sleep.filter((x) => inWindow(x.date, w) && x.hours > 0);
-      return s.length ? s.reduce((a, x) => a + Math.min(8, x.hours), 0) / s.length : null;
-    };
-    const pair = (fn: (w: Window) => number | null) => ({ current: fn(current), previous: fn(previous) });
-    return {
-      current,
-      previous,
-      ...compare(
+  const comparison = useMemo(
+    () =>
+      compareRows(
         {
-          focus: pair((w) => total(focusItems, w)),
-          habits: pair((w) => count(rows.habitDates, w)),
-          tasks: pair((w) => count(rows.taskDates, w)),
-          journal: pair((w) => count(journalDates, w)),
-          running: pair((w) => total(runItems, w)),
-          sleep: pair(sleepAvg),
-          prayer: pair((w) => count(rows.prayerDates, w)),
+          focus: focus.data.map((f) => ({ date: ymd(new Date(f.created_at)), min: f.duration_seconds / 60 })),
+          habitDates: rows.habitDates,
+          taskDates: rows.taskDates,
+          journalDates: journal.data.map((e) => e.entry_date),
+          runs: runs.map((r) => ({ date: r.date, km: r.km })),
+          sleep: rows.sleep,
+          prayerDates: rows.prayerDates,
         },
         period
       ),
-    };
-  }, [period, focus.data, journal.data, runs, rows]);
+    [period, focus.data, journal.data, runs, rows]
+  );
 
   /** A domain's value for display: totals for sums, the average for averages. */
   const shown = (key: DomainKey, perDay: number, w: Window) =>

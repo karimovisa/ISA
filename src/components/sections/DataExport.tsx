@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileText, Download, Upload, ChevronDown } from "lucide-react";
+import { FileText, Download, Upload, ChevronDown, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
-import { formatSom } from "@/lib/money";
 import { toast } from "@/lib/toast";
 import { useT } from "@/lib/i18n";
+import { loadReport, type ReportPeriod } from "@/lib/report/data";
+import { renderReportPdf, renderStoryPng, saveBlob, shareOrSave } from "@/lib/report/render";
 
 // Every table holding the user's own content. RLS scopes each select to them.
 // Credential tables (strava_connections, push_subscriptions) are intentionally
@@ -44,153 +45,39 @@ const TABLES = [
   "prayer_logs",
 ];
 
-// Human labels for the readable report — no raw table names ever reach the page.
-const DATASET_LABELS: Record<string, string> = {
-  goals: "Goals",
-  goal_milestones: "Goal milestones",
-  projects: "Projects",
-  project_tasks: "Project steps",
-  project_notes: "Project notes",
-  ideas: "Ideas",
-  journal_entries: "Journal entries",
-  focus_sessions: "Focus sessions",
-  sleep_logs: "Sleep logs",
-  daily_energy_scores: "Energy scores",
-  daily_checkins: "Daily check-ins",
-  weekly_reviews: "Weekly reviews",
-  habits: "Habits",
-  habit_logs: "Habit check-ins",
-  mood_logs: "Mood logs",
-  todos: "Tasks",
-  runs: "Runs (manual)",
-  strava_activities: "Runs (Strava)",
-  finance_goals: "Savings goals",
-  transactions: "Transactions",
-  recurring_payments: "Recurring payments",
-  reminders: "Reminders",
-  prayer_preferences: "Prayer settings",
-  prayer_logs: "Prayer logs",
-};
-
-const esc = (s: unknown) =>
-  String(s ?? "").replace(/[&<>]/g, (c) => (c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;"));
-
 export function DataExport() {
-  const { t } = useT();
+  const { t, lang } = useT();
+  const [period, setPeriod] = useState<ReportPeriod>("week");
+  const [working, setWorking] = useState<"pdf" | "story" | null>(null);
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // ── Primary: a readable PDF report, downloaded as a real .pdf file ──
-  // The old flow opened a pop-up and asked the browser to print it. The pop-up
-  // was opened only after ~25 sequential queries — outside the click — so it was
-  // blocked, and installed (PWA) windows often can't print a pop-up at all. Now
-  // the report is laid out off-screen, rasterised (any script — Latin, Cyrillic —
-  // renders exactly as the browser draws it) and saved as an A4 PDF. The two
-  // libraries load only when the button is pressed.
-  const downloadReport = async () => {
+  // ── Primary: the weekly / monthly life report (PDF) and a story to share ──
+  const stamp = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  const makeReport = async (kind: "pdf" | "story") => {
     setBusy(true);
+    setWorking(kind);
     setNote(null);
-    let host: HTMLDivElement | null = null;
     try {
-      const [countResults, { data: goals }, { data: txns }, { data: habits }, { data: { user } }, libs] =
-        await Promise.all([
-          Promise.all(
-            TABLES.map((tbl) => supabase.from(tbl).select("*", { count: "exact", head: true }).then((r) => r.count ?? 0))
-          ),
-          supabase.from("goals").select("title,percentage,archived").order("percentage", { ascending: false }),
-          supabase.from("transactions").select("type,amount"),
-          supabase.from("habits").select("name,is_active"),
-          supabase.auth.getUser(),
-          Promise.all([import("jspdf"), import("html2canvas-pro")]),
-        ]);
-      const counts: Record<string, number> = Object.fromEntries(TABLES.map((tbl, i) => [tbl, countResults[i]]));
-      const [{ jsPDF }, { default: html2canvas }] = libs;
-
-      const tx = (txns as { type: string; amount: number }[]) ?? [];
-      const income = tx.filter((x) => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
-      const expense = tx.filter((x) => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
-      const activeGoals = ((goals as { title: string; percentage: number; archived: boolean }[]) ?? [])
-        .filter((g) => !g.archived);
-      const activeHabits = ((habits as { name: string; is_active: boolean }[]) ?? [])
-        .filter((h) => h.is_active);
-
-      const name = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
-      const now = new Date();
-      const when = now.toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
-
-      const countRows = TABLES.filter((tbl) => counts[tbl] > 0)
-        .map((tbl) => `<tr><td>${esc(t(DATASET_LABELS[tbl] ?? tbl))}</td><td class="num">${counts[tbl]}</td></tr>`)
-        .join("");
-      const goalRows = activeGoals.length
-        ? activeGoals.map((g) => `<li><span>${esc(g.title)}</span><b>${Math.round(g.percentage ?? 0)}%</b></li>`).join("")
-        : `<li class="muted">${esc(t("No active goals."))}</li>`;
-      const habitList = activeHabits.length
-        ? activeHabits.map((h) => `<span class="chip">${esc(h.name)}</span>`).join("")
-        : `<span class="muted">${esc(t("No active habits."))}</span>`;
-
-      // Off-screen A4-width page (794px ≈ 210mm at 96dpi). Styles are scoped to it.
-      host = document.createElement("div");
-      host.setAttribute("aria-hidden", "true");
-      host.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;background:#fff;";
-      host.innerHTML = `<style>
-  .isa-r { font: 14px/1.6 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1a1a1a; padding: 48px; background: #fff; }
-  .isa-r * { box-sizing: border-box; }
-  .isa-r h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.02em; }
-  .isa-r .sub { color: #666; margin: 0 0 28px; }
-  .isa-r h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 28px 0 10px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-  .isa-r table { width: 100%; border-collapse: collapse; }
-  .isa-r td { padding: 5px 0; border-bottom: 1px solid #f2f2f2; }
-  .isa-r td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-  .isa-r ul { list-style: none; padding: 0; margin: 0; }
-  .isa-r li { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; border-bottom: 1px solid #f2f2f2; }
-  .isa-r .money { display: flex; gap: 32px; margin-top: 8px; }
-  .isa-r .money .k { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .isa-r .money .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .isa-r .chip { display: inline-block; background: #f4f4f5; border-radius: 999px; padding: 3px 12px; margin: 0 6px 6px 0; font-size: 13px; }
-  .isa-r .muted { color: #999; }
-  .isa-r footer { margin-top: 36px; color: #aaa; font-size: 12px; border-top: 1px solid #eee; padding-top: 12px; }
-</style>
-<div class="isa-r">
-  <h1>${esc(t("ISA — Your Life Report"))}</h1>
-  <p class="sub">${esc(name)} · ${esc(when)}</p>
-  <h2>${esc(t("Money"))}</h2>
-  <div class="money">
-    <div><div class="k">${esc(t("Income"))}</div><div class="v">${esc(formatSom(income))}</div></div>
-    <div><div class="k">${esc(t("Expenses"))}</div><div class="v">${esc(formatSom(expense))}</div></div>
-    <div><div class="k">${esc(t("Balance"))}</div><div class="v">${esc(formatSom(income - expense))}</div></div>
-  </div>
-  <h2>${esc(t("Active goals"))}</h2>
-  <ul>${goalRows}</ul>
-  <h2>${esc(t("Active habits"))}</h2>
-  <div>${habitList}</div>
-  <h2>${esc(t("Everything ISA is tracking"))}</h2>
-  <table>${countRows || `<tr><td class="muted">${esc(t("Nothing recorded yet."))}</td></tr>`}</table>
-  <footer>${esc(t("Generated by ISA · This report reflects your data at the time of export."))}</footer>
-</div>`;
-      document.body.appendChild(host);
-
-      const canvas = await html2canvas(host, { scale: 2, backgroundColor: "#ffffff", logging: false });
-
-      // Slice the tall image across A4 pages.
-      const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgH = (canvas.height * pageW) / canvas.width;
-      const img = canvas.toDataURL("image/jpeg", 0.92);
-      for (let y = 0, page = 0; y < imgH - 1; y += pageH, page++) {
-        if (page > 0) pdf.addPage();
-        pdf.addImage(img, "JPEG", 0, -y, pageW, imgH);
+      const data = await loadReport(period);
+      if (kind === "pdf") {
+        saveBlob(await renderReportPdf(data, t, lang), `ISA-${period}-${stamp()}.pdf`);
+        setNote(t("Report downloaded."));
+      } else {
+        const how = await shareOrSave(await renderStoryPng(data, t, lang), `ISA-${period}-${stamp()}.png`);
+        if (how === "saved") setNote(t("Story image saved — share it from your gallery."));
       }
-      const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      pdf.save(`ISA-report-${stamp}.pdf`);
-      setNote(t("Report downloaded."));
     } catch {
       setNote(t("Couldn't build the report. Check your connection and try again."));
     } finally {
-      host?.remove();
       setBusy(false);
+      setWorking(null);
     }
   };
 
@@ -283,20 +170,43 @@ export function DataExport() {
           <FileText size={16} className="text-fg" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-medium">{t("Backup & restore")}</h3>
-          <p className="text-xs text-muted">{t("A readable report of your progress — download it any time.")}</p>
+          <h3 className="text-sm font-medium">{t("Your life report")}</h3>
+          <p className="text-xs text-muted">{t("Your week or month in one beautiful report — keep it, or share the story.")}</p>
         </div>
       </div>
 
-      <div className="mt-3">
-        <PressButton
-          onClick={downloadReport}
-          disabled={busy}
-          className="flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
-        >
-          <FileText size={15} />
-          {busy ? t("Working…") : t("Download PDF report")}
-        </PressButton>
+      <div className="mt-3 space-y-2.5">
+        <div role="tablist" className="inline-flex rounded-full border border-line p-0.5">
+          {(["week", "month"] as ReportPeriod[]).map((p) => (
+            <button
+              key={p}
+              role="tab"
+              aria-selected={period === p}
+              onClick={() => setPeriod(p)}
+              className={`rounded-full px-3 py-1 text-xs transition ${period === p ? "bg-white/10 font-semibold text-fg" : "text-muted hover:text-fg"}`}
+            >
+              {t(p === "week" ? "Week" : "Month")}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <PressButton
+            onClick={() => void makeReport("pdf")}
+            disabled={busy}
+            className="flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+          >
+            <FileText size={15} />
+            {working === "pdf" ? t("Working…") : t("Download PDF report")}
+          </PressButton>
+          <PressButton
+            onClick={() => void makeReport("story")}
+            disabled={busy}
+            className="flex items-center gap-2 rounded-xl bg-white/10 px-3.5 py-2 text-sm font-medium text-fg transition hover:bg-white/15 disabled:opacity-50"
+          >
+            <Share2 size={15} />
+            {working === "story" ? t("Working…") : t("Share as Story")}
+          </PressButton>
+        </div>
       </div>
 
       {/* Advanced: the raw-data tools most people never need. */}
@@ -305,7 +215,7 @@ export function DataExport() {
         className="mt-3 flex items-center gap-1 text-xs text-muted transition hover:text-fg"
       >
         <ChevronDown size={13} className={advanced ? "rotate-180 transition" : "transition"} />
-        {t("Advanced")}
+        {t("Backup & restore")}
       </button>
       {advanced && (
         <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-line pt-3">

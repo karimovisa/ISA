@@ -83,6 +83,50 @@ export function earliestDate(now = new Date()): string {
     .sort()[0];
 }
 
+/** Raw activity rows, already reduced to local dates. Shared by Progress and the report. */
+export type ActivityRows = {
+  focus: { date: string; min: number }[];
+  habitDates: string[];
+  taskDates: string[];
+  journalDates: string[];
+  runs: { date: string; km: number }[];
+  sleep: { date: string; hours: number }[];
+  prayerDates: string[];
+};
+
+/** Totals inside one window (sleep is an average; null when nothing was logged). */
+export function windowTotals(rows: ActivityRows, w: Window) {
+  const count = (dates: string[]) => dates.filter((d) => inWindow(d, w)).length;
+  const nights = rows.sleep.filter((x) => inWindow(x.date, w) && x.hours > 0);
+  return {
+    focus: rows.focus.filter((f) => inWindow(f.date, w)).reduce((s, f) => s + f.min, 0),
+    habits: count(rows.habitDates),
+    tasks: count(rows.taskDates),
+    journal: new Set(rows.journalDates.filter((d) => inWindow(d, w))).size,
+    running: rows.runs.filter((r) => inWindow(r.date, w)).reduce((s, r) => s + r.km, 0),
+    // "Not logged" isn't "slept badly" — no nights means no sleep figure.
+    sleep: nights.length ? nights.reduce((a, x) => a + Math.min(8, x.hours), 0) / nights.length : null,
+    prayer: count(rows.prayerDates),
+  } satisfies Record<DomainKey, number | null>;
+}
+
+/** The fair comparison for a period straight from rows: per-day rates for sums. */
+export function compareRows(rows: ActivityRows, period: Period, now = new Date()) {
+  const { current, previous } = windowsFor(period, now);
+  const cur = windowTotals(rows, current);
+  const prev = windowTotals(rows, previous);
+  const perDay = (v: number | null, w: Window) => (v == null ? null : v / windowDays(w));
+  const values = Object.fromEntries(
+    (Object.keys(cur) as DomainKey[]).map((k) => [
+      k,
+      k === "sleep"
+        ? { current: cur[k], previous: prev[k] }
+        : { current: perDay(cur[k], current), previous: perDay(prev[k], previous) },
+    ])
+  ) as Record<DomainKey, { current: number | null; previous: number | null }>;
+  return { current, previous, totals: { current: cur, previous: prev }, ...compare(values, period) };
+}
+
 function direction(current: number, previous: number): { changePct: number | null; direction: Direction } {
   if (previous <= 0) return { changePct: null, direction: current > 0 ? "up" : "flat" };
   const pct = Math.round(((current - previous) / previous) * 100);

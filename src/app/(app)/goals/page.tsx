@@ -16,6 +16,7 @@ import { PressButton } from "@/components/ui/PressButton";
 import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialog";
 import { captureLifeEvent } from "@/lib/life-events";
 import { analyzeGoal, type GoalPace, type GoalForecast } from "@/lib/goals";
+import { formatLocalDate } from "@/lib/datetime";
 import { useT } from "@/lib/i18n";
 import type { Goal, GoalMilestone } from "@/lib/types";
 
@@ -270,8 +271,6 @@ function MenuItem({ Icon, label, onClick, danger }: { Icon: typeof Pencil; label
   );
 }
 
-const FORECAST_LOCALE: Record<string, string> = { en: "en-US", uz: "uz-UZ", ru: "ru-RU" };
-
 /** "At this pace you'll finish on 12 December — 5 days before your deadline." */
 function ForecastLine({ forecast, t, lang }: {
   forecast: GoalForecast;
@@ -279,11 +278,8 @@ function ForecastLine({ forecast, t, lang }: {
   lang: string;
 }) {
   if (forecast.kind === "stalled") return <span>{t("Not enough movement to predict yet.")}</span>;
-  const date = forecast.finish.toLocaleDateString(FORECAST_LOCALE[lang] ?? "en-US", {
-    day: "numeric",
-    month: "long",
-    ...(forecast.finish.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {}),
-  });
+  const sameYear = forecast.finish.getFullYear() === new Date().getFullYear();
+  const date = formatLocalDate(forecast.finish, lang, "dayMonth") + (sameYear ? "" : ` ${forecast.finish.getFullYear()}`);
   const d = forecast.vsDeadline;
   return (
     <span>
