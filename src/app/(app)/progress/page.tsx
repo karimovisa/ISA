@@ -10,8 +10,9 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
 import {
-  Sparkles, Lock, Flame, Timer, Target, Repeat, Smile, Footprints,
-  TrendingUp, TrendingDown, Minus, BookOpen, FolderKanban,
+  Sparkles, Lock, Timer, Target, Repeat, Smile, Footprints,
+  TrendingUp, TrendingDown, Minus, BookOpen, FolderKanban, ListChecks, Moon, Sunrise, Hourglass,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
@@ -26,6 +27,10 @@ import { analyzeGoal } from "@/lib/goals";
 import { retrieveTimeline, type TimelineEntry } from "@/lib/memory";
 import { retrieveInsights, type Insight } from "@/lib/insights";
 import { useT } from "@/lib/i18n";
+import {
+  compare, windowsFor, windowDays, inWindow, earliestDate,
+  type Period, type DomainKey, type Verdict, type Window,
+} from "@/lib/progressCompare";
 import type { FocusSession, Project, Goal, JournalEntry, Habit, RunLog } from "@/lib/types";
 
 const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -34,25 +39,24 @@ const dayAgo = (n: number) => ymd(new Date(Date.now() - n * 86400000));
 const pctChange = (now: number, before: number) =>
   before <= 0 ? (now > 0 ? 100 : 0) : Math.round(((now - before) / before) * 100);
 
-/** One consistent metric row: a label, a 0..100 value and a bar. */
-function Meter({ label, value, tone = "bg-fg" }: { label: string; value: number; tone?: string }) {
-  return (
-    <div>
-      <div className="mb-1 flex items-baseline justify-between">
-        <span className="text-xs text-muted">{label}</span>
-        <span className="text-xs font-semibold tabular-nums">{value}%</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
-        <motion.div
-          className={`h-full rounded-full ${tone}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-    </div>
-  );
-}
+// How each area reads in the report card. "sum" areas are compared per day and
+// shown as a total for the window; "avg" areas (sleep) are an average already.
+const AREAS: Record<DomainKey, { label: string; Icon: LucideIcon; kind: "sum" | "avg"; fmt: (v: number) => string }> = {
+  focus: { label: "Focus", Icon: Timer, kind: "sum", fmt: (m) => `${(m / 60).toFixed(1)}h` },
+  habits: { label: "Habits", Icon: Repeat, kind: "sum", fmt: (n) => `${Math.round(n)}` },
+  tasks: { label: "Tasks", Icon: ListChecks, kind: "sum", fmt: (n) => `${Math.round(n)}` },
+  journal: { label: "Journal", Icon: BookOpen, kind: "sum", fmt: (n) => `${Math.round(n)}` },
+  running: { label: "Running", Icon: Footprints, kind: "sum", fmt: (km) => `${km.toFixed(1)} km` },
+  sleep: { label: "Sleep", Icon: Moon, kind: "avg", fmt: (h) => `${h.toFixed(1)}h` },
+  prayer: { label: "Prayer", Icon: Sunrise, kind: "sum", fmt: (n) => `${Math.round(n)}` },
+};
+
+const PERIOD_TAB: Record<Period, string> = { day: "Day", week: "Week", month: "Month" };
+const PERIOD_CAPTION: Record<Period, string> = {
+  day: "Today vs yesterday",
+  week: "Last 7 days vs the 7 before",
+  month: "This month vs the same days last month",
+};
 
 export default function ProgressPage() {
   const { t } = useT();
@@ -66,9 +70,16 @@ export default function ProgressPage() {
   const { runs } = useRuns();
 
   const [habitRate, setHabitRate] = useState(0);
-  const [prevHabitRate, setPrevHabitRate] = useState(0);
   const [moodAvg, setMoodAvg] = useState<number | null>(null);
-  const [energyAvg, setEnergyAvg] = useState<number | null>(null);
+  // The fair period comparison (report card). Rows load once from the earliest
+  // window any period needs; switching Day/Week/Month is then instant.
+  const [period, setPeriod] = useState<Period>("week");
+  const [rows, setRows] = useState<{
+    habitDates: string[];
+    taskDates: string[];
+    sleep: { date: string; hours: number }[];
+    prayerDates: string[];
+  }>({ habitDates: [], taskDates: [], sleep: [], prayerDates: [] });
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [advanced, setAdvanced] = useState<Insight[]>([]);
   // "Now" is captured once after load rather than read during render — render must
@@ -80,10 +91,9 @@ export default function ProgressPage() {
 
   useEffect(() => {
     (async () => {
-      const [{ data: hl }, { data: ml }, { data: es }] = await Promise.all([
-        supabase.from("habit_logs").select("completed,date").gte("date", pwk),
+      const [{ data: hl }, { data: ml }] = await Promise.all([
+        supabase.from("habit_logs").select("completed,date").gte("date", wk),
         supabase.from("mood_logs").select("mood_score,date").gte("date", wk),
-        supabase.from("daily_energy_scores").select("score,date").gte("date", wk),
       ]);
       setNow(Date.now());
       const active = habits.data.filter((h) => h.is_active).length;
@@ -91,18 +101,37 @@ export default function ProgressPage() {
       const done = (from: string, to?: string) =>
         logs.filter((x) => x.completed && x.date >= from && (!to || x.date < to)).length;
       setHabitRate(active ? Math.min(1, done(wk) / (active * 7)) : 0);
-      setPrevHabitRate(active ? Math.min(1, done(pwk, wk) / (active * 7)) : 0);
 
       const moods = ((ml as { mood_score: number }[]) ?? []).map((x) => x.mood_score);
       setMoodAvg(moods.length ? moods.reduce((a, b) => a + b, 0) / moods.length : null);
-      const en = ((es as { score: number }[]) ?? []).map((x) => x.score);
-      setEnergyAvg(en.length ? en.reduce((a, b) => a + b, 0) / en.length : null);
 
       void retrieveTimeline({ limit: 12 }).then(setTimeline);
       if (canUse("deep_analytics")) void retrieveInsights({ source: "advanced", limit: 6 }).then(setAdvanced);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [habits.data.length]);
+
+  useEffect(() => {
+    const since = earliestDate();
+    void Promise.all([
+      supabase.from("habit_logs").select("date").eq("completed", true).gte("date", since),
+      supabase.from("todos").select("date").eq("done", true).gte("date", since),
+      supabase.from("sleep_logs").select("date,duration_hours").gte("date", since),
+      // On time or late both count as prayed; only missed (qazo) doesn't.
+      supabase.from("prayer_logs").select("date").neq("status", "qazo").gte("date", since),
+    ]).then(([h, td, sl, pr]) => {
+      const dates = (r: { data: unknown }) => ((r.data as { date: string }[] | null) ?? []).map((x) => x.date);
+      setRows({
+        habitDates: dates(h),
+        taskDates: dates(td),
+        sleep: ((sl.data as { date: string; duration_hours: number }[] | null) ?? []).map((x) => ({
+          date: x.date,
+          hours: Number(x.duration_hours),
+        })),
+        prayerDates: dates(pr),
+      });
+    });
+  }, []);
 
   // ── Weekly activity (one readable chart) ──
   const days = useMemo(() => {
@@ -140,10 +169,6 @@ export default function ProgressPage() {
   const prevFocusMin = minsIn(pwk, wk);
 
   const journalDays = new Set(journal.data.filter((e) => e.entry_date >= wk).map((e) => e.entry_date)).size;
-  const prevJournalDays = new Set(
-    journal.data.filter((e) => e.entry_date >= pwk && e.entry_date < wk).map((e) => e.entry_date)
-  ).size;
-
   const runWeekKm = runs.filter((r) => r.date >= wk).reduce((s, r) => s + r.km, 0);
   const prevRunKm = runs
     .filter((r) => r.date >= pwk && r.date < wk)
@@ -152,41 +177,75 @@ export default function ProgressPage() {
   const activeGoals = goals.data.filter((g) => !g.archived);
   const goalAvg = activeGoals.length ? activeGoals.reduce((s, g) => s + g.percentage, 0) / activeGoals.length : 0;
 
-  // ── The score: transparent weights, no magic ──
-  const scoreOf = (p: { focus: number; habits: number; journal: number; goals: number; rest: number }) =>
-    Math.round(100 * (0.3 * p.focus + 0.2 * p.habits + 0.15 * p.journal + 0.2 * p.goals + 0.15 * p.rest));
+  // ── The report card: equal windows, per-day rates, a vote across used areas ──
+  const comparison = useMemo(() => {
+    const { current, previous } = windowsFor(period);
+    const count = (dates: string[], w: Window) => dates.filter((d) => inWindow(d, w)).length / windowDays(w);
+    const total = (items: { date: string; v: number }[], w: Window) =>
+      items.filter((i) => inWindow(i.date, w)).reduce((s, i) => s + i.v, 0) / windowDays(w);
+    const focusItems = focus.data.map((f) => ({ date: ymd(new Date(f.created_at)), v: f.duration_seconds / 60 }));
+    const journalDates = [...new Set(journal.data.map((e) => e.entry_date))];
+    const runItems = runs.map((r) => ({ date: r.date, v: r.km }));
+    // "Not logged" isn't "slept badly" — no entries means no sleep comparison.
+    const sleepAvg = (w: Window) => {
+      const s = rows.sleep.filter((x) => inWindow(x.date, w) && x.hours > 0);
+      return s.length ? s.reduce((a, x) => a + Math.min(8, x.hours), 0) / s.length : null;
+    };
+    const pair = (fn: (w: Window) => number | null) => ({ current: fn(current), previous: fn(previous) });
+    return {
+      current,
+      previous,
+      ...compare(
+        {
+          focus: pair((w) => total(focusItems, w)),
+          habits: pair((w) => count(rows.habitDates, w)),
+          tasks: pair((w) => count(rows.taskDates, w)),
+          journal: pair((w) => count(journalDates, w)),
+          running: pair((w) => total(runItems, w)),
+          sleep: pair(sleepAvg),
+          prayer: pair((w) => count(rows.prayerDates, w)),
+        },
+        period
+      ),
+    };
+  }, [period, focus.data, journal.data, runs, rows]);
 
-  const parts = {
-    focus: Math.min(1, weekFocusMin / 300),
-    habits: habitRate,
-    journal: journalDays / 7,
-    goals: goalAvg / 100,
-    rest: energyAvg != null ? energyAvg / 100 : 0.5,
-  };
-  const score = scoreOf(parts);
-  const prevScore = scoreOf({
-    focus: Math.min(1, prevFocusMin / 300),
-    habits: prevHabitRate,
-    journal: prevJournalDays / 7,
-    goals: parts.goals, // a snapshot, not a weekly figure
-    rest: parts.rest,
-  });
-  const delta = score - prevScore;
+  /** A domain's value for display: totals for sums, the average for averages. */
+  const shown = (key: DomainKey, perDay: number, w: Window) =>
+    AREAS[key].fmt(AREAS[key].kind === "sum" ? perDay * windowDays(w) : perDay);
 
-  const LABELS: Record<keyof typeof parts, string> = {
-    focus: t("Focus"),
-    habits: t("Habits"),
-    journal: t("Journal"),
-    goals: t("Goals"),
-    rest: t("Rest"),
+  const n = comparison.domains.length;
+  const VERDICT: Record<Verdict, { text: string; summary: string; Icon: LucideIcon; tone: string }> = {
+    improving: {
+      text: t("Improving"),
+      summary: t("{up} of {n} areas improved", { up: comparison.ups, n }),
+      Icon: TrendingUp,
+      tone: "text-emerald-400",
+    },
+    steady: {
+      text: t("Steady"),
+      summary: t("Holding your level across {n} areas", { n }),
+      Icon: Minus,
+      tone: "text-fg",
+    },
+    softening: {
+      text: t("Softening"),
+      summary: t("{down} of {n} areas dipped — small steps bring them back", { down: comparison.downs, n }),
+      Icon: TrendingDown,
+      tone: "text-amber-400",
+    },
+    in_progress: {
+      text: t("Day in progress"),
+      summary: t("The day isn't over — there's still time to catch up"),
+      Icon: Hourglass,
+      tone: "text-fg",
+    },
   };
-  const ranked = (Object.keys(parts) as (keyof typeof parts)[]).sort((a, b) => parts[b] - parts[a]);
-  const strongest = ranked[0];
-  const weakest = ranked[ranked.length - 1];
+  const verdict = comparison.verdict ? VERDICT[comparison.verdict] : null;
 
   const stats = [
     { Icon: Timer, label: t("Focus / week"), value: `${(weekFocusMin / 60).toFixed(1)}h` },
-    { Icon: Flame, label: t("Momentum"), value: `${score}` },
+    { Icon: TrendingUp, label: t("Areas up"), value: n ? `${comparison.ups}/${n}` : "—" },
     { Icon: Repeat, label: t("Habits"), value: `${Math.round(habitRate * 100)}%` },
     { Icon: Target, label: t("Goal avg"), value: `${Math.round(goalAvg)}%` },
     { Icon: Footprints, label: t("Run / week"), value: `${runWeekKm.toFixed(1)}km` },
@@ -210,58 +269,75 @@ export default function ProgressPage() {
       insights.push(c > 0 ? t("Running is up {n}%.", { n: Math.abs(c) }) : t("Running consistency decreased.", {}));
   }
   if (journalDays >= 4) insights.push(t("Your journaling is steady — that usually predicts a productive week."));
-  if (delta !== 0)
-    insights.push(delta > 0 ? t("Momentum is improving.") : t("Momentum has softened this week."));
   if (insights.length === 0) insights.push(t("Not enough history yet — a couple more weeks and patterns appear."));
 
-  const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-  const trendTone = delta > 0 ? "text-emerald-400" : delta < 0 ? "text-amber-400" : "text-muted";
 
   return (
     <div>
       <PageHeader title="Progress" subtitle="Am I becoming a better version of myself?" />
 
-      {/* 1 — The weekly report card. Life Coverage is the product's one score
-          (Dashboard / What ISA knows); this page shows how the week actually WENT,
-          so it reports movement and areas — never a second competing number. */}
+      {/* 1 — The report card: are you doing better than before? A fair vote across
+          the areas you actually use, over equal windows. Life Coverage stays the
+          product's one score (Dashboard / What ISA knows). */}
       <GlassCard tier="dense" className="mb-4 p-5">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wider text-muted">{t("This week")}</p>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className={`flex items-center gap-1 text-2xl font-bold ${trendTone}`}>
-                <TrendIcon size={20} />
-                {delta > 0
-                  ? t("Improving")
-                  : delta < 0
-                    ? t("Softening")
-                    : t("Steady")}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-muted">{t("vs last week")}</p>
+            <p className="text-xs uppercase tracking-wider text-muted">{t(PERIOD_CAPTION[period])}</p>
+            {verdict ? (
+              <>
+                <span className={`mt-1 flex items-center gap-1.5 text-2xl font-bold ${verdict.tone}`}>
+                  <verdict.Icon size={20} />
+                  {verdict.text}
+                </span>
+                <p className="mt-1 text-xs text-muted">{verdict.summary}</p>
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-muted">{t("No activity to compare yet for this period.")}</p>
+            )}
           </div>
-          <div className="shrink-0 space-y-2 text-right">
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-muted">{t("Strongest")}</p>
-              <p className="text-sm font-semibold text-emerald-300">{LABELS[strongest]}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-muted">{t("Needs improvement")}</p>
-              <p className="text-sm font-semibold text-amber-300">{LABELS[weakest]}</p>
-            </div>
+          <div role="tablist" className="flex rounded-full border border-line p-0.5">
+            {(["day", "week", "month"] as Period[]).map((p) => (
+              <button
+                key={p}
+                role="tab"
+                aria-selected={period === p}
+                onClick={() => setPeriod(p)}
+                className={`rounded-full px-3 py-1 text-xs transition ${
+                  period === p ? "bg-white/10 font-semibold text-fg" : "text-muted hover:text-fg"
+                }`}
+              >
+                {t(PERIOD_TAB[p])}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {(Object.keys(parts) as (keyof typeof parts)[]).map((k) => (
-            <Meter
-              key={k}
-              label={LABELS[k]}
-              value={Math.round(parts[k] * 100)}
-              tone={k === strongest ? "bg-emerald-400" : k === weakest ? "bg-amber-400" : "bg-fg"}
-            />
-          ))}
-        </div>
+        {n > 0 && (
+          <ul className="mt-5 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+            {comparison.domains.map((d) => {
+              const { Icon, label } = AREAS[d.key];
+              const tone =
+                d.direction === "up" ? "text-emerald-400" : d.direction === "down" ? "text-amber-400" : "text-muted";
+              return (
+                <li key={d.key} className="flex items-center gap-3">
+                  <Icon size={15} className="shrink-0 text-muted" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm">{t(label)}</p>
+                    <p className="text-[11px] tabular-nums text-muted">
+                      {shown(d.key, d.current, comparison.current)}
+                      <span className="opacity-60"> · {t("before")} {shown(d.key, d.previous, comparison.previous)}</span>
+                    </p>
+                  </div>
+                  <span className={`shrink-0 text-sm font-semibold tabular-nums ${tone}`}>
+                    {d.changePct == null
+                      ? t("new")
+                      : `${d.changePct > 0 ? "+" : ""}${d.changePct}%`}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </GlassCard>
 
       {/* 2 — Quick stats */}
@@ -288,7 +364,7 @@ export default function ProgressPage() {
           <span className="text-fg/80">{worst?.day}</span>
         </p>
         <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={chart} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+          <AreaChart data={chart} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
             <defs>
               <linearGradient id="wk" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.32} />
