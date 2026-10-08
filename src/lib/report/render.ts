@@ -7,7 +7,8 @@
 import { windowDays, type DomainKey } from "@/lib/progressCompare";
 import { formatSom } from "@/lib/money";
 import { formatLocalDate } from "@/lib/datetime";
-import type { ReportData } from "./data";
+import type { ReportData, ReportPeriod } from "./data";
+import type { DomainResult, Verdict } from "@/lib/progressCompare";
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -24,9 +25,28 @@ const C = {
 const PHOTO = "/themes/dark.webp";
 const LOGO = "/icons/icon-192.png";
 
-const AREA: Record<DomainKey, string> = {
+export const AREA: Record<DomainKey, string> = {
   focus: "Focus", habits: "Habits", tasks: "Tasks", journal: "Journal",
-  running: "Running", sleep: "Sleep", prayer: "Prayer",
+  running: "Running", sleep: "Sleep", prayer: "Prayer", mood: "Mood",
+};
+
+/** Every period-specific phrase in one place. */
+export const PERIOD_COPY: Record<ReportPeriod, {
+  growth: string; slower: string; steady: string; empty: string;
+  word: string; kind: string; mine: string; caption: string;
+}> = {
+  week: {
+    growth: "A week of growth", slower: "A slower week", steady: "A steady week", empty: "Your week in ISA",
+    word: "week", kind: "Weekly report", mine: "My week", caption: "Last 7 days vs the 7 before",
+  },
+  month: {
+    growth: "A month of growth", slower: "A slower month", steady: "A steady month", empty: "Your month in ISA",
+    word: "month", kind: "Monthly report", mine: "My month", caption: "This month vs the same days last month",
+  },
+  year: {
+    growth: "A year of growth", slower: "A slower year", steady: "A steady year", empty: "Your year in ISA",
+    word: "year", kind: "Yearly report", mine: "My year", caption: "This year so far vs the same span last year",
+  },
 };
 
 const esc = (s: unknown) =>
@@ -37,22 +57,23 @@ const esc = (s: unknown) =>
 function periodTitle(d: ReportData, lang: string): string {
   const from = new Date(`${d.current.from}T00:00:00`);
   const to = new Date(`${d.current.to}T00:00:00`);
+  if (d.period === "year") return String(from.getFullYear());
   if (d.period === "month") return formatLocalDate(from, lang, "monthYear");
   return `${formatLocalDate(from, lang, "dayMonthShort")} – ${formatLocalDate(to, lang, "dayMonthShort")}`;
 }
 
 function verdictCopy(d: ReportData, t: T): { title: string; color: string; summary: string } {
   const n = d.domains.length;
-  const week = d.period === "week";
+  const P = PERIOD_COPY[d.period];
   switch (d.verdict) {
     case "improving":
-      return { title: t(week ? "A week of growth" : "A month of growth"), color: C.up, summary: t("{up} of {n} areas improved", { up: d.ups, n }) };
+      return { title: t(P.growth), color: C.up, summary: t("{up} of {n} areas improved", { up: d.ups, n }) };
     case "softening":
-      return { title: t(week ? "A slower week" : "A slower month"), color: C.down, summary: t("{down} of {n} areas dipped — small steps bring them back", { down: d.downs, n }) };
+      return { title: t(P.slower), color: C.down, summary: t("{down} of {n} areas dipped — small steps bring them back", { down: d.downs, n }) };
     case "steady":
-      return { title: t(week ? "A steady week" : "A steady month"), color: C.fg, summary: t("Holding your level across {n} areas", { n }) };
+      return { title: t(P.steady), color: C.fg, summary: t("Holding your level across {n} areas", { n }) };
     default:
-      return { title: t(week ? "Your week in ISA" : "Your month in ISA"), color: C.fg, summary: t("No activity to compare yet for this period.") };
+      return { title: t(P.empty), color: C.fg, summary: t("No activity to compare yet for this period.") };
   }
 }
 
@@ -77,14 +98,16 @@ function headline(d: ReportData, t: T) {
     { key: "journal", value: `${c.journal}`, label: t("Journal days"), has: c.journal > 0 },
     { key: "prayer", value: `${c.prayer}`, label: t("Prayers"), has: c.prayer > 0 },
     { key: "sleep", value: c.sleep != null ? `${c.sleep.toFixed(1)}${t("h")}` : "—", label: t("Avg sleep"), has: c.sleep != null },
+    { key: "mood", value: c.mood != null ? `${c.mood.toFixed(1)}/5` : "—", label: t("Avg mood"), has: c.mood != null },
   ];
   const withData = all.filter((s) => s.has);
   return (withData.length >= 4 ? withData : all).slice(0, 4);
 }
 
-function nextFocus(d: ReportData, t: T): string {
+/** ISA's one-line note for the next period — shared by the report and Progress. */
+export function isaNote(d: { domains: DomainResult[]; verdict: Verdict | null; period: ReportPeriod | "day" }, t: T): string {
   const weakest = d.domains.filter((x) => x.direction === "down").sort((a, b) => (a.changePct ?? 0) - (b.changePct ?? 0))[0];
-  const period = t(d.period === "week" ? "week" : "month");
+  const period = t(d.period === "day" ? "day" : PERIOD_COPY[d.period].word);
   if (weakest) return t("Next {period}: give {area} a little more room — one small step a day is enough.", { period, area: t(AREA[weakest.key]).toLowerCase() });
   if (d.verdict === "improving") return t("Next {period}: keep the rhythm that worked — don't add, protect it.", { period });
   return t("Next {period}: pick one area and give it ten minutes a day.", { period });
@@ -114,7 +137,7 @@ const footer = (page: number, total: number, t: T) =>
 
 function pdfPages(d: ReportData, t: T, lang: string): string {
   const v = verdictCopy(d, t);
-  const kind = t(d.period === "week" ? "Weekly report" : "Monthly report");
+  const kind = t(PERIOD_COPY[d.period].kind);
   const gain = d.domains.filter((x) => x.direction === "up" && x.changePct != null).sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0))[0];
 
   const tiles = headline(d, t)
@@ -136,7 +159,7 @@ function pdfPages(d: ReportData, t: T, lang: string): string {
       const w = Math.min(50, Math.abs(pct) / 2);
       const color = r.direction === "up" ? C.up : r.direction === "down" ? C.down : C.muted;
       const fmt = (v: number, n: number) =>
-        r.key === "sleep" ? `${v.toFixed(1)}${t("h")}` : r.key === "focus" ? `${((v * n) / 60).toFixed(1)}${t("h")}` : r.key === "running" ? `${(v * n).toFixed(1)} km` : `${Math.round(v * n)}`;
+        r.key === "sleep" ? `${v.toFixed(1)}${t("h")}` : r.key === "mood" ? `${v.toFixed(1)}/5` : r.key === "focus" ? `${((v * n) / 60).toFixed(1)}${t("h")}` : r.key === "running" ? `${(v * n).toFixed(1)} km` : `${Math.round(v * n)}`;
       return `<div style="display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid ${C.line}">
         <div style="width:120px;font-size:14px">${esc(t(AREA[r.key]))}</div>
         <div style="width:150px;font-size:12px" class="muted">${esc(fmt(r.current, days))} · ${esc(t("before"))} ${esc(fmt(r.previous, prevDays))}</div>
@@ -168,7 +191,7 @@ function pdfPages(d: ReportData, t: T, lang: string): string {
       </div>
       <div style="display:flex;gap:12px;margin-top:28px">${tiles}</div>
       <div style="margin-top:34px">
-        <div class="cap" style="margin-bottom:6px">${esc(t(d.period === "week" ? "Last 7 days vs the 7 before" : "This month vs the same days last month"))}</div>
+        <div class="cap" style="margin-bottom:6px">${esc(t(PERIOD_COPY[d.period].caption))}</div>
         ${areaRows || `<div class="muted" style="font-size:14px;padding:12px 0">${esc(t("No activity to compare yet for this period."))}</div>`}
       </div>
     </div>
@@ -259,7 +282,7 @@ function pdfPages(d: ReportData, t: T, lang: string): string {
       </div>
       <div style="margin-top:26px;border-left:2px solid ${C.accent};padding:4px 0 4px 18px">
         <div class="cap" style="margin-bottom:8px">${esc(t("ISA's note"))}</div>
-        <div style="font-size:17px;line-height:1.55">${esc(nextFocus(d, t))}</div>
+        <div style="font-size:17px;line-height:1.55">${esc(isaNote(d, t))}</div>
       </div>
     </div>
     ${footer(2, 2, t)}
@@ -288,7 +311,7 @@ function storyHtml(d: ReportData, t: T, lang: string): string {
     <div style="position:relative;padding:110px 90px 0">
       <div style="display:flex;justify-content:space-between;align-items:center">
         ${brand(64)}
-        <span style="font-size:24px;letter-spacing:0.18em;text-transform:uppercase;border:2px solid rgba(245,240,232,0.3);border-radius:999px;padding:12px 28px">${esc(t(d.period === "week" ? "My week" : "My month"))}</span>
+        <span style="font-size:24px;letter-spacing:0.18em;text-transform:uppercase;border:2px solid rgba(245,240,232,0.3);border-radius:999px;padding:12px 28px">${esc(t(PERIOD_COPY[d.period].mine))}</span>
       </div>
       <div style="margin-top:120px;font-size:44px;color:rgba(245,240,232,0.75)">${esc(periodTitle(d, lang))}</div>
       <div style="margin-top:14px;font-size:96px;font-weight:700;letter-spacing:-0.035em;line-height:1.02;color:${v.color}">${esc(v.title)}</div>

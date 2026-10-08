@@ -5,10 +5,10 @@
 // across areas, so the user can see exactly why ("4 of 5 areas improved").
 // Pure functions — the Progress page loads the rows and renders the result.
 
-export type Period = "day" | "week" | "month";
+export type Period = "day" | "week" | "month" | "year";
 export type Window = { from: string; to: string }; // inclusive local yyyy-mm-dd
 
-export type DomainKey = "focus" | "habits" | "tasks" | "journal" | "running" | "sleep" | "prayer";
+export type DomainKey = "focus" | "habits" | "tasks" | "journal" | "running" | "sleep" | "prayer" | "mood";
 export type Direction = "up" | "down" | "flat";
 export type Verdict = "improving" | "steady" | "softening" | "in_progress";
 
@@ -55,6 +55,15 @@ export function windowsFor(period: Period, now = new Date()): { current: Window;
       previous: { from: ymd(addDays(today, -13)), to: ymd(addDays(today, -7)) },
     };
   }
+  if (period === "year") {
+    // Year to date vs the same span of last year (Feb 29 → Feb 28).
+    const y = today.getFullYear();
+    const lastYearSameDay = new Date(y - 1, today.getMonth(), Math.min(today.getDate(), new Date(y - 1, today.getMonth() + 1, 0).getDate()));
+    return {
+      current: { from: ymd(new Date(y, 0, 1)), to: ymd(today) },
+      previous: { from: ymd(new Date(y - 1, 0, 1)), to: ymd(lastYearSameDay) },
+    };
+  }
   // Month to date vs the same number of days at the start of last month.
   const dayOfMonth = today.getDate();
   const prevStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -92,9 +101,12 @@ export type ActivityRows = {
   runs: { date: string; km: number }[];
   sleep: { date: string; hours: number }[];
   prayerDates: string[];
+  mood: { date: string; score: number }[]; // 1..5
 };
 
 /** Totals inside one window (sleep is an average; null when nothing was logged). */
+const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+
 export function windowTotals(rows: ActivityRows, w: Window) {
   const count = (dates: string[]) => dates.filter((d) => inWindow(d, w)).length;
   const nights = rows.sleep.filter((x) => inWindow(x.date, w) && x.hours > 0);
@@ -107,6 +119,7 @@ export function windowTotals(rows: ActivityRows, w: Window) {
     // "Not logged" isn't "slept badly" — no nights means no sleep figure.
     sleep: nights.length ? nights.reduce((a, x) => a + Math.min(8, x.hours), 0) / nights.length : null,
     prayer: count(rows.prayerDates),
+    mood: avg(rows.mood.filter((m) => inWindow(m.date, w)).map((m) => m.score)),
   } satisfies Record<DomainKey, number | null>;
 }
 
@@ -119,7 +132,7 @@ export function compareRows(rows: ActivityRows, period: Period, now = new Date()
   const values = Object.fromEntries(
     (Object.keys(cur) as DomainKey[]).map((k) => [
       k,
-      k === "sleep"
+      k === "sleep" || k === "mood" // averages already
         ? { current: cur[k], previous: prev[k] }
         : { current: perDay(cur[k], current), previous: perDay(prev[k], previous) },
     ])

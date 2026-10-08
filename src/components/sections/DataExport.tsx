@@ -177,7 +177,7 @@ export function DataExport() {
 
       <div className="mt-3 space-y-2.5">
         <div role="tablist" className="inline-flex rounded-full border border-line p-0.5">
-          {(["week", "month"] as ReportPeriod[]).map((p) => (
+          {(["week", "month", "year"] as ReportPeriod[]).map((p) => (
             <button
               key={p}
               role="tab"
@@ -185,7 +185,7 @@ export function DataExport() {
               onClick={() => setPeriod(p)}
               className={`rounded-full px-3 py-1 text-xs transition ${period === p ? "bg-white/10 font-semibold text-fg" : "text-muted hover:text-fg"}`}
             >
-              {t(p === "week" ? "Week" : "Month")}
+              {t(p === "week" ? "Week" : p === "month" ? "Month" : "Year")}
             </button>
           ))}
         </div>

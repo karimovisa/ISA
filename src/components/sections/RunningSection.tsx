@@ -20,6 +20,7 @@ import { fieldClass } from "@/components/ui/Modal";
 import { connectStrava, syncStrava } from "@/lib/stravaClient";
 import { toast } from "@/lib/toast";
 import { useT } from "@/lib/i18n";
+import { inWindow, ymd, type Window } from "@/lib/progressCompare";
 import {
   insightsOf,
   last7Of,
@@ -38,7 +39,12 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-export function RunningSection() {
+/** Optional: follow the Progress page's period instead of the Mon–Sun week. */
+export type RunPeriod = { current: Window; previous: Window; label: string };
+
+const runDay = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? d : ymd(new Date(d)));
+
+export function RunningSection({ period }: { period?: RunPeriod } = {}) {
   const { t } = useT();
   // Manual runs (always available).
   const manual = useCollection<RunLog>("runs", {
@@ -124,6 +130,11 @@ export function RunningSection() {
   }, [strava, manual.data]);
 
   const ins = insightsOf(runs);
+  // In step with the page's period: the same windows as the report card above.
+  const kmIn = (w: Window) => runs.filter((r) => inWindow(runDay(r.date), w)).reduce((s, r) => s + r.distance_km, 0);
+  const periodKm = period ? kmIn(period.current) : ins.thisWeekKm;
+  const prevKm = period ? kmIn(period.previous) : ins.lastWeekKm;
+  const trend = prevKm > 0 ? Math.round(((periodKm - prevKm) / prevKm) * 100) : null;
   const chart = last7Of(runs);
 
   // Accept a comma decimal too (uz/ru keyboards show "," not "."), e.g. "8,08".
@@ -192,21 +203,11 @@ export function RunningSection() {
 
         {/* Insights */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat label={t("This week")} value={`${ins.thisWeekKm} km`} />
+          <Stat label={period ? period.label : t("This week")} value={`${periodKm.toFixed(1)} km`} />
           <Stat
-            label={t("vs last week")}
-            value={
-              ins.weekTrendPct === null
-                ? "—"
-                : `${ins.weekTrendPct > 0 ? "+" : ""}${ins.weekTrendPct}%`
-            }
-            tone={
-              ins.weekTrendPct === null
-                ? undefined
-                : ins.weekTrendPct >= 0
-                  ? "text-emerald-300"
-                  : "text-red-300"
-            }
+            label={t(period ? "vs before" : "vs last week")}
+            value={trend === null ? (periodKm > 0 ? t("new") : "—") : `${trend > 0 ? "+" : ""}${trend}%`}
+            tone={trend === null ? (periodKm > 0 ? "text-emerald-300" : undefined) : trend >= 0 ? "text-emerald-300" : "text-red-300"}
           />
           <Stat label={t("Avg pace")} value={`${ins.avgPace} /km`} />
           <Stat label={t("Longest")} value={`${ins.longestKm} km`} />
