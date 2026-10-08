@@ -25,6 +25,7 @@ import { ReviewsCard } from "@/components/sections/ReviewsCard";
 import { useEntitlements } from "@/components/EntitlementProvider";
 import { analyzeGoal } from "@/lib/goals";
 import { retrieveTimeline, type TimelineEntry } from "@/lib/memory";
+import { pruneOrphans } from "@/lib/life-events/forget";
 import { retrieveInsights, type Insight } from "@/lib/insights";
 import { useT } from "@/lib/i18n";
 import {
@@ -105,7 +106,19 @@ export default function ProgressPage() {
       const moods = ((ml as { mood_score: number }[]) ?? []).map((x) => x.mood_score);
       setMoodAvg(moods.length ? moods.reduce((a, b) => a + b, 0) / moods.length : null);
 
-      void retrieveTimeline({ limit: 12 }).then(setTimeline);
+      // Traces of things deleted before ISA learned to forget them are swept once
+      // a day, so a deleted goal never reappears in the Life Timeline.
+      void (async () => {
+        const key = "isa_orphans_swept";
+        const stamp = new Date().toDateString();
+        let swept = false;
+        try { swept = localStorage.getItem(key) === stamp; } catch { /* ignore */ }
+        if (!swept) {
+          await pruneOrphans();
+          try { localStorage.setItem(key, stamp); } catch { /* ignore */ }
+        }
+        setTimeline(await retrieveTimeline({ limit: 12 }));
+      })();
       if (canUse("deep_analytics")) void retrieveInsights({ source: "advanced", limit: 6 }).then(setAdvanced);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

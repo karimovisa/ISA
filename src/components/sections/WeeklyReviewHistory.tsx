@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PressButton } from "@/components/ui/PressButton";
 import type { WeeklyReview } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 function thisMonday(): string {
   const now = new Date();
@@ -15,9 +16,13 @@ function thisMonday(): string {
   return m.toISOString().slice(0, 10);
 }
 
+const VISIBLE = 3; // the latest few; the rest stay folded
+
 export function WeeklyReviewHistory() {
+  const { t } = useT();
   const [reviews, setReviews] = useState<WeeklyReview[]>([]);
   const [busy, setBusy] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -66,7 +71,7 @@ export function WeeklyReviewHistory() {
           </p>
         ) : (
           <ul className="space-y-3">
-            {reviews.map((r) => (
+            {(showAll ? reviews : reviews.slice(0, VISIBLE)).map((r) => (
               <li
                 key={r.id}
                 className="flex items-center justify-between border-t border-line pt-3 text-sm first:border-0 first:pt-0"
@@ -89,6 +94,14 @@ export function WeeklyReviewHistory() {
               </li>
             ))}
           </ul>
+        )}
+        {reviews.length > VISIBLE && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="mt-4 w-full rounded-xl border border-line py-2 text-xs text-muted transition hover:text-fg"
+          >
+            {showAll ? t("Show less") : t("Show {n} more", { n: reviews.length - VISIBLE })}
+          </button>
         )}
       </GlassCard>
     </motion.div>

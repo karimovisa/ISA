@@ -18,6 +18,7 @@ import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialo
 import { ProjectTasks } from "@/components/sections/ProjectTasks";
 import { useT } from "@/lib/i18n";
 import { captureLifeEvent } from "@/lib/life-events";
+import { forgetEntity } from "@/lib/life-events/forget";
 import { PROJECT_STATUSES, statusMeta, projectHealth, HEALTH_META, prepareProjectMeta, normalizeStatus } from "@/lib/projects";
 import { formatDeadline } from "@/lib/datetime";
 import type { Project, ProjectStatus, ProjectTask, ProjectNote, ProjectRelationship, Goal } from "@/lib/types";
@@ -116,7 +117,10 @@ export default function ProjectsPage() {
       body: t("This removes the project and its steps. It can't be undone."),
       confirmLabel: t("Delete"),
       danger: true,
-      onConfirm: () => projects.remove(p.id),
+      onConfirm: async () => {
+        await projects.remove(p.id);
+        void forgetEntity("project", p.id, p.title);
+      },
     });
 
   const visible = useMemo(() => {

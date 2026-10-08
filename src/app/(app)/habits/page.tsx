@@ -26,6 +26,7 @@ import { useT } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { todayISO, formatDate } from "@/lib/datetime";
 import { captureLifeEvent } from "@/lib/life-events";
+import { forgetEntity } from "@/lib/life-events/forget";
 import type { Habit, Reminder, HabitFrequency, HabitCompletionType, Goal, Todo, TaskPriority } from "@/lib/types";
 import { topSuggestion, suggestionKey, timeInsightFor, type Suggestion, type HabitLogLite, type TimeInsight } from "@/lib/habitCoach";
 
@@ -376,7 +377,10 @@ export default function HabitsPage() {
       body: t("This removes the habit and its whole history. It can't be undone."),
       confirmLabel: t("Delete"),
       danger: true,
-      onConfirm: () => habits.remove(h.id),
+      onConfirm: async () => {
+        await habits.remove(h.id);
+        void forgetEntity("habit", h.id, h.name);
+      },
     });
 
   const habitModal = (

@@ -17,6 +17,7 @@ import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialo
 import { formatSom, financeGoalStatus } from "@/lib/money";
 import { useT } from "@/lib/i18n";
 import { captureLifeEvent } from "@/lib/life-events";
+import { forgetEntity } from "@/lib/life-events/forget";
 import type { FinanceGoal } from "@/lib/types";
 
 type Draft = {
@@ -202,7 +203,7 @@ export function MoneyGoals({ monthlyNet = 0 }: { monthlyNet?: number }) {
                   <div className="mt-2 flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100">
                     <button onClick={() => openEdit(g)} className="rounded-lg p-1.5 text-muted transition hover:text-fg"><Pencil size={14} /></button>
                     <button
-                      onClick={() => setConfirmReq({ title: t('Delete "{name}"?', { name: g.name }), confirmLabel: t("Delete"), danger: true, onConfirm: () => remove(g.id) })}
+                      onClick={() => setConfirmReq({ title: t('Delete "{name}"?', { name: g.name }), confirmLabel: t("Delete"), danger: true, onConfirm: async () => { await remove(g.id); void forgetEntity("financeGoal", g.id, g.name); } })}
                       className="rounded-lg p-1.5 text-muted transition hover:text-red-400"
                     >
                       <Trash2 size={14} />

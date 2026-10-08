@@ -17,6 +17,7 @@ import { ConfirmDialog, type ConfirmRequest } from "@/components/ui/ConfirmDialo
 import { captureLifeEvent } from "@/lib/life-events";
 import { analyzeGoal, type GoalPace, type GoalForecast } from "@/lib/goals";
 import { formatLocalDate } from "@/lib/datetime";
+import { forgetEntity } from "@/lib/life-events/forget";
 import { useT } from "@/lib/i18n";
 import type { Goal, GoalMilestone } from "@/lib/types";
 
@@ -103,7 +104,10 @@ export default function GoalsPage() {
       body: t("This removes the goal and its milestones. It can't be undone."),
       confirmLabel: t("Delete"),
       danger: true,
-      onConfirm: () => goals.remove(g.id),
+      onConfirm: async () => {
+        await goals.remove(g.id);
+        void forgetEntity("goal", g.id, g.title);
+      },
     });
   };
 
