@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Plus, Trash2, ListTodo, Bell, Flag, CalendarDays } from "lucide-react";
+import { Check, Plus, Trash2, Bell, Flag, CalendarDays } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useCollection } from "@/hooks/useCollection";
-import { GlassCard } from "@/components/ui/GlassCard";
 import { Modal, primaryBtnClass } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
 import { ReminderFields, ReminderToggle, ALL_DAYS } from "@/components/ui/ReminderFields";
@@ -116,12 +115,10 @@ export function TodoList() {
     );
 
   return (
-    <GlassCard className="p-6">
+    <div>
+      {/* Content, not a card — the Dashboard's sections share one quiet heading style. */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ListTodo size={18} className="text-muted" />
-          <h3 className="text-sm font-medium">{t("Today's to-do")}</h3>
-        </div>
+        <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-muted">{t("Today's to-do")}</h2>
         <div className="flex items-center gap-2">
           {todayItems.length + doneToday.length > 0 && <span className="text-xs tabular-nums text-muted">{doneToday.length}/{todayItems.length + doneToday.length}</span>}
           <button onClick={() => setRemOpen(true)} aria-label="To-do reminder"
@@ -130,7 +127,7 @@ export function TodoList() {
       </div>
 
       {todayItems.length + doneToday.length > 0 && (
-        <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
           <motion.div className="h-full rounded-full bg-fg" initial={false} animate={{ width: `${pct}%` }} transition={{ duration: 0.4 }} />
         </div>
       )}
@@ -140,7 +137,7 @@ export function TodoList() {
       {group(t("Upcoming"), upcoming)}
       {doneToday.length > 0 && group(t("Completed"), doneToday)}
 
-      <form onSubmit={add} className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+      <form onSubmit={add} className="mt-2 flex items-center gap-2 pt-1">
         <button type="button" onClick={() => setPriority((p) => PRIORITY_CYCLE[(PRIORITY_CYCLE.indexOf(p) + 1) % 3])}
           title={`Priority: ${priority}`} className="shrink-0 rounded-lg p-1.5 text-muted transition hover:text-fg">
           <Flag size={14} className={priority === "high" ? "text-red-400" : priority === "low" ? "text-white/30" : "text-muted"} />
@@ -178,7 +175,7 @@ export function TodoList() {
           <PressButton type="submit" disabled={saving} className={primaryBtnClass}>{saving ? "Saving…" : "Save"}</PressButton>
         </form>
       </Modal>
-    </GlassCard>
+    </div>
   );
 }
 

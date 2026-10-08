@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TodayTimeline } from "@/components/sections/TodayTimeline";
 import { Modal, fieldClass, labelClass, primaryBtnClass } from "@/components/ui/Modal";
 import { PressButton } from "@/components/ui/PressButton";
 import { ReminderToggle } from "@/components/ui/ReminderFields";
@@ -134,6 +135,9 @@ export default function CalendarPage() {
   return (
     <div>
       <PageHeader title="Calendar" subtitle="The visual timeline of your life — moods, milestones, momentum." />
+
+      {/* Today's timed plan (moved here from the Dashboard, which is now a daily ritual) */}
+      <TodayTimeline className="mb-4" />
 
       <GlassCard className="p-5 sm:p-6">
         <div className="mb-5 flex items-center justify-between">
